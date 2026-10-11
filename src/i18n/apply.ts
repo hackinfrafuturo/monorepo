@@ -55,12 +55,12 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     progress: { label: 'Progress', text: (n, total) => `Step ${n} of ${total}` },
     size: {
       title: 'How many of you?',
-      hint: 'Teams of 2 to 4. No solo teams, no teams of 5.',
-      people: (n) => `${n} people`,
+      hint: 'Apply solo or with a team of up to 4. No teams of 5.',
+      people: (n) => `${n} ${n === 1 ? 'person' : 'people'}`,
     },
     member: {
       title: (n, total) => `Person ${n} of ${total}`,
-      hintFirst: 'Start with you. Then the rest of the team.',
+      hintFirst: 'Start with your details.',
       hintNext: 'Now the next person on the team.',
       fallback: (n) => `Person ${n}`,
     },
@@ -160,12 +160,12 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     progress: { label: 'Progreso', text: (n, total) => `Paso ${n} de ${total}` },
     size: {
       title: '¿Cuántos son?',
-      hint: 'Equipos de 2 a 4 personas. No hay equipos solos ni de 5.',
-      people: (n) => `${n} personas`,
+      hint: 'Postula solo o con un equipo de hasta 4 personas. No hay equipos de 5.',
+      people: (n) => `${n} ${n === 1 ? 'persona' : 'personas'}`,
     },
     member: {
       title: (n, total) => `Persona ${n} de ${total}`,
-      hintFirst: 'Empieza por ti. Después, el resto del equipo.',
+      hintFirst: 'Empieza con tus datos.',
       hintNext: 'Ahora, la siguiente persona del equipo.',
       fallback: (n) => `Persona ${n}`,
     },

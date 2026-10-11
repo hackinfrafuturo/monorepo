@@ -25,13 +25,13 @@ export const HOME_META: Record<
   en: {
     title: 'Infrastructure Hackathon — The biggest hackathon in Chile',
     description:
-      'An infrastructure hackathon in Santiago, 7–8 Nov 2026. Devtools and agents. Teams of 2 to 4, application only.',
+      'An infrastructure hackathon in Santiago, 7–8 Nov 2026. Devtools and agents. Apply solo or in a team of up to 4.',
     ogLocale: 'en_US',
   },
   es: {
     title: 'Infrastructure Hackathon — La hackathon más grande de Chile',
     description:
-      'Una hackathon de infraestructura en Santiago, 7 y 8 de noviembre de 2026. Devtools y agentes. Equipos de 2 a 4, solo por postulación.',
+      'Una hackathon de infraestructura en Santiago, 7 y 8 de noviembre de 2026. Devtools y agentes. Postula solo o en un equipo de hasta 4.',
     ogLocale: 'es_CL',
   },
 }
@@ -43,13 +43,13 @@ export const APPLY_META: Record<
   en: {
     title: 'Register your team — Infrastructure Hackathon',
     description:
-      'Register a team of 2 to 4 for the Infrastructure Hackathon, 7–8 Nov 2026 in Santiago. Application only.',
+      'Apply solo or in a team of up to 4 for the Infrastructure Hackathon, 7–8 Nov 2026 in Santiago.',
     ogLocale: 'en_US',
   },
   es: {
     title: 'Inscribe tu equipo — Infrastructure Hackathon',
     description:
-      'Inscribe un equipo de 2 a 4 personas para la Infrastructure Hackathon, 7 y 8 de noviembre de 2026 en Santiago. Solo por postulación.',
+      'Postula solo o en un equipo de hasta 4 personas a la Infrastructure Hackathon, 7 y 8 de noviembre de 2026 en Santiago.',
     ogLocale: 'es_CL',
   },
 }

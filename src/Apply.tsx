@@ -326,7 +326,7 @@ export default function Apply() {
                   className="m-0 min-w-0 border-0 p-0"
                 >
                   <Fieldset.Legend className="sr-only">{t.size.title}</Fieldset.Legend>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     {TEAM_SIZES.map((n, i) => (
                       <Radio.Root
                         key={n}
