@@ -101,11 +101,11 @@ const siteSchema = z
   .overwrite(cleanSite)
   .refine((value) => value === '' || validSite(value), { error: 'site' })
 
-const [two, three, four] = TEAM_SIZES
+const [one, two, three, four] = TEAM_SIZES
 
 /** Accepts the empty choice (`null`) so the field can hold it, then rejects it. */
 export const teamSizeSchema = z
-  .union([z.literal(two), z.literal(three), z.literal(four), z.null()])
+  .union([z.literal(one), z.literal(two), z.literal(three), z.literal(four), z.null()])
   .refine((value): value is TeamSize => value != null, { error: 'required' })
 
 const memberCleanSchema = z.object({

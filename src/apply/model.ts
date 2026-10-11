@@ -1,6 +1,6 @@
-export const TEAM_MIN = 2
+export const TEAM_MIN = 1
 export const TEAM_MAX = 4
-export const TEAM_SIZES = [2, 3, 4] as const
+export const TEAM_SIZES = [1, 2, 3, 4] as const
 export type TeamSize = (typeof TEAM_SIZES)[number]
 
 export const GENDERS = ['woman', 'man', 'nonbinary', 'other', 'skip'] as const

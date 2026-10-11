@@ -51,7 +51,7 @@ export const submit = mutation({
   returns: v.null(),
   handler: async (ctx, { members, ref }) => {
     if (members.length < TEAM_MIN || members.length > TEAM_MAX) {
-      throw new ConvexError('Team must be 2 to 4 people')
+      throw new ConvexError('Team must be 1 to 4 people')
     }
 
     const checked = checkTeam(members, members.length)

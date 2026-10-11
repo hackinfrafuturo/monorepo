@@ -26,7 +26,7 @@ Read on a laptop, often forwarded in Slack or email. One URL per page; language 
 
 ## Capabilities and Constraints
 
-- Facts that may be stated: 7–8 nov 2026, Santiago, 24 hours, ~500 participants, teams of 2–4, application-based selection, three proposed tracks, evaluation criteria, sponsor tiers (bronze / silver / gold) without prices, $10k already raised, contact benjamin@velum-labs.com and LinkedIn.
+- Facts that may be stated: 7–8 nov 2026, Santiago, 24 hours, solo participants or teams of up to 4, ~500 participants, application-based selection, three proposed tracks, evaluation criteria, sponsor tiers (bronze / silver / gold) without prices, $10k already raised, contact benjamin@velum-labs.com and LinkedIn.
 - Do not invent venue address, prize pool, ticket prices, sponsor logos, named judges, or a full agenda.
 - Keep the English casual, direct, and human, matching the original Spanish tone.
 

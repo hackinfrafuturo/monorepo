@@ -76,7 +76,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     stuckBody:
       'Public data nobody can query, internal processes nobody can run, and tools that never make it into production.',
     facts:
-      'On 7–8 Nov 2026 in Santiago, around 500 people will spend 24 hours tackling that. Teams of 2 to 4. Application only.',
+      'On 7–8 Nov 2026 in Santiago, around 500 people will spend 24 hours tackling that. Apply solo or in a team of up to 4. Application only.',
     handLabel: 'A hand moving, drawn in ASCII.',
     orgs: {
       velum: 'AI startup, Chilean founders. First into YC in almost three years.',
@@ -93,7 +93,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       },
       {
         q: 'Who can take part?',
-        a: 'Teams of 2 to 4 people. No solo teams, no teams of 5. We expect around 500 people in total.',
+        a: 'You can apply solo or in a team of up to 4 people. No teams of 5. We expect around 500 people in total.',
       },
       {
         q: 'How do I get in?',
@@ -132,7 +132,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     stuckBody:
       'Datos públicos que nadie puede consultar, procesos internos que nadie puede correr, y herramientas que nunca llegan a producción.',
     facts:
-      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Equipos de 2 a 4. Solo por postulación.',
+      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Solo por postulación.',
     handLabel: 'Una mano en movimiento, dibujada en ASCII.',
     orgs: {
       velum: 'Startup de IA, founders chilenos. Los primeros en entrar a YC en casi tres años.',
@@ -149,7 +149,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       },
       {
         q: '¿Quién puede participar?',
-        a: 'Equipos de 2 a 4 personas. No hay equipos solos ni de 5. Esperamos unas 500 personas en total.',
+        a: 'Puedes postular solo o en un equipo de hasta 4 personas. No hay equipos de 5. Esperamos unas 500 personas en total.',
       },
       {
         q: '¿Cómo entro?',
@@ -187,7 +187,7 @@ export const messages: Record<Locale, Messages> = {
     whyRest:
       'Public data nobody can query, company processes nobody can run, tools that never make it out.',
     whyBody:
-      'On 7–8 Nov 2026 in Santiago, about 500 people will spend 24 hours on that. Teams of 2–4. You apply to get in.',
+      'On 7–8 Nov 2026 in Santiago, about 500 people will spend 24 hours on that. Apply solo or in a team of up to 4. You apply to get in.',
     statsLabel: 'Numbers',
     stats: [
       { value: '24', label: 'Hours' },
@@ -306,7 +306,7 @@ export const messages: Record<Locale, Messages> = {
     whyRest:
       'Datos públicos que nadie puede consultar, procesos de empresa que nadie puede correr, herramientas que nunca salen.',
     whyBody:
-      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Equipos de 2 a 4. Se entra por postulación.',
+      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Se entra por postulación.',
     statsLabel: 'Números',
     stats: [
       { value: '24', label: 'Horas' },
