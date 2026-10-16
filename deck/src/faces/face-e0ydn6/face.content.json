@@ -1,0 +1,70 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "Who is behind this"
+    },
+    "cards": {
+      "type": "table",
+      "title": "cards",
+      "columns": [
+        {
+          "key": "title",
+          "title": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "title": "Description",
+          "type": "text"
+        },
+        {
+          "key": "logo",
+          "title": "Logo",
+          "type": "image"
+        },
+        {
+          "key": "photo",
+          "title": "Photo",
+          "type": "image"
+        }
+      ],
+      "rows": [
+        {
+          "id": "f1",
+          "title": "Velum Labs (YC P26)",
+          "description": "AI infrastructure company backed by <strong>Y Combinator</strong>, founded by ex-<strong>Stanford</strong> and <strong>Minerva</strong> students from Chile.",
+          "logo": {
+            "src": "/images/orgs/velum.webp"
+          },
+          "photo": {
+            "src": "/images/press/velum-press.jpg"
+          }
+        },
+        {
+          "id": "f2",
+          "title": "indies.cl",
+          "description": "Chile's largest tech entrepreneurship community. Ran a <strong>five-country hackathon</strong> and the largest AI education event for non-technical people.",
+          "logo": {
+            "src": "/images/orgs/indies.webp"
+          },
+          "photo": {
+            "src": "/images/press/indies-press.jpg"
+          }
+        },
+        {
+          "id": "f3",
+          "title": "Alianza Emprende",
+          "description": "Every university entrepreneurship club in the country, from business to engineering. Collaborated with <strong>Corfo</strong>, the government agency for national economic growth.",
+          "logo": {
+            "src": "/images/orgs/ae.webp"
+          },
+          "photo": {
+            "src": "/images/press/alianza-press.jpg"
+          }
+        }
+      ]
+    }
+  }
+}

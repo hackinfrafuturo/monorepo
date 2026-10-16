@@ -1,0 +1,56 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "How the 24 hours run"
+    },
+    "steps": {
+      "type": "table",
+      "title": "steps",
+      "columns": [
+        {
+          "key": "title",
+          "title": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "title": "Description",
+          "type": "text"
+        },
+        {
+          "key": "image",
+          "title": "Image",
+          "type": "image"
+        }
+      ],
+      "rows": [
+        {
+          "id": "s1",
+          "title": "Live challenge kickoff",
+          "description": "Teams pick problem tracks and connect to <strong>sponsor APIs</strong>.",
+          "image": {
+            "src": "https://d6yvfl55smr7u.cloudfront.net/assets/os8o534v-1792011563351-generated-image.png"
+          }
+        },
+        {
+          "id": "s2",
+          "title": "Sprint and workshops",
+          "description": "Build through the night with <strong>on-site mentors</strong> and catering.",
+          "image": {
+            "src": "https://d6yvfl55smr7u.cloudfront.net/assets/tlcpfrhq-1792011563961-generated-image.png"
+          }
+        },
+        {
+          "id": "s3",
+          "title": "Live stage demos",
+          "description": "Finalists present working software to <strong>500 engineers and investors</strong>.",
+          "image": {
+            "src": "https://d6yvfl55smr7u.cloudfront.net/assets/fihicmmp-1792011563303-generated-image.png"
+          }
+        }
+      ]
+    }
+  }
+}

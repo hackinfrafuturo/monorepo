@@ -1,0 +1,14 @@
+
+.bp-grid-overlay {
+  background-image:
+    linear-gradient(rgba(179, 127, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(179, 127, 255, 0.1) 1px, transparent 1px);
+  background-size:
+    120px 120px,
+    120px 120px;
+}
+
+.bp-photo {
+  filter: grayscale(1) contrast(1.15) brightness(0.9);
+}
+

@@ -27,3 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Deck sub-app artifacts
+/deck/.deck-shots/

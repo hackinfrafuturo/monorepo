@@ -19,6 +19,10 @@ Deployments are managed by Vercel from the `main` branch.
 
 Live: [hackinfrafuturo.cl](https://hackinfrafuturo.cl)
 
+## Deck
+
+The sponsor deck lives in the `deck/` workspace package and is served at [hackinfrafuturo.cl/deck](https://hackinfrafuturo.cl/deck). It keeps its own Vite + Tailwind stack: `pnpm build` includes it in the main `dist/deck/` output, and `pnpm dev:deck` runs it locally. It is also deployed standalone to [deck.indies.la](https://deck.indies.la) via Cloudflare from `deck/dist`.
+
 ## Application referral links
 
 Add a plain-text `ref` query parameter to a shared link, for example

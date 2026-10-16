@@ -1,0 +1,62 @@
+{
+  "layout": "STACKED",
+  "tokens": {
+    "palette": [
+      {
+        "name": "--background",
+        "value": "#1a0933"
+      },
+      {
+        "name": "--surface",
+        "value": "#140727"
+      },
+      {
+        "name": "--overlay",
+        "value": "#0e041c"
+      },
+      {
+        "name": "--foreground",
+        "value": "#f6f0ff"
+      },
+      {
+        "name": "--accent",
+        "value": "#b37fff"
+      },
+      {
+        "name": "--accent-soft",
+        "value": "#d8b4fe"
+      },
+      {
+        "name": "--muted",
+        "value": "#a396c6"
+      },
+      {
+        "name": "--label",
+        "value": "#c49eff"
+      },
+      {
+        "name": "--note",
+        "value": "#e2b8ff"
+      }
+    ],
+    "fonts": [
+      {
+        "name": "--font-body",
+        "family": "Inter"
+      },
+      {
+        "name": "--font-heading",
+        "family": "Geist Pixel Circle"
+      },
+      {
+        "name": "--font-accent",
+        "family": "Caveat"
+      }
+    ]
+  },
+  "slidesDisplay": "CARDS",
+  "stackedOrientation": "HORIZONTAL",
+  "cardsBackgroundColor": "#16082b",
+  "cardsCorners": "SQUARE",
+  "mobileCanvas": "COMPACT"
+}

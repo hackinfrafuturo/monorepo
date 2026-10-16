@@ -1,0 +1,44 @@
+{
+  "faces": [
+    {
+      "id": "face-0qe3rf",
+      "name": "Intro",
+      "hidden": false
+    },
+    {
+      "id": "face-saep1y",
+      "name": "The Event & For Whom",
+      "hidden": false
+    },
+    {
+      "id": "face-e0ydn6",
+      "name": "Who's Behind This",
+      "hidden": false
+    },
+    {
+      "id": "face-aqhoq4",
+      "name": "Inside The Event",
+      "hidden": false
+    },
+    {
+      "id": "face-nilv7t",
+      "name": "Earlier This Year",
+      "hidden": false
+    },
+    {
+      "id": "face-lb9xuh",
+      "name": "Why Sponsor",
+      "hidden": false
+    },
+    {
+      "id": "face-qrrz9g",
+      "name": "Packages",
+      "hidden": false
+    },
+    {
+      "id": "face-7j2yi8",
+      "name": "Contact",
+      "hidden": false
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "Sponsorship tiers"
+    },
+    "description": {
+      "type": "text",
+      "title": "description",
+      "content": "<strong>Higher tiers include all benefits from earlier tiers.</strong> Custom prize tracks and dedicated cloud credits available on request."
+    },
+    "plan1": {
+      "type": "text",
+      "title": "plan1",
+      "content": "Bronze"
+    },
+    "plan2": {
+      "type": "text",
+      "title": "plan2",
+      "content": "Silver"
+    },
+    "plan3": {
+      "type": "text",
+      "title": "plan3",
+      "content": "Gold"
+    },
+    "rows": {
+      "type": "table",
+      "title": "rows",
+      "columns": [
+        {
+          "key": "feature",
+          "title": "Feature",
+          "type": "text"
+        },
+        {
+          "key": "col1",
+          "title": "Bronze",
+          "type": "text"
+        },
+        {
+          "key": "col2",
+          "title": "Silver",
+          "type": "text"
+        },
+        {
+          "key": "col3",
+          "title": "Gold",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "feature": "Logo on website, stage banner, and materials",
+          "col1": "✓",
+          "col2": "✓",
+          "col3": "✓"
+        },
+        {
+          "id": "r2",
+          "feature": "Direct introductions to teams",
+          "col1": "✓",
+          "col2": "✓",
+          "col3": "✓"
+        },
+        {
+          "id": "r3",
+          "feature": "Dedicated technical workshop or keynote",
+          "col1": "",
+          "col2": "✓",
+          "col3": "✓"
+        },
+        {
+          "id": "r4",
+          "feature": "Prize category and judging seat",
+          "col1": "",
+          "col2": "✓",
+          "col3": "✓"
+        },
+        {
+          "id": "r5",
+          "feature": "Exclusive track ownership with custom challenge",
+          "col1": "",
+          "col2": "",
+          "col3": "✓"
+        },
+        {
+          "id": "r6",
+          "feature": "Direct access to participant directory and project repos",
+          "col1": "",
+          "col2": "",
+          "col3": "✓"
+        }
+      ]
+    }
+  }
+}

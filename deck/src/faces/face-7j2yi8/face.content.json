@@ -1,0 +1,24 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "Partner with us"
+    },
+    "subtitle": {
+      "type": "text",
+      "title": "subtitle",
+      "content": "Join us as a <strong>track sponsor, API provider, or prize partner</strong>. We work with your technical team to integrate your tools and design custom challenge tracks."
+    },
+    "email": {
+      "type": "text",
+      "title": "email",
+      "content": "benjamin@velum-labs.com"
+    },
+    "meta": {
+      "type": "text",
+      "title": "meta",
+      "content": "November 7-8, 2026 · Nido Lucía, San Isidro 85, Santiago, Chile"
+    }
+  }
+}

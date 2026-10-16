@@ -1,0 +1,65 @@
+{
+  "blocks": {
+    "numbers": {
+      "type": "table",
+      "title": "numbers",
+      "columns": [
+        {
+          "key": "value",
+          "title": "Value",
+          "type": "text"
+        },
+        {
+          "key": "unit",
+          "title": "Unit",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "n1",
+          "value": "24",
+          "unit": "hours"
+        },
+        {
+          "id": "n2",
+          "value": "500",
+          "unit": "people"
+        }
+      ]
+    },
+    "claims": {
+      "type": "table",
+      "title": "claims",
+      "columns": [
+        {
+          "key": "text",
+          "title": "Text",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "c1",
+          "text": "The <strong>best engineers</strong> in the country"
+        },
+        {
+          "id": "c2",
+          "text": "The <strong>biggest hackathon</strong> ever made"
+        },
+        {
+          "id": "c3",
+          "text": "<strong>AI agents and dev tools</strong> for real systems"
+        },
+        {
+          "id": "c4",
+          "text": "The <strong>densest talent area</strong> in the country"
+        },
+        {
+          "id": "c5",
+          "text": "Same building as <strong>Start-Up Chile and Startuplabs.01</strong>"
+        }
+      ]
+    }
+  }
+}

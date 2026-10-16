@@ -3,6 +3,9 @@
 @import '@fontsource/ia-writer-quattro/700.css';
 @import 'tailwindcss';
 
+/* The deck sub-app ships its own Tailwind v3 build; keep it out of ours. */
+@source not "../deck";
+
 /* Geist Pixel Circle — OFL-1.1, The Geist Project Authors */
 @font-face {
   font-family: 'Geist Pixel Circle';

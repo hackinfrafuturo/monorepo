@@ -1,0 +1,14 @@
+{
+  "controls": {
+    "highlightPlan": {
+      "type": "selector",
+      "options": [
+        "None",
+        "Bronze",
+        "Silver",
+        "Gold"
+      ],
+      "value": "Gold"
+    }
+  }
+}

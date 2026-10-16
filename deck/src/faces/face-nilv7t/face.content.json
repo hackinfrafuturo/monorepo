@@ -1,0 +1,95 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "Our last hackathon"
+    },
+    "stats": {
+      "type": "table",
+      "title": "stats",
+      "columns": [
+        {
+          "key": "value",
+          "type": "text"
+        },
+        {
+          "key": "label",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "s1",
+          "value": "87",
+          "label": "teams competing from around the world"
+        },
+        {
+          "id": "s2",
+          "value": "1,200",
+          "label": "applicants from across the globe"
+        },
+        {
+          "id": "s3",
+          "value": "90,000",
+          "label": "people reached by one project on Instagram"
+        }
+      ]
+    },
+    "photos": {
+      "type": "table",
+      "title": "photos",
+      "columns": [
+        {
+          "key": "src",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "p1",
+          "src": "/images/latam/latam-1.avif"
+        },
+        {
+          "id": "p2",
+          "src": "/images/latam/latam-guatemala.avif"
+        },
+        {
+          "id": "p4",
+          "src": "/images/latam/latam-2.avif"
+        },
+        {
+          "id": "p5",
+          "src": "/images/latam/latam-3.avif"
+        },
+        {
+          "id": "p6",
+          "src": "/images/latam/latam-5.avif"
+        },
+        {
+          "id": "p7",
+          "src": "/images/latam/latam-6.avif"
+        },
+        {
+          "id": "p8",
+          "src": "/images/latam/debri-net.jpeg"
+        }
+      ]
+    },
+    "video": {
+      "type": "image",
+      "title": "video",
+      "src": "/images/latam/hack-latam.mp4"
+    },
+    "winners": {
+      "type": "text",
+      "title": "winners",
+      "content": "Winning teams from <strong>Peru</strong>, <strong>Argentina</strong>, and <strong>Chile</strong> tackled landslides, corruption, and space debris."
+    },
+    "sponsors": {
+      "type": "text",
+      "title": "sponsors",
+      "content": "Sponsored by <strong>Mistral</strong>, <strong>OpenRouter</strong>, <strong>v0</strong>, <strong>SoftServe</strong>, <strong>Kairos</strong>, <strong>Faces</strong>, and <strong>Make.com</strong>."
+    }
+  }
+}

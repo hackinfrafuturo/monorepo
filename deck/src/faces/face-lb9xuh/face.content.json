@@ -1,0 +1,47 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "title",
+      "content": "Why sponsor"
+    },
+    "items": {
+      "type": "table",
+      "title": "items",
+      "columns": [
+        {
+          "key": "title",
+          "title": "Title",
+          "type": "text"
+        },
+        {
+          "key": "note",
+          "title": "Note",
+          "type": "text"
+        }
+      ],
+      "rows": [
+        {
+          "id": "r5",
+          "title": "You set the challenge",
+          "note": "Define <strong>a real problem from your roadmap</strong>. Teams in your track compete to solve it on your stack."
+        },
+        {
+          "id": "r2",
+          "title": "Meet your next hires",
+          "note": "Face time with <strong>the best engineers in the country</strong>, and see their work firsthand."
+        },
+        {
+          "id": "r1",
+          "title": "Deep developer usage",
+          "note": "Teams build on <strong>your APIs, models, and libraries</strong> for 24 hours."
+        },
+        {
+          "id": "r3",
+          "title": "Real infrastructure prototypes",
+          "note": "Teams build functional integrations for <strong>enterprise and public workflows</strong> on your platform."
+        }
+      ]
+    }
+  }
+}
