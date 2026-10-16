@@ -30,3 +30,6 @@ dist-ssr
 
 # Deck sub-app artifacts
 /deck/.deck-shots/
+
+# Verification screenshots
+.deck-shots/
