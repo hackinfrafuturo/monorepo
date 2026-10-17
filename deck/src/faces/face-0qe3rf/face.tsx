@@ -76,18 +76,38 @@ export default function ImageOverlayCoverFace() {
         </motion.div>
       </motion.div>
 
-      {/* Subtitle bottom-left */}
+      {/* Event details and a small sponsor signature along the bottom edge */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 1, delay: 0.4, ease: EASE }}
-        className="absolute bottom-6 left-6 @xl:bottom-12 @xl:left-16 pr-6"
+        className="absolute bottom-6 inset-x-6 @xl:bottom-12 @xl:inset-x-16 flex flex-col @xl:flex-row @xl:items-end @xl:justify-between gap-6 @xl:gap-12"
       >
         <TextContent
           content={blocks.subtitle.content}
-          className="text-muted text-base @xl:text-3xl font-normal leading-snug [&_strong]:text-foreground [&_strong]:font-heading"
+          className="min-w-0 text-muted text-base @xl:text-3xl font-normal leading-snug [&_strong]:text-foreground [&_strong]:font-heading"
           data-content-keys={["subtitle"]}
         />
+        <div className="cover-sponsors shrink-0 self-end" aria-label="Event sponsors">
+          <TextContent
+            content={blocks.sponsorsLabel.content}
+            className="mb-2 @xl:mb-4 text-muted text-[10px] @xl:text-lg"
+            data-content-keys={["sponsorsLabel"]}
+          />
+          <div className="flex items-center gap-5 @xl:gap-8">
+            {blocks.sponsors.rows.map((sponsor, index) => (
+              <img
+                key={sponsor.id}
+                src={`${import.meta.env.BASE_URL}${sponsor.image.src}`}
+                alt={sponsor.name}
+                width={sponsor.image.width}
+                height={sponsor.image.height}
+                className={`block h-auto object-contain ${sponsor.id === "firecrawl" ? "w-[96px] @xl:w-[140px]" : "w-[132px] @xl:w-[190px]"}`}
+                data-content-keys={`sponsors.rows.${index}.image`}
+              />
+            ))}
+          </div>
+        </div>
       </motion.div>
     </div>
   );

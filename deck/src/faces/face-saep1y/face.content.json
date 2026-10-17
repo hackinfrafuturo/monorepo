@@ -18,15 +18,25 @@
       "rows": [
         {
           "id": "n1",
-          "value": "24",
+          "value": "29",
           "unit": "hours"
         },
         {
           "id": "n2",
           "value": "500",
           "unit": "people"
+        },
+        {
+          "id": "n3",
+          "value": "$10k",
+          "unit": "cash prizes"
         }
       ]
+    },
+    "prizeNote": {
+      "type": "text",
+      "title": "Additional participant benefits",
+      "content": "Plus AI credits for participants"
     },
     "claims": {
       "type": "table",

@@ -37,7 +37,7 @@ export default function EventStatsFace() {
       />
 
       {/* Headline numbers */}
-      <div className="relative shrink-0 flex flex-wrap items-baseline gap-x-8 gap-y-2 @xl:gap-x-16">
+      <div className="relative shrink-0 grid grid-cols-3 gap-x-3 @xl:flex @xl:items-baseline @xl:gap-x-16">
         {numbers.map((number, index) => (
           <motion.div
             key={number.id}
@@ -48,9 +48,9 @@ export default function EventStatsFace() {
               delay: 0.15 + index * 0.15,
               ease: EASE,
             }}
-            className={`flex items-baseline gap-3 @xl:gap-5 ${
+            className={`flex flex-col @xl:flex-row @xl:items-baseline gap-2 @xl:gap-5 ${
               index > 0
-                ? "pl-8 @xl:pl-16 border-l-2 border-dashed border-accent/50"
+                ? "pl-3 @xl:pl-16 border-l-2 border-dashed border-accent/50"
                 : ""
             }`}
           >
@@ -58,18 +58,24 @@ export default function EventStatsFace() {
               value={number.value}
               active={inView}
               delay={0.35 + index * 0.15}
-              className="font-heading font-bold text-foreground leading-none text-6xl @xl:text-[150px]"
+              className="font-heading font-bold text-foreground leading-none text-4xl @xl:text-[150px]"
               style={{ letterSpacing: "-0.02em" }}
             />
             <TextContent
               as="span"
               content={number.unit}
-              className="font-heading text-muted text-2xl @xl:text-4xl"
+              className="font-heading text-muted text-sm @xl:text-4xl"
               data-content-keys={[`numbers.rows.${index}.unit`]}
             />
           </motion.div>
         ))}
       </div>
+
+      <TextContent
+        content={blocks.prizeNote.content}
+        className="relative mt-4 @xl:mt-5 shrink-0 text-muted text-sm @xl:text-2xl"
+        data-content-keys={["prizeNote"]}
+      />
 
       {/* Claims: each line rises from behind its hairline */}
       <div className="relative flex-1 min-h-0 flex flex-col justify-center">

@@ -8,12 +8,37 @@
     "subtitle": {
       "type": "text",
       "title": "subtitle",
-      "content": "<strong>Hack Infra Futuro</strong> · November 7-8, 2026 · Nido Lucía, Santiago<br><strong>500 engineers</strong> building production infrastructure for autonomous agents"
+      "content": "<strong>Hack Infra Futuro</strong> · Saturday–Sunday, dates to be confirmed · Nido Lucía, Santiago<br><strong>500 engineers</strong> building production infrastructure for autonomous agents"
     },
     "heroImage": {
       "type": "image",
       "title": "heroImage",
       "src": "/images/NIDO-LUCIA.jpg"
+    },
+    "sponsorsLabel": {
+      "type": "text",
+      "title": "Sponsor label",
+      "content": "Sponsors"
+    },
+    "sponsors": {
+      "type": "table",
+      "title": "Sponsors",
+      "columns": [
+        { "key": "name", "title": "Name", "type": "text" },
+        { "key": "image", "title": "Logo", "type": "image" }
+      ],
+      "rows": [
+        {
+          "id": "firecrawl",
+          "name": "Firecrawl",
+          "image": { "src": "images/sponsors/firecrawl.svg", "width": 172, "height": 40 }
+        },
+        {
+          "id": "wispr-flow",
+          "name": "Wispr Flow",
+          "image": { "src": "images/sponsors/wispr-flow.png", "width": 2420, "height": 391 }
+        }
+      ]
     }
   }
 }

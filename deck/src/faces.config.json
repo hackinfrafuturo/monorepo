@@ -21,6 +21,11 @@
       "hidden": false
     },
     {
+      "id": "face-agenda",
+      "name": "Tentative Event Schedule",
+      "hidden": false
+    },
+    {
       "id": "face-nilv7t",
       "name": "Earlier This Year",
       "hidden": false

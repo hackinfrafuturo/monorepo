@@ -6,6 +6,7 @@ import Face0qe3rfFace from "@/faces/face-0qe3rf/face";
 import Facesaep1yFace from "@/faces/face-saep1y/face";
 import Facee0ydn6Face from "@/faces/face-e0ydn6/face";
 import Faceaqhoq4Face from "@/faces/face-aqhoq4/face";
+import AgendaFace from "@/faces/face-agenda/face";
 import Facenilv7tFace from "@/faces/face-nilv7t/face";
 import Facelb9xuhFace from "@/faces/face-lb9xuh/face";
 import Faceqrrz9gFace from "@/faces/face-qrrz9g/face";
@@ -14,6 +15,7 @@ import "@/faces/face-0qe3rf/face.css";
 import "@/faces/face-saep1y/face.css";
 import "@/faces/face-e0ydn6/face.css";
 import "@/faces/face-aqhoq4/face.css";
+import "@/faces/face-agenda/face.css";
 import "@/faces/face-nilv7t/face.css";
 import "@/faces/face-lb9xuh/face.css";
 import "@/faces/face-qrrz9g/face.css";
@@ -26,6 +28,7 @@ export const componentMap = {
   "face-saep1y": Facesaep1yFace,
   "face-e0ydn6": Facee0ydn6Face,
   "face-aqhoq4": Faceaqhoq4Face,
+  "face-agenda": AgendaFace,
   "face-nilv7t": Facenilv7tFace,
   "face-lb9xuh": Facelb9xuhFace,
   "face-qrrz9g": Faceqrrz9gFace,

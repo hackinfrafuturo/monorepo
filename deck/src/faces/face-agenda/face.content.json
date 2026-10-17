@@ -1,0 +1,133 @@
+{
+  "blocks": {
+    "title": {
+      "type": "text",
+      "title": "Title",
+      "content": "Tentative event schedule"
+    },
+    "subtitle": {
+      "type": "text",
+      "title": "Days and time zone",
+      "content": "Saturday to Sunday · Dates to be confirmed · Santiago time"
+    },
+    "saturdayTitle": {
+      "type": "text",
+      "title": "Saturday heading",
+      "content": "Saturday"
+    },
+    "saturdayHours": {
+      "type": "text",
+      "title": "Saturday start time",
+      "content": "From 12:00 pm"
+    },
+    "saturday": {
+      "type": "table",
+      "title": "Saturday schedule",
+      "columns": [
+        { "key": "time", "title": "Time", "type": "text" },
+        { "key": "activity", "title": "Activity", "type": "text" },
+        { "key": "detail", "title": "Details", "type": "text" }
+      ],
+      "rows": [
+        {
+          "id": "arrival",
+          "time": "12:00 pm",
+          "activity": "Arrival and welcome lunch",
+          "detail": ""
+        },
+        {
+          "id": "opening",
+          "time": "1:00 pm",
+          "activity": "Opening and team organization",
+          "detail": "Event rules and how judges will evaluate projects."
+        },
+        {
+          "id": "talks",
+          "time": "1:30–2:30 pm",
+          "activity": "Two guest talks",
+          "detail": "CENIA (Chile’s National Center for Artificial Intelligence) and a second guest. Speakers and topics to be confirmed."
+        },
+        {
+          "id": "building",
+          "time": "2:30 pm",
+          "activity": "Teams start their projects",
+          "detail": "Mentors are available to help. Work continues overnight."
+        },
+        {
+          "id": "dinner",
+          "time": "8:00 pm",
+          "activity": "Dinner",
+          "detail": ""
+        }
+      ]
+    },
+    "sundayTitle": {
+      "type": "text",
+      "title": "Sunday heading",
+      "content": "Sunday"
+    },
+    "sundayHours": {
+      "type": "text",
+      "title": "Sunday end time",
+      "content": "Until 5:00 pm"
+    },
+    "sunday": {
+      "type": "table",
+      "title": "Sunday schedule",
+      "columns": [
+        { "key": "time", "title": "Time", "type": "text" },
+        { "key": "activity", "title": "Activity", "type": "text" },
+        { "key": "detail", "title": "Details", "type": "text" }
+      ],
+      "rows": [
+        {
+          "id": "late-night-food",
+          "time": "2:00 am",
+          "activity": "Late-night catering",
+          "detail": ""
+        },
+        {
+          "id": "breakfast",
+          "time": "8:00 am",
+          "activity": "Breakfast and project work",
+          "detail": ""
+        },
+        {
+          "id": "submission-briefing",
+          "time": "10:30 am",
+          "activity": "How to submit and present",
+          "detail": ""
+        },
+        {
+          "id": "submission-deadline",
+          "time": "12:00 pm",
+          "activity": "Project submission deadline",
+          "detail": "Lunch and presentation preparation until 1 pm."
+        },
+        {
+          "id": "presentations",
+          "time": "1:00–3:30 pm",
+          "activity": "Project presentations and judging",
+          "detail": "Judges visit teams at their tables to see their projects."
+        },
+        {
+          "id": "deliberation",
+          "time": "3:30–4:00 pm",
+          "activity": "Judges select the winners",
+          "detail": ""
+        },
+        {
+          "id": "awards",
+          "time": "4:00–5:00 pm",
+          "activity": "Awards ceremony and closing",
+          "detail": ""
+        }
+      ]
+    },
+    "note": {
+      "type": "text",
+      "title": "Tentative schedule notice",
+      "content": "Proposed schedule. Dates, times, speakers, and activities are subject to confirmation."
+    }
+  }
+}
