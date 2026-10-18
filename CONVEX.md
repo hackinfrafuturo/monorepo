@@ -2,7 +2,16 @@
 
 The form sends a team through `submitTeam` in `src/apply/submit.ts`. That calls the `applications.submit` mutation in `convex/applications.ts`.
 
-The mutation stores one `applications` row for the team and one `members` row per person. Same email, or same GitHub when they gave one, is rejected. There is no public query for these rows. Read them in the Convex dashboard, on the Data page.
+The mutation stores one `applications` row for the team and one `members` row per person. Same email, or same GitHub when they gave one, is rejected. Read them in the Convex dashboard, on the Data page.
+
+## Read-only API
+
+`convex/http.ts` exposes two bearer-token-protected GET endpoints:
+
+- `/api/applicants/count` returns `{ "submissions": number, "applicants": number }`.
+- `/api/participants?numItems=100&cursor=<cursor>` returns `{ "page": [...], "isDone": boolean, "continueCursor": "..." }`. Omit `cursor` for the first page and pass the returned `continueCursor` to fetch the next page. `numItems` defaults to 100 and must be from 1 to 500.
+
+Both endpoints require `Authorization: Bearer <CONVEX_HTTP_API_TOKEN>`. The participants endpoint returns participants' application answers, so keep the token private. Store it in the gitignored `.env.local` and set the same variable on the selected Convex deployment before calling the endpoints. From a shell in which `.env.local` is sourced, run `pnpm exec convex env set CONVEX_HTTP_API_TOKEN "$CONVEX_HTTP_API_TOKEN"`.
 
 `VITE_CONVEX_URL` must be present at build time. Without it, the form shows its retry state and preserves the draft instead of claiming that the team was saved.
 

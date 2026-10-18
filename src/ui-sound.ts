@@ -12,8 +12,10 @@ const unlock = () => {
   unlocked = true
   void ensureReady()
 }
-window.addEventListener('pointerdown', unlock, { once: true, capture: true })
-window.addEventListener('keydown', unlock, { once: true, capture: true })
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', unlock, { once: true, capture: true })
+  window.addEventListener('keydown', unlock, { once: true, capture: true })
+}
 
 /** Crisp `hover` on mouse enter, `tap` on click. Spread onto the element. */
 export const uiSound = {
