@@ -107,7 +107,9 @@ export default function Home() {
   const [locale, setLocale] = useLocale()
   const t = homeMessages[locale]
   const next = otherLocale(locale)
-  const applicationUrl = applyHref(window.location.search)
+  const applicationUrl = applyHref(
+    typeof window === 'undefined' ? '' : window.location.search,
+  )
 
   useLayoutEffect(() => {
     document.documentElement.lang = htmlLang(locale)

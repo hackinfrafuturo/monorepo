@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:embedded": "vite build --base=/deck/ --outDir ../dist/deck --emptyOutDir",
+    "build:embedded": "vite build --base=/deck/ --outDir ../.output/public/deck --emptyOutDir",
     "preview": "vite preview"
   },
   "dependencies": {
