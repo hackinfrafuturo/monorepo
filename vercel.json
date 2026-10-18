@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "tanstack-start",
-  "buildCommand": "if [ \"$VERCEL_ENV\" = production ]; then VITE_CONVEX_URL=https://polite-spider-810.convex.cloud pnpm build; else pnpm build; fi"
+  "buildCommand": "if [ \"$VERCEL_ENV\" = production ]; then VITE_CONVEX_URL=https://polite-spider-810.convex.cloud pnpm build; else VITE_CONVEX_URL=https://greedy-gecko-110.convex.cloud pnpm build; fi"
 }
