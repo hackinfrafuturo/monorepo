@@ -29,7 +29,9 @@ export default defineSchema({
     submittedAt: v.number(),
     size: v.number(),
     ref: v.optional(v.string()),
-  }).index('by_ref', ['ref']),
+  })
+    .index('by_ref', ['ref'])
+    .index('by_submittedAt', ['submittedAt']),
   members: defineTable({
     applicationId: v.id('applications'),
     ...memberValidator.fields,
