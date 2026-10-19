@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite dev",
     "dev:deck": "pnpm --filter deck dev",
-    "build": "tsc -b && vite build && pnpm --filter deck run build:embedded",
+    "build": "tsc -b && pnpm --filter deck run build:embedded && vite build",
     "lint": "oxlint",
     "preview": "node .output/server/index.mjs",
     "start": "node .output/server/index.mjs"

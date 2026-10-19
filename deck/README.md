@@ -11,11 +11,11 @@ Run from the repository root:
 ```bash
 pnpm install
 pnpm dev:deck                 # deck dev server
-pnpm build                    # main site build + embedded deck into dist/deck/
+pnpm build                    # embedded deck + main Nitro site build
 pnpm --filter deck run build  # standalone build for Cloudflare (outputs deck/dist)
 ```
 
-`build:embedded` compiles the deck with `--base=/deck/` into the main site's `dist/deck/`. The root build also copies `deck/public/images` to `dist/images`, because slide content references images with root-relative paths that Vite cannot rewrite.
+`build:embedded` compiles the deck with `--base=/deck/` into `deck/dist/` before the main site's Nitro build. Nitro registers that directory at `/deck` and `deck/public/images` at `/images`, because slide content also references images with root-relative paths. These assets must exist before Nitro builds its asset manifest and deployment output; copying them into `.output/public` afterward leaves them out of the deployed site. Nitro writes them into `.output/public` locally and `.vercel/output/static` on Vercel.
 
 ## Project structure
 
