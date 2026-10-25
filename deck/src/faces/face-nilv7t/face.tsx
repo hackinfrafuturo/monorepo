@@ -1,7 +1,7 @@
-import "./face.css";
 import React, { useRef } from "react";
 import { motion, useInView } from "motion/react";
-import { blocks } from "./face.content.json";
+import { blocks as sourceBlocks } from "./face.content.json";
+import { useLocalized } from "@/i18n/use-localized";
 import { TextContent } from "@/components/ui/text-content";
 import CountUpStat from "@/components/ui/count-up-stat";
 
@@ -77,6 +77,7 @@ function DroppedVideo({
 }
 
 export default function RecapFace() {
+  const blocks = useLocalized(sourceBlocks);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.35, once: true });
 
@@ -86,7 +87,7 @@ export default function RecapFace() {
   return (
     <div
       ref={ref}
-      className="relative w-full h-full overflow-hidden bp-grid text-foreground font-body flex flex-col px-6 py-6 @xl:px-16 @xl:py-12"
+      className="relative w-full h-full overflow-hidden bg-background text-foreground font-body flex flex-col px-6 py-6 @xl:px-16 @xl:py-12"
     >
       {/* Title */}
       <motion.div

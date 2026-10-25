@@ -1,19 +1,21 @@
 import "./face.css";
 import { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
-import { blocks } from "./face.content.json";
+import { blocks as sourceBlocks } from "./face.content.json";
+import { useLocalized } from "@/i18n/use-localized";
 import { TextContent } from "@/components/ui/text-content";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const DAYS = ["saturday", "sunday"] as const;
 
 export default function AgendaFace() {
+  const blocks = useLocalized(sourceBlocks);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.3 });
   const reducedMotion = useReducedMotion();
 
   return (
-    <div ref={ref} className="agenda-face bp-grid font-body text-foreground">
+    <div ref={ref} className="agenda-face bg-background font-body text-foreground">
       <motion.header
         initial={reducedMotion ? false : { opacity: 0, y: 14 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}

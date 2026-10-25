@@ -75,8 +75,14 @@ export default function CountUpStat({
   }, [active, value]);
 
   return (
-    <span className={className} style={style}>
-      {display}
+    <span
+      className={`relative inline-block whitespace-nowrap align-baseline ${className ?? ""}`}
+      style={style}
+    >
+      <span className="invisible" aria-hidden="true">
+        {value}
+      </span>
+      <span className="absolute inset-0">{display}</span>
     </span>
   );
 }

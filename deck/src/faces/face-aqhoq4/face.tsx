@@ -1,7 +1,8 @@
 import "./face.css";
 import React, { useRef } from "react";
 import { motion, useInView } from "motion/react";
-import { blocks } from "./face.content.json";
+import { blocks as sourceBlocks } from "./face.content.json";
+import { useLocalized } from "@/i18n/use-localized";
 import { TextContent } from "@/components/ui/text-content";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -12,13 +13,13 @@ function StepPhoto({ src }: { src: string }) {
       <img src={src} alt="" className="bp-photo w-full h-full object-cover" />
       <div className="absolute inset-0 bg-accent mix-blend-multiply" />
       <div className="absolute inset-0 bg-background mix-blend-screen" />
-      <div className="bp-grid-overlay absolute inset-0" />
       <div className="absolute inset-0 bg-overlay/30" />
     </div>
   );
 }
 
 export default function HowItWorksFace() {
+  const blocks = useLocalized(sourceBlocks);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.3 });
 
@@ -35,7 +36,7 @@ export default function HowItWorksFace() {
   return (
     <div
       ref={ref}
-      className="relative w-full h-full overflow-hidden bp-grid font-body flex flex-col px-6 py-6 @xl:px-16 @xl:py-12"
+      className="relative w-full h-full overflow-hidden bg-background font-body flex flex-col px-6 py-6 @xl:px-16 @xl:py-12"
     >
       {/* Title */}
       <motion.div

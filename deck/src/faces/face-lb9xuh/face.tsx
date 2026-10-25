@@ -1,12 +1,13 @@
-import "./face.css";
 import React, { useRef } from "react";
 import { motion, useInView } from "motion/react";
-import { blocks } from "./face.content.json";
+import { blocks as sourceBlocks } from "./face.content.json";
+import { useLocalized } from "@/i18n/use-localized";
 import { TextContent } from "@/components/ui/text-content";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export default function AgendaFace() {
+  const blocks = useLocalized(sourceBlocks);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.3 });
 
@@ -15,7 +16,7 @@ export default function AgendaFace() {
   return (
     <div
       ref={ref}
-      className="relative w-full h-full overflow-hidden bp-grid text-foreground font-body flex flex-col px-6 py-8 @xl:px-16 @xl:py-14"
+      className="relative w-full h-full overflow-hidden bg-background text-foreground font-body flex flex-col px-6 py-8 @xl:px-16 @xl:py-14"
     >
       {/* Header */}
       <motion.div
