@@ -1,5 +1,7 @@
 import React from "react";
 import { Agentation } from "agentation";
+import { DeckLocaleProvider, useDeckLocale } from "@/i18n/locale-context";
+import type { Locale } from "@/i18n/locale";
 import { NewSlidesLayout } from "@/components/entrypoint-layouts/new-slides-layout";
 import { faces } from "@/faces.config.json";
 import Face0qe3rfFace from "@/faces/face-0qe3rf/face";
@@ -11,17 +13,34 @@ import Facenilv7tFace from "@/faces/face-nilv7t/face";
 import Facelb9xuhFace from "@/faces/face-lb9xuh/face";
 import Faceqrrz9gFace from "@/faces/face-qrrz9g/face";
 import Face7j2yi8Face from "@/faces/face-7j2yi8/face";
-import "@/faces/face-0qe3rf/face.css";
-import "@/faces/face-saep1y/face.css";
-import "@/faces/face-e0ydn6/face.css";
 import "@/faces/face-aqhoq4/face.css";
 import "@/faces/face-agenda/face.css";
-import "@/faces/face-nilv7t/face.css";
-import "@/faces/face-lb9xuh/face.css";
 import "@/faces/face-qrrz9g/face.css";
-import "@/faces/face-7j2yi8/face.css";
 
 const visibleFaces = faces.filter((face) => !face.hidden);
+
+function LanguageSwitch() {
+  const { locale, setLocale } = useDeckLocale();
+  const options: Locale[] = ["en", "es"];
+
+  return (
+    <div className="fixed right-3 top-3 z-50 flex border border-accent/40 bg-background/90 text-xs font-medium tracking-wide">
+      {options.map((code) => (
+        <button
+          key={code}
+          type="button"
+          aria-pressed={locale === code}
+          onClick={() => setLocale(code)}
+          className={`px-2 py-1 ${
+            locale === code ? "bg-accent text-background" : "text-muted"
+          }`}
+        >
+          {code.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export const componentMap = {
   "face-0qe3rf": Face0qe3rfFace,
@@ -39,7 +58,8 @@ export const projectConfig = {"layout":"STACKED","slidesDisplay":"CARDS","stacke
 
 export default function Page() {
   return (
-    <>
+    <DeckLocaleProvider>
+      <LanguageSwitch />
       <NewSlidesLayout
         faces={visibleFaces}
         componentMap={componentMap}
@@ -53,6 +73,6 @@ export default function Page() {
         mobileCanvas="COMPACT"
       />
       {process.env.NODE_ENV === "development" && <Agentation />}
-    </>
+    </DeckLocaleProvider>
   );
 }

@@ -2,7 +2,8 @@ import "./face.css";
 import React, { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { Check } from "lucide-react";
-import { blocks } from "./face.content.json";
+import { blocks as sourceBlocks } from "./face.content.json";
+import { useLocalized } from "@/i18n/use-localized";
 import { controls } from "./face.controls.json";
 import { TextContent } from "@/components/ui/text-content";
 
@@ -53,6 +54,7 @@ function Cell({
 }
 
 export default function ComparePlansFace() {
+  const blocks = useLocalized(sourceBlocks);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.2 });
   const highlight = (controls.highlightPlan?.value ?? "None") as string;
@@ -69,7 +71,7 @@ export default function ComparePlansFace() {
   return (
     <div
       ref={ref}
-      className="relative w-full h-full overflow-hidden bp-grid font-body flex flex-col px-6 py-7 @xl:px-16 @xl:py-12"
+      className="relative w-full h-full overflow-hidden bg-background font-body flex flex-col px-6 py-7 @xl:px-16 @xl:py-12"
     >
       {/* Title */}
       <motion.div
@@ -86,8 +88,56 @@ export default function ComparePlansFace() {
         />
       </motion.div>
 
-      {/* Table */}
-      <div className="mt-6 @xl:mt-12 flex-1 min-h-0 flex flex-col">
+      {/* Phone: one card per tier. The comparison table is too narrow to read. */}
+      <div className="mt-4 flex min-h-0 flex-1 flex-col @xl:hidden">
+        <TextContent
+          content={blocks.description.content}
+          className="shrink-0 text-[13px] leading-snug text-muted [&_strong]:text-foreground"
+          data-content-keys={["description"]}
+        />
+        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+          {plans.map((plan, planIndex) => {
+            const included = rows.filter((row) => isCheck(row[plan.col]));
+            return (
+              <section
+                key={plan.key}
+                className="shrink-0 border-t-2 pt-2"
+                style={{ borderColor: TIER_COLORS[planIndex] }}
+              >
+                <TextContent
+                  content={plan.name}
+                  className="shrink-0 font-bold uppercase tracking-[0.12em] text-sm"
+                  style={{ color: TIER_COLORS[planIndex] }}
+                  data-content-keys={[plan.key]}
+                />
+                <ul className="mt-1 min-h-0">
+                  {included.map((row) => {
+                    const rowIndex = rows.indexOf(row);
+                    return (
+                      <li key={row.id} className="flex items-start gap-1.5 py-0.5">
+                        <Check
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                          style={{ color: TIER_COLORS[planIndex] }}
+                          strokeWidth={2.5}
+                        />
+                        <TextContent
+                          as="span"
+                          content={row.feature}
+                          className="text-[13px] leading-4 text-foreground"
+                          data-content-keys={[`rows.rows.${rowIndex}.feature`]}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop comparison table */}
+      <div className="mt-6 hidden min-h-0 flex-1 flex-col @xl:mt-12 @xl:flex">
         {/* Header row: description + plan names, each plan anchored by its tier color */}
         <motion.div
           initial={{ opacity: 0 }}

@@ -5,15 +5,23 @@
       "title": "taglineLine1",
       "content": "The largest hackathon<br>ever held in Chile."
     },
-    "subtitle": {
-      "type": "text",
-      "title": "subtitle",
-      "content": "<strong>Hack Infra Futuro</strong> · Saturday–Sunday, dates to be confirmed · Venue TBD, Santiago<br><strong>500 engineers</strong> building production infrastructure for autonomous agents"
+    "facts": {
+      "type": "table",
+      "title": "Facts",
+      "columns": [
+        { "key": "label", "title": "Label", "type": "text" },
+        { "key": "value", "title": "Value", "type": "text" }
+      ],
+      "rows": [
+        { "id": "dates", "label": "Dates", "value": "5–6 December 2026" },
+        { "id": "place", "label": "Place", "value": "Universidad del Desarrollo, Santiago" },
+        { "id": "prizes", "label": "Cash prizes", "value": "$ 12,000" }
+      ]
     },
     "heroImage": {
       "type": "image",
       "title": "heroImage",
-      "src": "/images/NIDO-LUCIA.jpg"
+      "src": "/images/udd-santiago.jpeg"
     },
     "sponsorsLabel": {
       "type": "text",
@@ -29,9 +37,19 @@
       ],
       "rows": [
         {
+          "id": "elevenlabs",
+          "name": "ElevenLabs",
+          "image": { "src": "images/sponsors/elevenlabs.svg", "width": 694, "height": 90 }
+        },
+        {
           "id": "firecrawl",
           "name": "Firecrawl",
           "image": { "src": "images/sponsors/firecrawl.svg", "width": 172, "height": 40 }
+        },
+        {
+          "id": "cenia",
+          "name": "Centro Nacional de Inteligencia Artificial",
+          "image": { "src": "images/sponsors/cenia-white.webp", "width": 606, "height": 184 }
         },
         {
           "id": "wispr-flow",
