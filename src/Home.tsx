@@ -22,10 +22,10 @@ const ORGS = [
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
 const SPONSOR_SECTIONS = [
-  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'h-6 md:h-8' },
-  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'h-6 md:h-8' },
-  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'h-6 md:h-8' },
-  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'h-[18px] md:h-6' },
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-6 md:max-h-8' },
+  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-6 md:max-h-8' },
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-6 md:max-h-8' },
+  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-[18px] md:max-h-6' },
 ] as const satisfies readonly {
   id: SponsorId
   name: string
@@ -37,8 +37,17 @@ const SPONSOR_SECTIONS = [
 
 const SPONSOR_LOGOS = [
   ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}` })),
-  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'h-6 md:h-8' },
-  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'h-6 md:h-8' },
+  {
+    id: 'cenia',
+    name: 'Centro Nacional de Inteligencia Artificial',
+    logo: '/brand/cenia.webp',
+    width: 606,
+    height: 184,
+    href: 'https://cenia.cl',
+    frame: 'max-h-8 md:max-h-10',
+  },
+  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'max-h-6 md:max-h-8' },
+  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-6 md:max-h-8' },
 ] as const
 
 const RULE = 'border-[#d6d4d0]'
@@ -242,10 +251,15 @@ export default function Home() {
               {t.heroPrizeDescription(prizePoolAmount)}
             </p>
           </div>
-          {/* 6 logos. Change the column count with the logo count so every row stays full. */}
-          <ul className="grid shrink-0 grid-cols-3 items-center justify-items-center gap-x-8 gap-y-4 md:grid-cols-6">
-            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }) => (
-              <li key={id} className="flex max-w-full justify-center">
+          {/* 7 logos: 3 columns, then 4 from md. The last one spans the small-screen row so it stays centered. */}
+          <ul className="grid shrink-0 grid-cols-3 items-center justify-items-center gap-x-8 gap-y-4 md:grid-cols-4">
+            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, index) => (
+              <li
+                key={id}
+                className={`flex min-w-0 max-w-full justify-center ${
+                  index === SPONSOR_LOGOS.length - 1 ? 'col-span-3 md:col-span-1' : ''
+                }`}
+              >
                 <a
                   href={href}
                   className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
@@ -256,7 +270,7 @@ export default function Home() {
                     width={width}
                     height={height}
                     decoding="async"
-                    className={`w-auto max-w-full object-contain ${frame}`}
+                    className={`h-auto w-auto max-w-full object-contain ${frame}`}
                   />
                 </a>
               </li>
