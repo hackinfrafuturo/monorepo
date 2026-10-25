@@ -17,7 +17,7 @@ export const Route = createRootRoute({
       {
         name: 'description',
         content:
-          '24 hours, about 500 people, infrastructure agents can actually use. Santiago, 7–8 Nov 2026.',
+          '24 hours, about 500 people, infrastructure agents can actually use. Santiago, 5-6 Dec 2026.',
       },
       { title: 'Infrastructure Hackathon' },
     ],

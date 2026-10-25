@@ -10,14 +10,15 @@ import {
 } from './model'
 import { normalizeRef } from './ref'
 
-/** `'size'`, a member index, or `'review'`. The done screen is never saved. */
-export type Step = 'size' | 'review' | number
+/** `'consent'`, `'size'`, a member index, or `'review'`. The done screen is never saved. */
+export type Step = 'consent' | 'size' | 'review' | number
 
 export type Draft = {
   size: TeamSize | null
   members: Member[]
   step: Step
   ref: string
+  consentAccepted: boolean
 }
 
 const KEY = 'infra-hack:apply:v1'
@@ -26,8 +27,9 @@ export function emptyDraft(): Draft {
   return {
     size: null,
     members: Array.from({ length: TEAM_MAX }, emptyMember),
-    step: 'size',
+    step: 'consent',
     ref: '',
+    consentAccepted: false,
   }
 }
 
@@ -56,6 +58,7 @@ function readMember(value: unknown): Member {
 }
 
 function readStep(value: unknown, size: TeamSize | null): Step {
+  if (value === 'consent') return 'consent'
   if (size === null) return 'size'
   if (value === 'size' || value === 'review') return value
   if (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < size)
@@ -71,11 +74,13 @@ export function loadDraft(): Draft {
     const saved = JSON.parse(raw) as Record<string, unknown>
     const size = TEAM_SIZES.find((n) => n === saved.size) ?? null
     const list = Array.isArray(saved.members) ? saved.members : []
+    const consentAccepted = saved.consentAccepted === true
     return {
       size,
       members: Array.from({ length: TEAM_MAX }, (_, i) => readMember(list[i])),
-      step: readStep(saved.step, size),
+      step: consentAccepted ? readStep(saved.step, size) : 'consent',
       ref: normalizeRef(typeof saved.ref === 'string' ? saved.ref : undefined) ?? '',
+      consentAccepted,
     }
   } catch {
     return emptyDraft()

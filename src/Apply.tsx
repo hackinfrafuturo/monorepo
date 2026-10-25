@@ -61,9 +61,10 @@ function focusInvalidControl() {
 
 /** Where a step sits in the progress bar, counting from 0. */
 function position(step: Step, size: TeamSize | null): number {
-  if (step === 'size') return 0
-  if (step === 'review') return (size ?? 3) + 1
-  return step + 1
+  if (step === 'consent') return 0
+  if (step === 'size') return 1
+  if (step === 'review') return (size ?? 3) + 2
+  return step + 2
 }
 
 function Nav({
@@ -113,7 +114,9 @@ export default function Apply() {
   const values = useStore(form.store, (state) => state.values)
   const { size, members, ref } = values
 
-  const [step, setStep] = useState<Step>(initial.step)
+  const [requestedStep, setStep] = useState<Step>(initial.step)
+  const [consentAccepted, setConsentAccepted] = useState(initial.consentAccepted)
+  const step = consentAccepted ? requestedStep : 'consent'
   const [status, setStatus] = useState<'idle' | 'sending' | 'failed'>('idle')
   const [sentTo, setSentTo] = useState<string[] | null>(null)
   const [invalidTick, setInvalidTick] = useState(0)
@@ -147,8 +150,8 @@ export default function Apply() {
 
   useEffect(() => {
     if (!keepDraft.current) return
-    saveDraft({ size, members, step, ref })
-  }, [size, members, step, ref])
+    saveDraft({ size, members, step, ref, consentAccepted })
+  }, [size, members, step, ref, consentAccepted])
 
   useEffect(() => {
     const current = window.location.href
@@ -234,7 +237,7 @@ export default function Apply() {
   }
 
   const submitTeamNow = async () => {
-    if (size == null || status === 'sending') return
+    if (!consentAccepted || size == null || status === 'sending') return
     const checked = checkTeam(form.getFieldValue('members'), size)
     checked.forEach((item, index) => {
       form.setFieldValue(memberAt(index), item.member, { dontValidate: true })
@@ -285,6 +288,43 @@ export default function Apply() {
             {t.done.home}
           </a>
         </div>
+      </div>
+    )
+  } else if (step === 'consent') {
+    title = t.consent.title
+    hint = t.consent.hint
+    body = (
+      <div>
+        <ul className="list-disc space-y-6 pl-5 text-base leading-7 md:text-lg md:leading-8">
+          <li>
+            <p>{t.consent.conduct}</p>
+            <a
+              href="https://indies.la/conducta/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block underline underline-offset-4 hover:bg-[#e8e5df] focus-visible:bg-[#e8e5df] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            >
+              {t.consent.readConduct}
+            </a>
+          </li>
+          <li>{t.consent.sharing}</li>
+          <li>{t.consent.submission}</li>
+          <li className="font-bold">{t.consent.exceptions}</li>
+        </ul>
+        <Nav backLabel={t.back}>
+          <Button
+            type="button"
+            className={PRIMARY}
+            onClick={() => {
+              uiSound.onClick()
+              setConsentAccepted(true)
+              setStep('size')
+            }}
+            onPointerEnter={uiSound.onPointerEnter}
+          >
+            {t.consent.accept}
+          </Button>
+        </Nav>
       </div>
     )
   } else if (step === 'size' || size === null) {
@@ -350,7 +390,7 @@ export default function Apply() {
             )
           }}
         </form.Field>
-        <Nav backLabel={t.back}>
+        <Nav back={() => setStep('consent')} backLabel={t.back}>
           <Button type="submit" {...uiSound} className={PRIMARY}>
             {t.next}
           </Button>
@@ -436,8 +476,9 @@ export default function Apply() {
           void submitMember(index)
         }}
       >
+        <MemberForm form={form} index={index} t={t} />
         {index === 0 ? (
-          <div className="mb-16">
+          <div className="mt-16">
             <form.Field name="ref">
               {(field) => (
                 <TextField
@@ -445,7 +486,6 @@ export default function Apply() {
                   name={field.name}
                   label={t.fields.ref.label}
                   optional={t.optional}
-                  hint={t.fields.ref.hint}
                   placeholder={t.fields.ref.placeholder}
                   maxLength={MAX_REF_LENGTH}
                   value={field.state.value}
@@ -460,7 +500,6 @@ export default function Apply() {
             </form.Field>
           </div>
         ) : null}
-        <MemberForm form={form} index={index} t={t} />
         <Nav
           back={() => setStep(index === 0 ? 'size' : index - 1)}
           backLabel={t.back}
@@ -473,7 +512,7 @@ export default function Apply() {
     )
   }
 
-  const total = (size ?? 3) + 2
+  const total = (size ?? 3) + 3
   const reached = done ? total : position(step, size) + 1
 
   return (

@@ -34,14 +34,30 @@ export type Messages = {
 
 export type OrgId = 'velum' | 'indies' | 'ae'
 
-/** World-facing homepage. The sponsor deck lives at /sponsor. */
+export type SponsorId = 'elevenlabs' | 'firecrawl'
+
+type SponsorOffer = {
+  audience: string
+  benefit: string
+  details: string
+}
+
+export type SponsorMessages = {
+  description: string
+  useCase: string
+  benefits:
+    | { status: 'confirmed'; offers: readonly [SponsorOffer, ...SponsorOffer[]] }
+    | { status: 'pending'; message: string }
+}
+
+/** World-facing homepage. The sponsor deck lives at /deck. */
 export type HomeMessages = {
   skip: string
   heroDate: string
   heroVenue: string
   heroAddress: string
   heroTitle: string
-  heroSub: string
+  heroPrizeDescription: (amount: string) => string
   register: string
   participants: string
   sponsor: string
@@ -50,6 +66,9 @@ export type HomeMessages = {
   stuckBody: string
   facts: string
   handLabel: string
+  prizePoolTitle: string
+  prizePoolEstimate: string
+  sponsors: Record<SponsorId, SponsorMessages>
   orgs: Record<OrgId, string>
   behindTitle: string
   faqTitle: string
@@ -62,12 +81,13 @@ export type HomeMessages = {
 export const homeMessages: Record<Locale, HomeMessages> = {
   en: {
     skip: 'Skip to content',
-    heroDate: 'November 7–8, Santiago, Chile',
-    heroVenue: 'Nido Lucía',
-    heroAddress: 'San Isidro 85, Santiago Centro',
+    heroDate: 'December 5-6, Santiago, Chile',
+    heroVenue: 'Universidad del Desarrollo',
+    heroAddress: 'Av. Plaza 680, Las Condes',
     heroTitle: 'The biggest hackathon in Chile, ever',
-    heroSub:
-      'An infrastructure hackathon focused on building the future of business. Devtools, agents.',
+    heroPrizeDescription: function (amount) {
+      return `$ ${amount} in cash for the winners.`
+    },
     register: 'Register your team',
     participants: 'Participants',
     sponsor: 'I want to sponsor',
@@ -76,8 +96,44 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     stuckBody:
       'Public data nobody can query, internal processes nobody can run, and tools that never make it into production.',
     facts:
-      'On 7–8 Nov 2026 in Santiago, around 500 people will spend 24 hours tackling that. Apply solo or in a team of up to 4. Application only.',
+      'On 5-6 Dec 2026 in Santiago, around 500 people will spend 24 hours tackling that. Apply solo or in a team of up to 4. Application only.',
     handLabel: 'A hand moving, drawn in ASCII.',
+    prizePoolTitle: 'Cash prizes',
+    prizePoolEstimate: 'Around 11.8 million Chilean pesos.',
+    sponsors: {
+      elevenlabs: {
+        description: 'ElevenLabs is an AI audio platform.',
+        useCase: 'Build voice agents, turn text into speech, and transcribe audio.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'All participants',
+              benefit: '1 month of Creator, free',
+              details: '131,000 credits. Normally USD 22/month.',
+            },
+            {
+              audience: 'Overall winning team',
+              benefit: '3 months of Pro for each team member',
+              details: '600,000 credits/month. USD 297 value per team member.',
+            },
+            {
+              audience: 'Best use of ElevenLabs',
+              benefit: '3 months of Scale for each team member',
+              details: '1,800,000 credits/month. USD 897 value per team member.',
+            },
+          ],
+        },
+      },
+      firecrawl: {
+        description: 'Firecrawl is a web data API for AI.',
+        useCase: 'Search the web and turn websites into structured data for your agents.',
+        benefits: {
+          status: 'pending',
+          message: 'Sponsorship details to be announced.',
+        },
+      },
+    },
     orgs: {
       velum: 'AI startup, Chilean founders. First into YC in almost three years.',
       indies:
@@ -89,7 +145,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     faq: [
       {
         q: 'When and where is it?',
-        a: '7–8 November 2026, in person, in Santiago, Chile. It runs for 24 hours. Registered teams get the details by email.',
+        a: '5-6 December 2026, in person, in Santiago, Chile. It runs for 24 hours. Registered teams get the details by email.',
       },
       {
         q: 'Who can take part?',
@@ -118,12 +174,13 @@ export const homeMessages: Record<Locale, HomeMessages> = {
   },
   es: {
     skip: 'Saltar al contenido',
-    heroDate: '7 y 8 de noviembre, Santiago, Chile',
-    heroVenue: 'Nido Lucía',
-    heroAddress: 'San Isidro 85, Santiago Centro',
+    heroDate: '5 y 6 de diciembre, Santiago, Chile',
+    heroVenue: 'Universidad del Desarrollo',
+    heroAddress: 'Av. Plaza 680, Las Condes',
     heroTitle: 'La hackathon más grande de la historia de Chile',
-    heroSub:
-      'Una hackathon de infraestructura para construir el futuro de los negocios. Devtools, agentes.',
+    heroPrizeDescription: function (amount) {
+      return `$ ${amount} dólares en efectivo para los ganadores.`
+    },
     register: 'Inscribe tu equipo',
     participants: 'Participantes',
     sponsor: 'Quiero auspiciar',
@@ -132,8 +189,44 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     stuckBody:
       'Datos públicos que nadie puede consultar, procesos internos que nadie puede correr, y herramientas que nunca llegan a producción.',
     facts:
-      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Solo por postulación.',
+      'El 5 y 6 de diciembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Solo por postulación.',
     handLabel: 'Una mano en movimiento, dibujada en ASCII.',
+    prizePoolTitle: 'Premios en efectivo',
+    prizePoolEstimate: 'Aprox. 11,8 millones de pesos chilenos.',
+    sponsors: {
+      elevenlabs: {
+        description: 'ElevenLabs es una plataforma de audio con IA.',
+        useCase: 'Crea agentes de voz, convierte texto en voz y transcribe audio.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'Todos los participantes',
+              benefit: '1 mes de Creator gratis',
+              details: '131.000 créditos. Precio habitual: USD 22/mes.',
+            },
+            {
+              audience: 'Equipo ganador general',
+              benefit: '3 meses de Pro para cada integrante',
+              details: '600.000 créditos/mes. Valor de USD 297 por integrante.',
+            },
+            {
+              audience: 'Mejor uso de ElevenLabs',
+              benefit: '3 meses de Scale para cada integrante',
+              details: '1.800.000 créditos/mes. Valor de USD 897 por integrante.',
+            },
+          ],
+        },
+      },
+      firecrawl: {
+        description: 'Firecrawl es una API de datos web para IA.',
+        useCase: 'Busca en la web y convierte sitios en datos estructurados para tus agentes.',
+        benefits: {
+          status: 'pending',
+          message: 'Detalles del auspicio por anunciar.',
+        },
+      },
+    },
     orgs: {
       velum: 'Startup de IA, founders chilenos. Los primeros en entrar a YC en casi tres años.',
       indies:
@@ -145,7 +238,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     faq: [
       {
         q: '¿Cuándo y dónde es?',
-        a: 'El 7 y 8 de noviembre de 2026, presencial, en Santiago de Chile. Dura 24 horas. Los equipos inscritos reciben los detalles por correo.',
+        a: 'El 5 y 6 de diciembre de 2026, presencial, en Santiago de Chile. Dura 24 horas. Los equipos inscritos reciben los detalles por correo.',
       },
       {
         q: '¿Quién puede participar?',
@@ -178,16 +271,16 @@ export const messages: Record<Locale, Messages> = {
   en: {
     skip: 'Skip to content',
     sponsorCta: 'Be a sponsor',
-    place: '7–8 Nov 2026. Santiago, Chile',
-    venueName: 'Nido Lucía',
-    venueAddress: 'San Isidro 85, Santiago Centro',
+    place: '5-6 Dec 2026. Santiago, Chile',
+    venueName: 'Universidad del Desarrollo',
+    venueAddress: 'Av. Plaza 680, Las Condes',
     subtitle: '24 hours, ~500 people, infrastructure agents can actually use.',
     whyTitle: 'Why',
     whyHighlight: "Agents get stuck when they can't get into a real system.",
     whyRest:
       'Public data nobody can query, company processes nobody can run, tools that never make it out.',
     whyBody:
-      'On 7–8 Nov 2026 in Santiago, about 500 people will spend 24 hours on that. Apply solo or in a team of up to 4. You apply to get in.',
+      'On 5-6 Dec 2026 in Santiago, about 500 people will spend 24 hours on that. Apply solo or in a team of up to 4. You apply to get in.',
     statsLabel: 'Numbers',
     stats: [
       { value: '24', label: 'Hours' },
@@ -296,9 +389,9 @@ export const messages: Record<Locale, Messages> = {
   es: {
     skip: 'Saltar al contenido',
     sponsorCta: 'Súmate como sponsor',
-    place: '7–8 nov 2026. Santiago, Chile',
-    venueName: 'Nido Lucía',
-    venueAddress: 'San Isidro 85, Santiago Centro',
+    place: '5-6 dic 2026. Santiago, Chile',
+    venueName: 'Universidad del Desarrollo',
+    venueAddress: 'Av. Plaza 680, Las Condes',
     subtitle:
       '24 horas, ~500 personas, infraestructura que un agente pueda usar de verdad.',
     whyTitle: 'Por qué',
@@ -306,7 +399,7 @@ export const messages: Record<Locale, Messages> = {
     whyRest:
       'Datos públicos que nadie puede consultar, procesos de empresa que nadie puede correr, herramientas que nunca salen.',
     whyBody:
-      'El 7 y 8 de noviembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Se entra por postulación.',
+      'El 5 y 6 de diciembre de 2026, en Santiago, unas 500 personas van a pasar 24 horas en eso. Postula solo o en un equipo de hasta 4. Se entra por postulación.',
     statsLabel: 'Números',
     stats: [
       { value: '24', label: 'Horas' },
