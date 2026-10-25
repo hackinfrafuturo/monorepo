@@ -7,7 +7,6 @@ import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from '
 import { HOME_META } from './i18n/meta'
 import { SPONSOR, htmlLang, otherLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
-import { VENUE_MAP } from './venue'
 import { applyHref } from './apply/ref'
 
 /** Mixkit 40938, silhouette of hands. Free to use. Center-cropped square. */
@@ -23,22 +22,23 @@ const ORGS = [
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
 const SPONSOR_SECTIONS = [
-  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, scaleDown: true },
-  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, scaleDown: false },
-  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 2000, height: 1000, scaleDown: false },
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'h-6 md:h-8' },
+  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'h-6 md:h-8' },
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'h-6 md:h-8' },
+  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'h-[18px] md:h-6' },
 ] as const satisfies readonly {
   id: SponsorId
   name: string
   logo: string
   width: number
   height: number
-  scaleDown: boolean
+  frame: string
 }[]
 
 const SPONSOR_LOGOS = [
   ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}` })),
-  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', scaleDown: false },
-  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', scaleDown: false },
+  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'h-6 md:h-8' },
+  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'h-6 md:h-8' },
 ] as const
 
 const RULE = 'border-[#d6d4d0]'
@@ -228,19 +228,9 @@ export default function Home() {
         className={`grid min-h-svh grid-cols-1 grid-rows-[1fr_auto_auto] border-b md:grid-cols-[minmax(0,1.22fr)_minmax(16.5rem,0.78fr)] md:grid-rows-2 ${RULE}`}
       >
         <div className="flex min-w-0 flex-col gap-8 px-4 py-6 md:col-start-1 md:row-span-2 md:row-start-1 md:px-6 md:py-10">
-          <div className="shrink-0">
-            <p className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-              {t.heroDate}
-            </p>
-            <a
-              href={VENUE_MAP}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-fit font-mono text-base leading-6 text-[#5a5956] underline decoration-[#9a9890] underline-offset-4 transition-colors hover:text-[#181818] focus-visible:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              {t.heroVenue}. {t.heroAddress}
-            </a>
-          </div>
+          <p className="shrink-0 font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+            {t.heroDate}
+          </p>
           <div className="flex flex-1 flex-col items-start justify-center py-6 md:py-10">
             <h1
               id="hero-title"
@@ -252,9 +242,10 @@ export default function Home() {
               {t.heroPrizeDescription(prizePoolAmount)}
             </p>
           </div>
-          <ul className="flex shrink-0 flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, scaleDown }) => (
-              <li key={id} className="max-w-full">
+          {/* 6 logos. Change the column count with the logo count so every row stays full. */}
+          <ul className="grid shrink-0 grid-cols-3 items-center justify-items-center gap-x-8 gap-y-4 md:grid-cols-6">
+            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }) => (
+              <li key={id} className="flex max-w-full justify-center">
                 <a
                   href={href}
                   className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
@@ -265,7 +256,7 @@ export default function Home() {
                     width={width}
                     height={height}
                     decoding="async"
-                    className={`h-6 w-auto max-w-full object-contain md:h-8${scaleDown ? ' scale-75' : ''}`}
+                    className={`w-auto max-w-full object-contain ${frame}`}
                   />
                 </a>
               </li>

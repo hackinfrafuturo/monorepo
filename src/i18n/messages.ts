@@ -34,7 +34,7 @@ export type Messages = {
 
 export type OrgId = 'velum' | 'indies' | 'ae'
 
-export type SponsorId = 'elevenlabs' | 'firecrawl' | 'markip'
+export type SponsorId = 'elevenlabs' | 'firecrawl' | 'markip' | 'wispr-flow'
 
 type SponsorOffer = {
   audience: string
@@ -54,8 +54,6 @@ export type SponsorMessages = {
 export type HomeMessages = {
   skip: string
   heroDate: string
-  heroVenue: string
-  heroAddress: string
   heroTitle: string
   heroPrizeDescription: (amount: string) => string
   register: string
@@ -81,9 +79,7 @@ export type HomeMessages = {
 export const homeMessages: Record<Locale, HomeMessages> = {
   en: {
     skip: 'Skip to content',
-    heroDate: 'December 5-6, Santiago, Chile',
-    heroVenue: 'Universidad del Desarrollo',
-    heroAddress: 'Av. Plaza 680, Las Condes',
+    heroDate: 'December 5-6, Universidad del Desarrollo, Santiago, Chile',
     heroTitle: 'The biggest hackathon in Chile, ever',
     heroPrizeDescription: function (amount) {
       return `$ ${amount} in cash for the winners.`
@@ -113,7 +109,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
               details: '131,000 credits. Normally USD 22/month.',
             },
             {
-              audience: 'Overall winning team',
+              audience: 'First place',
               benefit: '3 months of Pro for each team member',
               details: '600,000 credits/month. USD 297 value per team member.',
             },
@@ -140,7 +136,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
           status: 'confirmed',
           offers: [
             {
-              audience: 'All attendees',
+              audience: 'All participants',
               benefit: 'On-site trademark advice and an exclusive discount',
               details: 'No-obligation advice and an attendee discount valid after the event.',
             },
@@ -155,6 +151,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
               details: 'One trademark for each team. Value: CLP 240,000 per trademark.',
             },
           ],
+        },
+      },
+      'wispr-flow': {
+        description: 'Wispr Flow is voice dictation built for developers.',
+        useCase: 'Dictate code, prompts, and commits in your editor, 4 times faster than typing.',
+        benefits: {
+          status: 'pending',
+          message: 'Sponsorship details yet to be revealed.',
         },
       },
     },
@@ -198,9 +202,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
   },
   es: {
     skip: 'Saltar al contenido',
-    heroDate: '5 y 6 de diciembre, Santiago, Chile',
-    heroVenue: 'Universidad del Desarrollo',
-    heroAddress: 'Av. Plaza 680, Las Condes',
+    heroDate: '5 y 6 de diciembre, Universidad del Desarrollo, Santiago, Chile',
     heroTitle: 'La hackathon más grande de la historia de Chile',
     heroPrizeDescription: function (amount) {
       return `$ ${amount} dólares en efectivo para los ganadores.`
@@ -230,7 +232,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
               details: '131.000 créditos. Precio habitual: USD 22/mes.',
             },
             {
-              audience: 'Equipo ganador general',
+              audience: 'Primer lugar',
               benefit: '3 meses de Pro para cada integrante',
               details: '600.000 créditos/mes. Valor de USD 297 por integrante.',
             },
@@ -257,7 +259,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
           status: 'confirmed',
           offers: [
             {
-              audience: 'Todos los asistentes',
+              audience: 'Todos los participantes',
               benefit: 'Asesorías presenciales y un descuento exclusivo',
               details: 'Asesorías sin compromiso y descuento para asistentes válido después del evento.',
             },
@@ -272,6 +274,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
               details: 'Una marca para cada equipo. Valor: CLP 240.000 por marca.',
             },
           ],
+        },
+      },
+      'wispr-flow': {
+        description: 'Wispr Flow es una app de dictado por voz hecha para programar.',
+        useCase: 'Dicta código, prompts y commits en tu editor, 4 veces más rápido que teclear.',
+        benefits: {
+          status: 'pending',
+          message: 'Detalles del auspicio por revelar.',
         },
       },
     },
