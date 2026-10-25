@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AgentationDev } from './components/AgentationDev.tsx'
-import App from './App.tsx'
 import Apply from './Apply.tsx'
 import Home from './Home.tsx'
 import Flag from './Flag.tsx'
@@ -35,13 +34,8 @@ if (legacy) {
       <AgentationDev />
     </StrictMode>,
   )
-} else if (path === SPONSOR) {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-      <AgentationDev />
-    </StrictMode>,
-  )
+} else if (path === '/sponsor') {
+  window.location.replace(`${SPONSOR}${tail}`)
 } else {
   window.location.replace(`${HOME}${tail}`)
 }

@@ -35,8 +35,8 @@ export const sendConfirmation = internalAction({
         from: FROM,
         to: email,
         subject: SUBJECT,
-        html: `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p><p>hi ${escapeHtml(name)},</p><p>we received your application for infra futuro 2026.</p><p>nos comunicaremos a la brevedad.</p><p>nos vemos el 7-8 de noviembre, santiago.</p></main>`,
-        text: `hi ${name},\n\nwe received your application for infra futuro 2026.\n\nnos comunicaremos a la brevedad.\n\nnos vemos el 7-8 de noviembre, santiago.`,
+        html: `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p><p>hi ${escapeHtml(name)},</p><p>we received your application for infra futuro 2026.</p><p>nos comunicaremos a la brevedad.</p><p>nos vemos el 5 y 6 de diciembre, santiago.</p></main>`,
+        text: `hi ${name},\n\nwe received your application for infra futuro 2026.\n\nnos comunicaremos a la brevedad.\n\nnos vemos el 5 y 6 de diciembre, santiago.`,
       },
       { idempotencyKey: `infra-futuro-confirmation/${memberId}` },
     )

@@ -1,10 +1,9 @@
 import { useLayoutEffect } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Marquee } from './components/Marquee'
-import { OrgLogo } from './components/OrgLogo'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
-import { homeMessages, type OrgId } from './i18n/messages'
+import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
 import { HOME_META } from './i18n/meta'
 import { SPONSOR, htmlLang, otherLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
@@ -23,14 +22,35 @@ const ORGS = [
   { id: 'ae', name: 'Alianza Emprende', logo: '/brand/orgs/ae.webp', size: 512 },
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
+const SPONSOR_SECTIONS = [
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, scaleDown: true },
+  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, scaleDown: false },
+] as const satisfies readonly {
+  id: SponsorId
+  name: string
+  logo: string
+  width: number
+  height: number
+  scaleDown: boolean
+}[]
+
+const SPONSOR_LOGOS = [
+  ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}` })),
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.webp', width: 284, height: 142, href: 'https://markip.cl', scaleDown: false },
+  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', scaleDown: false },
+  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', scaleDown: false },
+] as const
+
 const RULE = 'border-[#d6d4d0]'
+
+const PRIZE_POOL_USD = 12_000
 
 const MAIL = 'benjamin@velum-labs.com'
 
 const TEXT_LINK =
   'text-[#181818] underline decoration-[#9a9890] underline-offset-4 transition-[background-color,color] duration-75 ease-linear hover:bg-[#181818] hover:text-[#f4f2ee] focus-visible:bg-[#181818] focus-visible:text-[#f4f2ee] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand'
 
-/** Shared by the three sections under the hero so their columns line up. */
+/** Shared by the sections under the hero so their columns line up. */
 const COLUMNS =
   'md:grid-cols-[minmax(16rem,24rem)_minmax(0,34.5rem)] md:justify-center md:gap-x-12'
 
@@ -53,6 +73,70 @@ const DOOR_THEME = {
     arrow: 'text-[#f4f2ee]',
   },
 } as const
+
+function SponsorSection({
+  sponsor,
+  content,
+}: {
+  sponsor: (typeof SPONSOR_SECTIONS)[number]
+  content: SponsorMessages
+}) {
+  const titleId = `${sponsor.id}-title`
+
+  return (
+    <section
+      id={sponsor.id}
+      aria-labelledby={titleId}
+      className={`border-t pt-10 first:border-t-0 first:pt-0 md:pt-12 md:first:pt-0 ${RULE}`}
+    >
+      <div className={SECTION_GRID}>
+        <div>
+          <h2 id={titleId}>
+            <img
+              src={sponsor.logo}
+              alt={sponsor.name}
+              width={sponsor.width}
+              height={sponsor.height}
+              decoding="async"
+              loading="lazy"
+              className="h-auto w-60 max-w-full"
+            />
+          </h2>
+          <p className="mt-6 font-mono text-base leading-7 text-[#5a5956]">
+            {content.description}
+          </p>
+          <p className="mt-3 font-mono text-base leading-7 text-[#181818]">
+            {content.useCase}
+          </p>
+        </div>
+        {content.benefits.status === 'confirmed' ? (
+          <ul>
+            {content.benefits.offers.map(({ audience, benefit, details }) => (
+              <li
+                key={audience}
+                className={`border-t py-6 first:border-t-0 first:pt-0 last:pb-0 ${RULE}`}
+              >
+                <h3 className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+                  {audience}
+                </h3>
+                <p className="mt-2 font-mono text-lg leading-8 text-[#181818] md:text-xl md:leading-9">
+                  {benefit}
+                </p>
+                <p className="mt-1 font-mono text-sm leading-6 text-[#5a5956]">
+                  {details}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+            {content.benefits.message}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
 
 function Door({
   href,
@@ -107,6 +191,9 @@ export default function Home() {
   const [locale, setLocale] = useLocale()
   const t = homeMessages[locale]
   const next = otherLocale(locale)
+  const prizePoolAmount = new Intl.NumberFormat(htmlLang(locale), {
+    maximumFractionDigits: 0,
+  }).format(PRIZE_POOL_USD)
   const applicationUrl = applyHref(
     typeof window === 'undefined' ? '' : window.location.search,
   )
@@ -138,36 +225,49 @@ export default function Home() {
       <section
         id="top"
         aria-labelledby="hero-title"
-        className={`grid h-svh grid-cols-1 grid-rows-[auto_auto_minmax(6.5rem,1fr)_minmax(6.5rem,1fr)] border-b md:grid-cols-[minmax(0,1.22fr)_minmax(16.5rem,0.78fr)] md:grid-rows-2 ${RULE}`}
+        className={`grid min-h-svh grid-cols-1 grid-rows-[1fr_auto_auto] border-b md:grid-cols-[minmax(0,1.22fr)_minmax(16.5rem,0.78fr)] md:grid-rows-2 ${RULE}`}
       >
-        <div className="min-w-0 px-4 pt-6 md:col-start-1 md:row-start-1 md:px-6 md:pt-10 md:pr-8">
-          <p className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-            {t.heroDate}
-          </p>
-          <a
-            href={VENUE_MAP}
-            target="_blank"
-            rel="noreferrer"
-            className="mb-3 block w-fit font-mono text-base leading-6 text-[#5a5956] underline decoration-[#9a9890] underline-offset-4 transition-colors hover:text-[#181818] focus-visible:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:mb-4"
-          >
-            {t.heroVenue}, {t.heroAddress}
-          </a>
-          <h1
-            id="hero-title"
-            className="w-full font-pixel text-4xl leading-[1.1] text-balance text-[#181818] sm:text-6xl md:text-7xl"
-          >
-            {t.heroTitle}
-          </h1>
-        </div>
-
-        <div className="flex flex-col justify-between gap-6 px-4 pt-6 pb-4 md:col-start-1 md:row-start-2 md:px-6 md:pt-4 md:pr-10">
-          <p className="max-w-[36ch] font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-            {t.heroSub}
-          </p>
-          <ul className="flex gap-3 md:gap-4">
-            {ORGS.map(({ id, ...org }) => (
-              <li key={id}>
-                <OrgLogo {...org} description={t.orgs[id]} />
+        <div className="flex min-w-0 flex-col gap-8 px-4 py-6 md:col-start-1 md:row-span-2 md:row-start-1 md:px-6 md:py-10">
+          <div className="shrink-0">
+            <p className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+              {t.heroDate}
+            </p>
+            <a
+              href={VENUE_MAP}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-fit font-mono text-base leading-6 text-[#5a5956] underline decoration-[#9a9890] underline-offset-4 transition-colors hover:text-[#181818] focus-visible:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              {t.heroVenue}. {t.heroAddress}
+            </a>
+          </div>
+          <div className="flex flex-1 flex-col items-start justify-center py-6 md:py-10">
+            <h1
+              id="hero-title"
+              className="w-full text-left font-sans text-4xl font-medium leading-[1.1] text-balance text-black uppercase sm:text-6xl md:text-7xl"
+            >
+              {t.heroTitle}
+            </h1>
+            <p className="mt-4 font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+              {t.heroPrizeDescription(prizePoolAmount)}
+            </p>
+          </div>
+          <ul className="flex shrink-0 flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, scaleDown }) => (
+              <li key={id} className="max-w-full">
+                <a
+                  href={href}
+                  className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+                >
+                  <img
+                    src={logo}
+                    alt={name}
+                    width={width}
+                    height={height}
+                    decoding="async"
+                    className={`h-6 w-auto max-w-full object-contain md:h-8${scaleDown ? ' scale-75' : ''}`}
+                  />
+                </a>
               </li>
             ))}
           </ul>
@@ -238,6 +338,42 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <section
+        id="prize-pool"
+        aria-labelledby="prize-pool-title"
+        aria-describedby="prize-pool-estimate"
+        className={`border-t bg-brand px-4 py-12 text-[#f4f2ee] md:px-6 md:py-20 ${RULE}`}
+      >
+        <div className={SECTION_GRID}>
+          <h2 id="prize-pool-title" className="font-pixel text-balance md:col-span-2">
+            <span className="block text-[32px] leading-[1.1] md:text-[48px]">
+              {t.prizePoolTitle}
+            </span>
+            <span className="mt-8 block text-[clamp(2rem,12vw,9rem)] leading-none tracking-[-0.04em] whitespace-nowrap tabular-nums">
+              <span aria-hidden="true">{'$ '}</span>
+              <span className="sr-only">USD </span>
+              {prizePoolAmount}
+            </span>
+          </h2>
+          <p id="prize-pool-estimate" className="font-mono text-sm leading-6 md:col-span-2">
+            {t.prizePoolEstimate}
+          </p>
+        </div>
+      </section>
+
+      <div
+        id="sponsors"
+        className={`space-y-12 border-t px-4 py-12 md:space-y-16 md:px-6 md:py-16 ${RULE}`}
+      >
+        {SPONSOR_SECTIONS.map((sponsor) => (
+          <SponsorSection
+            key={sponsor.id}
+            sponsor={sponsor}
+            content={t.sponsors[sponsor.id]}
+          />
+        ))}
+      </div>
 
       <section
         id="behind"

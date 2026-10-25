@@ -1,16 +1,12 @@
-import { ClientOnly, createFileRoute } from '@tanstack/react-router'
-import { AgentationDev } from '../components/AgentationDev'
-import App from '../App'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { SPONSOR } from '../i18n/locale'
 
 export const Route = createFileRoute('/sponsor')({
-  component: SponsorRoute,
+  beforeLoad: ({ location }) => {
+    throw redirect({
+      href: `${SPONSOR}${location.searchStr}`,
+      statusCode: 301,
+      reloadDocument: true,
+    })
+  },
 })
-
-function SponsorRoute() {
-  return (
-    <ClientOnly>
-      <App />
-      <AgentationDev />
-    </ClientOnly>
-  )
-}

@@ -113,7 +113,7 @@ export default function App() {
               rel="noopener noreferrer"
               className="pointer-events-auto inline-block max-w-[calc(100vw-2rem)] font-mono text-base leading-6 text-[#d6d4d0] underline decoration-[#9a9890] underline-offset-4 transition-colors hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d4aff]"
             >
-              {t.venueName}, {t.venueAddress}
+              {t.venueName}. {t.venueAddress}
             </a>
           }
         />

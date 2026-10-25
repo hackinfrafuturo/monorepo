@@ -2,6 +2,7 @@
 @import '@fontsource/ia-writer-quattro/400.css';
 @import '@fontsource/ia-writer-quattro/700.css';
 @import 'tailwindcss';
+@import '../public/sans-font-experiment.css';
 
 /* The deck sub-app ships its own Tailwind v3 build; keep it out of ours. */
 @source not "../deck";
@@ -81,9 +82,20 @@
     color: #d6d4d0;
     font-family: var(--font-mono);
     font-synthesis: none;
+    text-wrap: pretty;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  [role='heading'] {
+    text-wrap: balance;
   }
 
   #root {

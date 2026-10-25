@@ -1,6 +1,6 @@
 # Infrastructure Hackathon
 
-Landing for the Santiago hackathon: 7–8 November 2026.
+Landing for the Santiago hackathon: 5-6 December 2026.
 
 ## Source of truth
 

@@ -9,6 +9,16 @@ export type ApplyMessages = {
   edit: string
   optional: string
   progress: { label: string; text: (n: number, total: number) => string }
+  consent: {
+    title: string
+    hint: string
+    conduct: string
+    readConduct: string
+    sharing: string
+    submission: string
+    exceptions: string
+    accept: string
+  }
   size: { title: string; hint: string; people: (n: number) => string }
   member: {
     title: (n: number, total: number) => string
@@ -25,7 +35,7 @@ export type ApplyMessages = {
   }
   done: { title: string; body: string; sentTo: string; home: string }
   fields: {
-    ref: { label: string; hint: string; placeholder: string }
+    ref: { label: string; placeholder: string }
     name: { label: string }
     gender: { label: string; placeholder: string; options: Record<Gender, string> }
     github: { label: string; prefix: string; placeholder: string }
@@ -47,12 +57,22 @@ export type ApplyMessages = {
 export const applyMessages: Record<Locale, ApplyMessages> = {
   en: {
     home: 'Go home',
-    kicker: 'November 7–8, Santiago',
+    kicker: 'December 5-6, Santiago',
     back: 'Back',
     next: 'Next',
     edit: 'Edit',
     optional: 'optional',
     progress: { label: 'Progress', text: (n, total) => `Step ${n} of ${total}` },
+    consent: {
+      title: 'Before you apply',
+      hint: 'Read and accept these conditions to continue.',
+      conduct: 'You accept the code of conduct.',
+      readConduct: 'Read the code of conduct',
+      sharing: 'We will share your contact information with relevant parties. This is necessary if you win or receive free credits from our sponsors.',
+      submission: 'Take this application seriously. You cannot change your answers after submitting it.',
+      exceptions: 'There are no exceptions whatsoever.',
+      accept: 'I accept and continue',
+    },
     size: {
       title: 'How many of you?',
       hint: 'Apply solo or with a team of up to 4. No teams of 5.',
@@ -79,9 +99,8 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     },
     fields: {
       ref: {
-        label: 'Referral code',
-        hint: 'Where did you hear about us? Enter a code or organization name.',
-        placeholder: 'e.g. UC or Alianza Emprende',
+        label: 'Do you have a referral code?',
+        placeholder: "If you don't have one, skip this question",
       },
       name: { label: 'Name or nickname' },
       gender: {
@@ -152,12 +171,22 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
   },
   es: {
     home: 'Ir al inicio',
-    kicker: '7 y 8 de noviembre, Santiago',
+    kicker: '5 y 6 de diciembre, Santiago',
     back: 'Atrás',
     next: 'Siguiente',
     edit: 'Editar',
     optional: 'opcional',
     progress: { label: 'Progreso', text: (n, total) => `Paso ${n} de ${total}` },
+    consent: {
+      title: 'Antes de postular',
+      hint: 'Lee y acepta estas condiciones para continuar.',
+      conduct: 'Aceptas el código de conducta.',
+      readConduct: 'Lee el código de conducta',
+      sharing: 'Compartiremos tus datos de contacto con las partes correspondientes. Esto es necesario si ganas o recibes créditos gratuitos de nuestros auspiciadores.',
+      submission: 'Tómate esta postulación en serio. No podrás modificar tus respuestas después de enviarla.',
+      exceptions: 'No hay excepciones de ningún tipo.',
+      accept: 'Acepto y continúo',
+    },
     size: {
       title: '¿Cuántos son?',
       hint: 'Postula solo o con un equipo de hasta 4 personas. No hay equipos de 5.',
@@ -184,9 +213,8 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     },
     fields: {
       ref: {
-        label: 'Código de referido',
-        hint: '¿Dónde te enteraste del evento? Escribe un código o el nombre de una organización.',
-        placeholder: 'Ej. UC o Alianza Emprende',
+        label: '¿Tienes un código de referidos?',
+        placeholder: 'Si no tienes, sáltate esta pregunta',
       },
       name: { label: 'Nombre o apodo' },
       gender: {

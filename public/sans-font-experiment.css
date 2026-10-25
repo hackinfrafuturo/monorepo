@@ -1,0 +1,32 @@
+/* Geist Sans, unchanged from @fontsource-variable/geist.
+   OFL-1.1 license: fonts/GeistSansPreview-LICENSE.txt. */
+@font-face {
+  font-family: 'Geist Sans Preview';
+  src: url('./fonts/GeistSansPreview.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Sans Preview';
+  src: url('./fonts/GeistSansPreview-Italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Temporary, site-wide experiment, including the deck.
+   Rollback: change @media all to @media not all and rebuild both apps.
+   Keep original fonts, classes, and declarations for an exact typography rollback.
+   ASCII artwork keeps its monospace geometry. */
+@media not all {
+  html,
+  body,
+  body :not(pre.art) {
+    /* Override existing utilities and slide styles without rewriting them. */
+    font-family: 'Geist Sans Preview', ui-sans-serif, system-ui, sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+}

@@ -58,7 +58,7 @@ Geist Pixel Circle for the hero title, document titles, and proof figures. iA Wr
 
 ## Layout
 
-Fixed header, 16px from the edges: `7–8 Nov 2026. Santiago de Chile` on the left. The stage is one viewport tall. The Pixel title sits bottom-left on the field, two lines: Infrastructure / Hackathon. The one-liner sits under it. Below the fold: 1060px, manifesto, four figures, numbered asks, orgs, tracks, tiers, then the mail.
+Fixed header, 16px from the edges: `5-6 Dec 2026. Santiago de Chile` on the left. The stage is one viewport tall. The Pixel title sits bottom-left on the field, two lines: Infrastructure / Hackathon. The one-liner sits under it. Below the fold: 1060px, manifesto, four figures, numbered asks, orgs, tracks, tiers, then the mail.
 
 ## Elevation & Depth
 
