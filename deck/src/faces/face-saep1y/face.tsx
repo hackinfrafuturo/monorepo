@@ -60,13 +60,36 @@ export default function EventStatsFace() {
                 : ""
             }`}
           >
-            <CountUpStat
-              value={number.value}
-              active={played}
-              delay={0.15 + index * 0.1}
-              className="max-w-full font-heading font-bold text-foreground leading-none text-4xl @xl:text-[96px]"
-              style={{ letterSpacing: "-0.02em" }}
-            />
+            {number.id === "n3" ? (
+              <>
+                <div className="@xl:hidden">
+                  <CountUpStat
+                    value="$12k"
+                    active={played}
+                    delay={0.15 + index * 0.1}
+                    className="max-w-full font-heading font-bold text-foreground leading-none text-4xl"
+                    style={{ letterSpacing: "-0.02em" }}
+                  />
+                </div>
+                <div className="hidden @xl:block">
+                  <CountUpStat
+                    value={number.value}
+                    active={played}
+                    delay={0.15 + index * 0.1}
+                    className="max-w-full font-heading font-bold text-foreground leading-none text-[96px]"
+                    style={{ letterSpacing: "-0.02em" }}
+                  />
+                </div>
+              </>
+            ) : (
+              <CountUpStat
+                value={number.value}
+                active={played}
+                delay={0.15 + index * 0.1}
+                className="max-w-full font-heading font-bold text-foreground leading-none text-4xl @xl:text-[96px]"
+                style={{ letterSpacing: "-0.02em" }}
+              />
+            )}
             <TextContent
               as="span"
               content={number.unit}

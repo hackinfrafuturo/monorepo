@@ -153,8 +153,27 @@ export default function RecapFace() {
         />
       </motion.div>
 
-      {/* Dropped media pile at the bottom edge */}
-      <div className="relative flex-1 min-h-0 mt-4 @xl:mt-6">
+      {/* Phone: the lower half is a photo grid, not a few small prints. */}
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-2 @xl:hidden">
+        <img
+          src={photos[0].src}
+          alt=""
+          className="row-span-2 h-full w-full object-cover"
+        />
+        <img src={photos[2].src} alt="" className="h-full w-full object-cover" />
+        <video
+          src={blocks.video.src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Desktop: dropped media pile at the bottom edge */}
+      <div className="relative mt-6 hidden min-h-0 flex-1 @xl:block">
         <DroppedPhoto
           src={photos[0].src}
           inView={inView}
