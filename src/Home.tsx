@@ -25,6 +25,7 @@ const ORGS = [
 const SPONSOR_SECTIONS = [
   { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, scaleDown: true },
   { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, scaleDown: false },
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 2000, height: 1000, scaleDown: false },
 ] as const satisfies readonly {
   id: SponsorId
   name: string
@@ -36,7 +37,6 @@ const SPONSOR_SECTIONS = [
 
 const SPONSOR_LOGOS = [
   ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}` })),
-  { id: 'markip', name: 'Markip', logo: '/brand/markip.webp', width: 284, height: 142, href: 'https://markip.cl', scaleDown: false },
   { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', scaleDown: false },
   { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', scaleDown: false },
 ] as const

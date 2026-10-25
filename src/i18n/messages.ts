@@ -34,7 +34,7 @@ export type Messages = {
 
 export type OrgId = 'velum' | 'indies' | 'ae'
 
-export type SponsorId = 'elevenlabs' | 'firecrawl'
+export type SponsorId = 'elevenlabs' | 'firecrawl' | 'markip'
 
 type SponsorOffer = {
   audience: string
@@ -133,6 +133,30 @@ export const homeMessages: Record<Locale, HomeMessages> = {
           message: 'Sponsorship details to be announced.',
         },
       },
+      markip: {
+        description: 'Markip provides trademark advice and registration services.',
+        useCase: 'Get guidance on your brand and check whether your project name could be registered as a trademark.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'All attendees',
+              benefit: 'On-site trademark advice and an exclusive discount',
+              details: 'No-obligation advice and an attendee discount valid after the event.',
+            },
+            {
+              audience: 'First place',
+              benefit: 'Registration of one trademark in one class',
+              details: 'All professional fees waived and initial fees covered. Approximate value: CLP 327,000.',
+            },
+            {
+              audience: 'Second and third place',
+              benefit: 'Trademark registration with professional fees waived',
+              details: 'One trademark for each team. Value: CLP 240,000 per trademark.',
+            },
+          ],
+        },
+      },
     },
     orgs: {
       velum: 'AI startup, Chilean founders. First into YC in almost three years.',
@@ -224,6 +248,30 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         benefits: {
           status: 'pending',
           message: 'Detalles del auspicio por anunciar.',
+        },
+      },
+      markip: {
+        description: 'Markip ofrece asesoría y servicios de registro de marcas.',
+        useCase: 'Resuelve dudas sobre tu marca y revisa la viabilidad de registrar el nombre de tu proyecto.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'Todos los asistentes',
+              benefit: 'Asesorías presenciales y un descuento exclusivo',
+              details: 'Asesorías sin compromiso y descuento para asistentes válido después del evento.',
+            },
+            {
+              audience: 'Primer lugar',
+              benefit: 'Registro de una marca en una clase',
+              details: 'Honorarios 100% liberados y tasas iniciales cubiertas. Valor aproximado: CLP 327.000.',
+            },
+            {
+              audience: 'Segundo y tercer lugar',
+              benefit: 'Registro de una marca con honorarios sin costo',
+              details: 'Una marca para cada equipo. Valor: CLP 240.000 por marca.',
+            },
+          ],
         },
       },
     },
