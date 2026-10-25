@@ -55,9 +55,36 @@ export default function HowItWorksFace() {
         </div>
       </motion.div>
 
-      {/* Steps: one column per step at @xl, two per row on compact */}
+      {/* Phone: one full-width row per step, photo beside the copy. */}
+      <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3 @xl:hidden">
+        {steps.map((s, index) => (
+          <article
+            key={s.id}
+            className="grid min-h-0 flex-1 grid-cols-[6.5rem_minmax(0,1fr)] overflow-hidden border border-accent/25 bg-surface"
+          >
+            <div className="min-h-0 border-r border-dashed border-accent/40">
+              <StepPhoto src={s.image.src} />
+            </div>
+            <div className="flex min-w-0 flex-col justify-center gap-1 px-3 py-2">
+              <TextContent
+                content={s.title}
+                className="font-heading text-base font-bold leading-tight text-foreground"
+                data-content-keys={[`steps.rows.${index}.title`]}
+                style={{ letterSpacing: "-0.01em" }}
+              />
+              <TextContent
+                content={s.description}
+                className="text-[13px] font-normal leading-snug text-muted [&_strong]:text-foreground"
+                data-content-keys={[`steps.rows.${index}.description`]}
+              />
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* Desktop: one column per step */}
       <div
-        className={`mt-6 @xl:mt-10 flex-1 min-h-0 grid grid-cols-2 ${colClass} auto-rows-[minmax(0,1fr)_auto] gap-3 @xl:gap-6`}
+        className={`mt-10 hidden min-h-0 flex-1 ${colClass} auto-rows-[minmax(0,1fr)_auto] gap-6 @xl:grid`}
       >
         {steps.map((s, index) => (
           <motion.div
