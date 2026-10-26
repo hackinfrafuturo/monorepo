@@ -55,6 +55,26 @@ export type HomeMessages = {
   skip: string
   heroDate: string
   heroTitle: string
+  sponsorLogosTitle: string
+  skateHint: string
+  game: {
+    press: string
+    play: string
+    exit: string
+    launch: string
+    win: string
+    over: string
+    again: string
+    lives: string
+    playAgain: string
+    best: string
+    board: string
+    name: string
+    save: string
+    saving: string
+    rank: (n: number) => string
+    offline: string
+  }
   heroPrizeDescription: (amount: string) => string
   register: string
   participants: string
@@ -81,6 +101,26 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     skip: 'Skip to content',
     heroDate: 'December 5-6, Universidad del Desarrollo, Santiago, Chile',
     heroTitle: 'The biggest hackathon in Chile, ever',
+    sponsorLogosTitle: 'Sponsors',
+    skateHint: 'Click it',
+    game: {
+      press: 'Press',
+      play: 'to play',
+      exit: 'Esc to exit',
+      launch: 'Click or space to launch',
+      win: 'You win!',
+      over: 'Game over',
+      again: 'Space to play again',
+      lives: 'Lives',
+      playAgain: 'Play again',
+      best: 'Best',
+      board: 'Fastest wins',
+      name: 'Your name',
+      save: 'Save',
+      saving: 'Saving…',
+      rank: (n) => `You're #${n}`,
+      offline: "Couldn't save your time",
+    },
     heroPrizeDescription: function (amount) {
       return `$ ${amount} in cash for the winners.`
     },
@@ -203,7 +243,27 @@ export const homeMessages: Record<Locale, HomeMessages> = {
   es: {
     skip: 'Saltar al contenido',
     heroDate: '5 y 6 de diciembre, Universidad del Desarrollo, Santiago, Chile',
-    heroTitle: 'La hackathon más grande de la historia de Chile',
+    heroTitle: 'La hackathon más grande en la historia de Chile',
+    sponsorLogosTitle: 'Auspician',
+    skateHint: 'Haz clic',
+    game: {
+      press: 'Pulsa',
+      play: 'para jugar',
+      exit: 'Esc para salir',
+      launch: 'Clic o espacio para lanzar',
+      win: '¡Ganaste!',
+      over: 'Fin del juego',
+      again: 'Espacio para jugar de nuevo',
+      lives: 'Vidas',
+      playAgain: 'Jugar de nuevo',
+      best: 'Récord',
+      board: 'Los más rápidos',
+      name: 'Tu nombre',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      rank: (n) => `Quedaste #${n}`,
+      offline: 'No pudimos guardar tu tiempo',
+    },
     heroPrizeDescription: function (amount) {
       return `$ ${amount} dólares en efectivo para los ganadores.`
     },

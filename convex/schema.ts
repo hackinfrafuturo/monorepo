@@ -39,4 +39,14 @@ export default defineSchema({
     .index('by_email', ['email'])
     .index('by_github', ['github'])
     .index('by_application', ['applicationId']),
+  // Breakout on the landing: a run is timed on the server from its first launch to the win, so a time
+  // can't simply be posted. A finished run becomes a score once the player names it.
+  breakoutRuns: defineTable({
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+  }).index('by_startedAt', ['startedAt']),
+  breakoutScores: defineTable({
+    name: v.string(),
+    ms: v.number(),
+  }).index('by_ms', ['ms']),
 })

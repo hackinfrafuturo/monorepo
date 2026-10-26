@@ -1,6 +1,7 @@
-import { useLayoutEffect } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
-import { Marquee } from './components/Marquee'
+import { HifBreakout } from './components/HifBreakout'
+import { HifSkater } from './components/HifSkater'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
@@ -22,7 +23,7 @@ const ORGS = [
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
 const SPONSOR_SECTIONS = [
-  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-6 md:max-h-8' },
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-[18px] md:max-h-6' },
   { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-6 md:max-h-8' },
   { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-6 md:max-h-8' },
   { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-[18px] md:max-h-6' },
@@ -152,12 +153,15 @@ function Door({
   action,
   label,
   theme = 'light',
+  bar = false,
   className,
 }: {
   href: string
   action: string
   label: string
   theme?: keyof typeof DOOR_THEME
+  /** a thin horizontal bar (text left, arrow right) instead of a tall block */
+  bar?: boolean
   className?: string
 }) {
   const c = DOOR_THEME[theme]
@@ -166,7 +170,7 @@ function Door({
     <a
       href={href}
       {...uiSound}
-      className={`group flex h-full min-h-0 flex-col justify-between no-underline outline-none transition-colors duration-75 ease-linear focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 ${c.box} ${className ?? ''}`}
+      className={`group flex h-full min-h-0 ${bar ? 'flex-row items-center' : 'flex-col'} justify-between gap-6 no-underline outline-none transition-colors duration-75 ease-linear focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 ${c.box} ${className ?? ''}`}
     >
       <div>
         <span
@@ -188,7 +192,7 @@ function Door({
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="square"
-        className={`size-6 self-end transition-colors duration-75 ease-linear md:size-8 ${c.arrow}`}
+        className={`size-6 shrink-0 ${bar ? 'self-center' : 'self-end'} transition-colors duration-75 ease-linear md:size-8 ${c.arrow}`}
       >
         <path d="M6 18L18 6M8 6h10v10" />
       </svg>
@@ -198,6 +202,35 @@ function Door({
 
 export default function Home() {
   const [locale, setLocale] = useLocale()
+  const [skating, setSkating] = useState(false)
+  const [skateRun, setSkateRun] = useState(0)
+  // the "click it" hint shows on hover until someone has clicked the skater once
+  const [skateTried, setSkateTried] = useState(false)
+  // Breakout with the logo: B starts it. `game` mounts it (and hides the real logo, which it draws in
+  // place); `gameUi` fades the rest of the hero, and comes back as soon as leaving starts.
+  const [game, setGame] = useState<{ word: HTMLElement; mark: Element } | null>(null)
+  const [gameUi, setGameUi] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const wordRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (game) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'b' && e.key !== 'B') return
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return
+      const word = wordRef.current
+      const mark = titleRef.current?.querySelector('svg')
+      if (!word || !mark) return
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      setGame({ word, mark })
+      setGameUi(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [game])
+  const gameFade = `transition-opacity duration-500 ${gameUi ? 'pointer-events-none opacity-0' : 'opacity-100'}`
   const t = homeMessages[locale]
   const next = otherLocale(locale)
   const prizePoolAmount = new Intl.NumberFormat(htmlLang(locale), {
@@ -234,87 +267,93 @@ export default function Home() {
       <section
         id="top"
         aria-labelledby="hero-title"
-        className={`grid min-h-svh grid-cols-1 grid-rows-[1fr_auto_auto] border-b md:grid-cols-[minmax(0,1.22fr)_minmax(16.5rem,0.78fr)] md:grid-rows-2 ${RULE}`}
+        className={`grid min-h-svh grid-cols-1 grid-rows-[auto_1fr_auto] border-b ${RULE}`}
       >
-        <div className="flex min-w-0 flex-col gap-8 px-4 py-6 md:col-start-1 md:row-span-2 md:row-start-1 md:px-6 md:py-10">
-          <p className="shrink-0 font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-            {t.heroDate}
+        <div className={`flex items-start justify-between gap-6 px-4 pt-6 font-mono text-base leading-7 text-[#5a5956] md:px-6 md:pt-10 md:text-lg md:leading-8 ${gameFade}`}>
+          <p>{t.heroDate}</p>
+          {/* keyboard only: hidden where there's no fine pointer (phones, tablets) */}
+          <p aria-hidden className="hidden shrink-0 items-center gap-2 text-sm leading-7 tracking-wide uppercase pointer-fine:flex md:text-base md:leading-8">
+            {t.game.press}
+            <kbd className="inline-grid size-6 place-items-center border border-[#181818]/30 font-mono text-xs leading-none text-[#181818] md:size-7 md:text-sm">
+              B
+            </kbd>
+            {t.game.play}
           </p>
-          <div className="flex flex-1 flex-col items-start justify-center py-6 md:py-10">
-            <h1
-              id="hero-title"
-              className="w-full text-left font-sans text-4xl font-medium leading-[1.1] text-balance text-black uppercase sm:text-6xl md:text-7xl"
-            >
-              {t.heroTitle}
-            </h1>
-            <p className="mt-4 font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-              {t.heroPrizeDescription(prizePoolAmount)}
-            </p>
-          </div>
-          {/* 7 logos: 3 columns, then 4 from md. The last one spans the small-screen row so it stays centered. */}
-          <ul className="grid shrink-0 grid-cols-3 items-center justify-items-center gap-x-8 gap-y-4 md:grid-cols-4">
-            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, index) => (
-              <li
-                key={id}
-                className={`flex min-w-0 max-w-full justify-center ${
-                  index === SPONSOR_LOGOS.length - 1 ? 'col-span-3 md:col-span-1' : ''
-                }`}
-              >
-                <a
-                  href={href}
-                  className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
-                >
-                  <img
-                    src={logo}
-                    alt={name}
-                    width={width}
-                    height={height}
-                    decoding="async"
-                    className={`h-auto w-auto max-w-full object-contain ${frame}`}
-                  />
-                </a>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <Door
-          href={applicationUrl}
-          action={t.register}
-          label={t.participants}
-          theme="brand"
-          className={`border-t px-4 pt-6 pb-3 md:col-start-2 md:row-start-1 md:border-t-0 md:border-b md:border-l md:px-6 md:pt-10 md:pb-3 ${RULE}`}
-        />
-        <Door
-          href={SPONSOR}
-          action={t.sponsor}
-          label={t.companies}
-          className={`border-t px-4 pt-6 pb-4 md:col-start-2 md:row-start-2 md:border-t-0 md:border-l md:px-6 md:pt-6 md:pb-4 ${RULE}`}
-        />
-      </section>
+        {/* Logo, name and claim, centred in the space between the date and the buttons. */}
+        <div className="flex min-w-0 flex-col items-center justify-center gap-8 px-4 py-12 text-center md:gap-10 md:px-6">
+          <p
+            aria-hidden
+            className={`-mb-4 ${gameUi ? 'invisible' : ''} font-mono text-sm leading-5 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 md:-mb-6 ${
+              skating && !skateTried ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {t.skateHint}
+          </p>
+          {/*
+            Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
+            line 2 = 1.772em) and the gap is one dot of the mark.
+            Hovering makes the dots near the cursor flow away from it; a click (or a tap) makes the
+            skater do a backflip. z-20 keeps the flip above the text around it.
+          */}
+          <h1
+            ref={titleRef}
+            id="hero-title"
+            onPointerEnter={(e) => e.pointerType !== 'touch' && setSkating(true)}
+            onPointerLeave={(e) => e.pointerType !== 'touch' && setSkating(false)}
+            onClick={() => {
+              setSkateRun((n) => n + 1)
+              setSkateTried(true)
+            }}
+            className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
+          >
+            <HifSkater run={skateRun} variant="dither" className="size-[1.772em] shrink-0" />
+            <span ref={wordRef} className="font-pixel leading-[1.05]">
+              Hack Infra
+              <br />
+              Futuro
+            </span>
+          </h1>
+          <p className={`${gameFade} max-w-[30ch] font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
+            {t.heroTitle}
+          </p>
+        </div>
 
-      <aside
-        aria-label={t.register}
-        className={`sticky top-0 z-40 border-b ${RULE}`}
-      >
-        <a
-          href={applicationUrl}
-          {...uiSound}
-          className="group block bg-[#f4f2ee] py-3 text-[#181818] no-underline outline-none transition-colors duration-75 ease-linear hover:bg-brand hover:text-[#f4f2ee] focus-visible:bg-brand focus-visible:text-[#f4f2ee] focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 md:py-3.5"
-        >
-          <Marquee pauseOnHover className="[--duration:4s] [--gap:3rem]">
-            <span className="font-mono text-base uppercase tracking-wider md:text-lg">
-              {t.register}
-            </span>
-            <span
-              aria-hidden
-              className="font-mono text-base text-[#5a5956] transition-colors duration-75 ease-linear group-hover:text-[#ece6fb] group-focus-visible:text-[#ece6fb] md:text-lg"
-            >
-              {'->'}
-            </span>
-          </Marquee>
-        </a>
-      </aside>
+        {/* The two ways in, side by side along the bottom of the first screen. The skater lands on this edge. */}
+        <div data-skate-floor className={`grid grid-cols-1 border-t sm:grid-cols-2 ${RULE} ${gameFade}`}>
+          <Door
+            href={applicationUrl}
+            action={t.register}
+            label={t.participants}
+            theme="brand"
+            bar
+            className="px-4 py-4 md:px-6 md:py-5"
+          />
+          <Door
+            href={SPONSOR}
+            action={t.sponsor}
+            label={t.companies}
+            bar
+            className={`border-t px-4 py-4 sm:border-t-0 sm:border-l md:px-6 md:py-5 ${RULE}`}
+          />
+        </div>
+      </section>
+      {game && (
+        <HifBreakout
+          word={game.word}
+          mark={game.mark}
+          labels={t.game}
+          onExitStart={() => setGameUi(false)}
+          onDone={() => setGame(null)}
+        />
+      )}
+
+      <section className={`border-b bg-brand px-4 py-10 md:px-6 md:py-14 ${RULE}`}>
+        <p className="mx-auto max-w-[40ch] text-center font-mono text-xl leading-8 tracking-wide text-balance text-[#f4f2ee] uppercase md:text-3xl md:leading-[1.35]">
+          {t.heroPrizeDescription(prizePoolAmount)}
+        </p>
+      </section>
 
       <section
         id="contenido"
@@ -364,6 +403,42 @@ export default function Home() {
           <p id="prize-pool-estimate" className="font-mono text-sm leading-6 md:col-span-2">
             {t.prizePoolEstimate}
           </p>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="sponsor-logos-title"
+        className={`border-t px-4 py-12 md:px-6 md:py-16 ${RULE}`}
+      >
+        <div className={SECTION_GRID}>
+          <h2 id="sponsor-logos-title" className="font-mono text-base leading-7 text-[#5a5956] md:col-span-2 md:text-lg md:leading-8">
+            {t.sponsorLogosTitle}
+          </h2>
+          <ul className="flex flex-wrap items-center gap-x-12 gap-y-8 md:col-span-2 md:gap-y-4">
+            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, index) => (
+              <Fragment key={id}>
+              {/* Row 1: the four sponsors with a section below. Row 2: everyone else. */}
+              {index === SPONSOR_SECTIONS.length && (
+                <li aria-hidden className="hidden h-0 basis-full md:block" />
+              )}
+              <li className="flex min-w-0 max-w-full">
+                <a
+                  href={href}
+                  className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+                >
+                  <img
+                    src={logo}
+                    alt={name}
+                    width={width}
+                    height={height}
+                    decoding="async"
+                    className={`h-auto w-auto max-w-full object-contain ${frame}`}
+                  />
+                </a>
+              </li>
+              </Fragment>
+            ))}
+          </ul>
         </div>
       </section>
 
