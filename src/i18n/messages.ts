@@ -56,10 +56,7 @@ export type HomeMessages = {
   heroDate: string
   heroTitle: string
   sponsorLogosTitle: string
-  skateHint: string
   game: {
-    press: string
-    play: string
     exit: string
     launch: string
     win: string
@@ -102,10 +99,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     heroDate: 'December 5-6, Universidad del Desarrollo, Santiago, Chile',
     heroTitle: 'The biggest hackathon in Chile, ever',
     sponsorLogosTitle: 'Sponsors',
-    skateHint: 'Click it',
     game: {
-      press: 'Press',
-      play: 'to play',
       exit: 'Esc to exit',
       launch: 'Click or space to launch',
       win: 'You win!',
@@ -245,10 +239,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     heroDate: '5 y 6 de diciembre, Universidad del Desarrollo, Santiago, Chile',
     heroTitle: 'La hackathon más grande en la historia de Chile',
     sponsorLogosTitle: 'Auspician',
-    skateHint: 'Haz clic',
     game: {
-      press: 'Pulsa',
-      play: 'para jugar',
       exit: 'Esc para salir',
       launch: 'Clic o espacio para lanzar',
       win: '¡Ganaste!',
