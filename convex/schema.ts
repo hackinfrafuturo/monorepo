@@ -49,4 +49,15 @@ export default defineSchema({
     name: v.string(),
     ms: v.number(),
   }).index('by_ms', ['ms']),
+  // The runner on the landing: the score only depends on how long the star survives, so the server
+  // times each run and caps the score it accepts at what that time allows.
+  runnerRuns: defineTable({
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    score: v.optional(v.number()),
+  }).index('by_startedAt', ['startedAt']),
+  runnerScores: defineTable({
+    name: v.string(),
+    score: v.number(),
+  }).index('by_score', ['score']),
 })

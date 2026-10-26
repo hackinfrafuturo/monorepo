@@ -36,7 +36,8 @@ export type BoardDotData = { bx: number; by: number; along: number; across: numb
 /** the star's five points as limbs, in rider-centre coordinates (y down) */
 export const STAR_CENTER_DY = 50 / (1 + Math.cos((36 * Math.PI) / 180)) - 25
 export const LIMB_ANGLES = [-90, -18, 54, 126, 198] // head, right arm, right leg, left leg, left arm
-const STAR_R = 50 / (1 + Math.cos((36 * Math.PI) / 180))
+/** star centre to tip, in the mark's units; the star's centre is at (35, STAR_R) */
+export const STAR_R = 50 / (1 + Math.cos((36 * Math.PI) / 180))
 
 const BAYER8 = [
   [0, 32, 8, 40, 2, 34, 10, 42], [48, 16, 56, 24, 50, 18, 58, 26], [12, 44, 4, 36, 14, 46, 6, 38], [60, 28, 52, 20, 62, 30, 54, 22],
@@ -180,3 +181,52 @@ function build() {
 }
 
 export const DITHER = build()
+
+/**
+ * The band as rows that repeat every 8 columns: its darkness only changes down the band and the dither
+ * is a Bayer 8 × 8, so it can be drawn at any width. `dy` is relative to the band's centre (35, 60);
+ * column `col` sits at x = (col + 0.5) × DITHER_PITCH, the same columns as the 64 × 64 mark.
+ */
+export const DITHER_PITCH = PITCH
+export const BAND_ROWS = (() => {
+  const rows: { row: number; dy: number; dark: number }[] = []
+  const S = 4
+  for (let y = 0; y < N; y++) {
+    let n = 0
+    let dk = 0
+    for (let sy = 0; sy < S; sy++) {
+      const py = (y + (sy + 0.5) / S) * PITCH
+      if (py < 50) continue
+      n++
+      dk += Math.min(1, Math.max(0, 0.35 + 0.65 * ((py - 50) / 14)))
+    }
+    if (n / S > 0.5) rows.push({ row: y, dy: (y + 0.5) * PITCH - BOARD_CENTER[1], dark: dk / S })
+  }
+  return rows
+})()
+export const bandHas = (row: (typeof BAND_ROWS)[number], col: number) => row.dark > (BAYER8[row.row % 8][((col % 8) + 8) % 8] + 0.5) / 64
+
+// ---------------------------------------------------------------------------------------------------------
+// the star as one sprite, for the games: drawn once at 8 px per unit, centred on the star's centre
+
+/** star centre to the tips of the two lower points */
+export const STAR_FEET = 50 - STAR_R
+/** half the sprite's size, in the mark's units */
+export const SPRITE_EXT = STAR_R + DITHER_R + 0.5
+
+export function starSprite(ink: string) {
+  const U = 8
+  const c = document.createElement('canvas')
+  c.width = c.height = Math.ceil(SPRITE_EXT * 2 * U)
+  const g = c.getContext('2d')!
+  g.fillStyle = ink
+  g.beginPath()
+  for (const d of DITHER.rider) {
+    const x = (d.lx + SPRITE_EXT) * U
+    const y = (d.ly + SPRITE_EXT) * U
+    g.moveTo(x + DITHER_R * U, y)
+    g.arc(x, y, DITHER_R * U, 0, Math.PI * 2)
+  }
+  g.fill()
+  return c
+}

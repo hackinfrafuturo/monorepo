@@ -2,13 +2,13 @@ import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
-/** The Breakout leaderboard (convex/breakout.ts). Without VITE_CONVEX_URL the game still plays, just without it. */
+/** The Breakout leaderboard (convex/breakout.ts), and the Convex client the runner's shares. Without VITE_CONVEX_URL the games still play, just without it. */
 
 export type Score = { _id: string; name: string; ms: number }
 export type RunId = Id<'breakoutRuns'>
 
 let client: ConvexHttpClient | null | undefined
-function convex() {
+export function convex() {
   if (client === undefined) {
     const url = import.meta.env.VITE_CONVEX_URL
     client = typeof url === 'string' && url.length > 0 ? new ConvexHttpClient(url) : null
