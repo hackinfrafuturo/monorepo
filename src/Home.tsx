@@ -280,7 +280,7 @@ export default function Home() {
             className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
           >
             <HifSkater run={0} variant="dither" className="size-[1.772em] shrink-0" />
-            <span ref={wordRef} className="font-pixel-airy leading-[1.05]">
+            <span ref={wordRef} className="font-pixel leading-[1.05]">
               Hack Infra
               <br />
               Futuro
