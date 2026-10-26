@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { DITHER, DITHER_R } from './hif-dither'
+import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, type RunId, type Score } from './breakout-board'
 
 /**
  * Breakout, played with the hero's own logo: the dithered star is the ball, its purple band the paddle,
@@ -15,7 +16,33 @@ import { DITHER, DITHER_R } from './hif-dither'
  * from hif-dither in the mark's 70 × 70 units, scaled by `k` (pixels per unit).
  */
 
-export type BreakoutLabels = { exit: string; launch: string; win: string; over: string; again: string; lives: string }
+export type BreakoutLabels = {
+  exit: string
+  launch: string
+  win: string
+  over: string
+  again: string
+  lives: string
+  playAgain: string
+  best: string
+  board: string
+  name: string
+  save: string
+  saving: string
+  rank: (n: number) => string
+  offline: string
+}
+
+/** A win, and where its time is on the way to the leaderboard. */
+type Result = {
+  ms: number
+  state: 'checking' | 'name' | 'saving' | 'saved' | 'offline' | 'local'
+  runId?: RunId
+  id?: string
+  rank?: number
+}
+
+const NAME_KEY = 'hif-breakout-name'
 
 type Phase = 'enter' | 'ready' | 'play' | 'won' | 'over' | 'exit'
 
@@ -86,11 +113,87 @@ export function HifBreakout({
   const canvas = useRef<HTMLCanvasElement>(null)
   const [phase, setPhase] = useState<Phase>('enter')
   const [lives, setLives] = useState(LIVES)
-  const api = useRef<{ press: () => void }>({ press: () => {} })
+  const api = useRef<{ press: () => void; restart: () => void }>({ press: () => {}, restart: () => {} })
   const cb = useRef({ onExitStart, onDone })
   useEffect(() => {
     cb.current = { onExitStart, onDone }
   })
+
+  // ---- the leaderboard: a run is opened on the first launch and closed on the win, both on the server --
+  const timerEl = useRef<HTMLParagraphElement>(null)
+  const nameEl = useRef<HTMLInputElement>(null)
+  const [board, setBoard] = useState<Score[] | null>(null)
+  const [result, setResult] = useState<Result | null>(null)
+  const [name, setName] = useState(() => {
+    try {
+      return localStorage.getItem(NAME_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const runRef = useRef<Promise<RunId | null> | null>(null)
+  const gen = useRef(0)
+  const events = useRef({ start: () => {}, win: (_ms: number) => {}, reset: () => {} })
+  useEffect(() => {
+    events.current = {
+      start: () => {
+        runRef.current = startRun()
+      },
+      win: (ms) => {
+        const run = runRef.current
+        runRef.current = null
+        const g = ++gen.current
+        setResult({ ms, state: boardEnabled() && run ? 'checking' : 'local' })
+        if (!run) return
+        run
+          .then(async (runId) => {
+            if (!runId) throw new Error('no run')
+            const serverMs = await completeRun(runId)
+            if (g === gen.current) setResult({ ms: serverMs, state: 'name', runId })
+          })
+          .catch(() => g === gen.current && setResult((r) => r && { ...r, state: 'offline' }))
+      },
+      reset: () => {
+        runRef.current = null
+        gen.current++
+        setResult(null)
+      },
+    }
+  })
+  useEffect(() => {
+    let live = true
+    void topScores().then((b) => live && setBoard(b))
+    return () => {
+      live = false
+    }
+  }, [])
+  useEffect(() => {
+    if (result?.state === 'name') nameEl.current?.focus()
+  }, [result?.state])
+  // the clock shows the server's time once it has it, so it matches the leaderboard
+  useEffect(() => {
+    if (result && timerEl.current) timerEl.current.textContent = formatMs(result.ms)
+  }, [result])
+
+  const save = (e: FormEvent) => {
+    e.preventDefault()
+    const clean = name.trim()
+    if (!result?.runId || !clean || result.state !== 'name') return
+    const g = gen.current
+    setResult({ ...result, state: 'saving' })
+    try {
+      localStorage.setItem(NAME_KEY, clean)
+    } catch {
+      // private mode: the name just isn't remembered
+    }
+    claimRun(result.runId, clean)
+      .then(async ({ id, rank, ms }) => {
+        if (g !== gen.current) return
+        setResult((r) => r && { ...r, ms, id, rank, state: 'saved' })
+        setBoard(await topScores())
+      })
+      .catch(() => g === gen.current && setResult((r) => r && { ...r, state: 'offline' }))
+  }
 
   useEffect(() => {
     const cv = canvas.current!
@@ -281,7 +384,19 @@ export function HifBreakout({
       run([{ obj: ball, from: { alpha: 0, k: ballK * 0.4 }, to: { alpha: 1, k: ballK }, delay: 0, dur: 0.35 }])
     }
 
+    // the game clock: from the first launch to the last letter, lives lost included
+    let clockStart = 0
+    let clockMs = 0
+    let timing = false
+    const writeClock = (ms: number) => {
+      if (timerEl.current) timerEl.current.textContent = formatMs(ms)
+    }
+
     const restart = () => {
+      timing = false
+      clockMs = 0
+      writeClock(0)
+      events.current.reset()
       livesLeft = LIVES
       setLives(LIVES)
       speed = baseSpeed
@@ -297,6 +412,11 @@ export function HifBreakout({
     }
 
     const launch = () => {
+      if (!timing) {
+        timing = true
+        clockStart = performance.now() - clockMs
+        events.current.start()
+      }
       const a = ((Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 20) * Math.PI) / 180
       ball.vx = Math.sin(a) * speed
       ball.vy = -Math.cos(a) * speed
@@ -305,12 +425,14 @@ export function HifBreakout({
       go('play')
     }
 
-    const press = () => {
+    /** launch from the paddle; once the game has ended, only the keyboard (or the button) starts another */
+    const press = (fromKey: boolean) => {
       if (tween || wait) return
       if (current === 'ready') launch()
-      else if (current === 'won' || current === 'over') restart()
+      else if (fromKey && (current === 'won' || current === 'over')) restart()
     }
-    api.current.press = press
+    api.current.press = () => press(false)
+    api.current.restart = () => press(true)
 
     // ---- bricks breaking into their own dots ------------------------------------------------------------
     const explode = (L: Letter) => {
@@ -361,6 +483,10 @@ export function HifBreakout({
       ball.vx *= speed / sp
       ball.vy *= speed / sp
       if (letters.every((l) => !l.alive)) {
+        timing = false
+        clockMs = performance.now() - clockStart
+        writeClock(clockMs)
+        events.current.win(clockMs)
         go('won')
         run([{ obj: ball, from: { x: ball.x, y: ball.y, rot: ball.rot }, to: { ...readyBall(), rot: Math.round(ball.rot / 360) * 360 - 360 }, delay: 0, dur: 0.9 }])
       }
@@ -373,6 +499,10 @@ export function HifBreakout({
       setLives(livesLeft)
       for (let i = 0; i < 14; i++) {
         particles.push({ x: clamp(ball.x, 0, W) + (Math.random() - 0.5) * 30, y: H - 2, vx: (Math.random() - 0.5) * 240, vy: -160 - Math.random() * 220, life: 0, max: 0.5 + Math.random() * 0.3, r: 2, brand: false })
+      }
+      if (livesLeft === 0) {
+        timing = false
+        events.current.reset()
       }
       go(livesLeft > 0 ? 'ready' : 'over')
       wait = { t: 0.5, then: popBall }
@@ -456,6 +586,14 @@ export function HifBreakout({
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const k = e.key
+      // typing a name: only Escape is ours
+      if (e.target instanceof HTMLInputElement) {
+        if (k === 'Escape') {
+          e.target.blur()
+          exit()
+        }
+        return
+      }
       if (k === 'Escape' || k === 'b' || k === 'B') {
         e.preventDefault()
         exit()
@@ -463,7 +601,7 @@ export function HifBreakout({
       }
       if (k === ' ' || k === 'ArrowUp' || k === 'Enter') {
         e.preventDefault()
-        if (!e.repeat) press()
+        if (!e.repeat) press(true)
         return
       }
       if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'a' || k === 'd' || k === 'A' || k === 'D') {
@@ -600,6 +738,7 @@ export function HifBreakout({
         p.x += p.vx * dt
         p.y += p.vy * dt
       }
+      if (timing) writeClock(now - clockStart)
       draw(now)
       raf = requestAnimationFrame(tick)
     }
@@ -622,6 +761,9 @@ export function HifBreakout({
 
   const hud = phase !== 'enter' && phase !== 'exit'
   const playing = phase === 'ready' || phase === 'play'
+  const ended = phase === 'won' || phase === 'over'
+  const best = board?.[0]
+  const showForm = phase === 'won' && (result?.state === 'name' || result?.state === 'saving')
   return (
     <div
       className={`fixed inset-0 z-[60] touch-none select-none ${playing ? 'cursor-none' : ''}`}
@@ -629,14 +771,24 @@ export function HifBreakout({
     >
       <canvas ref={canvas} aria-hidden className="absolute inset-0 size-full" />
       <div
-        className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-4 pt-6 font-mono text-base leading-7 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 md:px-6 md:pt-10 md:text-lg md:leading-8 ${
+        className={`pointer-events-none absolute inset-x-0 top-0 grid grid-cols-[1fr_auto_1fr] items-start gap-4 px-4 pt-6 font-mono text-base leading-7 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 md:px-6 md:pt-10 md:text-lg md:leading-8 ${
           hud ? 'opacity-100' : 'opacity-0'
         }`}
       >
         <p>
           Breakout <span className="text-[#9a9894]">· {labels.exit}</span>
         </p>
-        <p className="flex items-center gap-2" aria-label={`${labels.lives}: ${lives}`}>
+        <div className="text-center">
+          <p ref={timerEl} className="text-[#181818] tabular-nums">
+            0:00.0
+          </p>
+          {best && (
+            <p className="text-sm leading-5 text-[#9a9894] normal-case">
+              {labels.best} {formatMs(best.ms)} · {best.name}
+            </p>
+          )}
+        </div>
+        <p className="flex items-center justify-end gap-2" aria-label={`${labels.lives}: ${lives}`}>
           {Array.from({ length: LIVES }, (_, i) => (
             <svg key={i} viewBox="-1 -1 2 2" className={`size-4 transition-opacity duration-300 ${i < lives ? 'opacity-100' : 'opacity-20'}`}>
               <polygon
@@ -658,18 +810,82 @@ export function HifBreakout({
       >
         {labels.launch}
       </p>
+
+      {/* the end of a game: the time, a name for the leaderboard, and the leaderboard */}
       <div
         role="status"
-        className={`pointer-events-none absolute inset-x-0 top-[58%] flex -translate-y-1/2 flex-col items-center gap-3 text-center transition-opacity duration-300 ${
-          phase === 'won' || phase === 'over' ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 flex items-center justify-center px-4 transition-opacity duration-300 ${ended ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       >
-        <p className={`font-pixel text-[clamp(36px,6vw,80px)] leading-none ${phase === 'won' ? 'text-brand' : 'text-[#181818]'}`}>
-          {phase === 'won' ? labels.win : labels.over}
-        </p>
-        <p className="font-mono text-sm leading-5 tracking-wide text-[#5a5956] uppercase md:text-base">
-          {labels.again} · {labels.exit}
-        </p>
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="flex max-h-[calc(100svh-96px)] w-full max-w-[440px] flex-col items-center gap-5 overflow-y-auto border border-[#d6d4d0] bg-[#f4f2ee] px-5 py-7 text-center md:px-8"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <p className={`font-pixel text-[clamp(36px,5vw,60px)] leading-none ${phase === 'won' ? 'text-brand' : 'text-[#181818]'}`}>
+              {phase === 'won' ? labels.win : labels.over}
+            </p>
+            {phase === 'won' && result && <p className="font-pixel text-[32px] leading-none text-[#181818] tabular-nums">{formatMs(result.ms)}</p>}
+          </div>
+
+          {showForm && (
+            <form onSubmit={save} className="flex w-full gap-2">
+              <input
+                ref={nameEl}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={24}
+                required
+                autoComplete="nickname"
+                placeholder={labels.name}
+                aria-label={labels.name}
+                disabled={result?.state === 'saving'}
+                className="min-w-0 flex-1 border border-[#181818]/30 bg-white px-3 py-2 font-mono text-base text-[#181818] outline-none select-text placeholder:text-[#9a9894] focus:border-brand"
+              />
+              <button
+                type="submit"
+                disabled={result?.state === 'saving' || !name.trim()}
+                className="shrink-0 bg-brand px-4 py-2 font-mono text-base text-[#f4f2ee] transition-opacity disabled:opacity-50"
+              >
+                {result?.state === 'saving' ? labels.saving : labels.save}
+              </button>
+            </form>
+          )}
+          {phase === 'won' && result?.state === 'saved' && result.rank && (
+            <p className="font-mono text-base tracking-wide text-brand uppercase">{labels.rank(result.rank)}</p>
+          )}
+          {phase === 'won' && result?.state === 'offline' && <p className="font-mono text-sm text-[#5a5956]">{labels.offline}</p>}
+
+          {board && board.length > 0 && (
+            <div className="w-full text-left">
+              <p className="mb-2 font-mono text-sm tracking-wide text-[#5a5956] uppercase">{labels.board}</p>
+              <ol className="font-mono text-base leading-7">
+                {board.map((s, i) => (
+                  <li
+                    key={s._id}
+                    className={`grid grid-cols-[2ch_1fr_auto] gap-3 border-t border-[#d6d4d0] ${s._id === result?.id ? 'text-brand' : 'text-[#181818]'}`}
+                  >
+                    <span className="text-right text-[#9a9894]">{i + 1}</span>
+                    <span className="truncate">{s.name}</span>
+                    <span className="tabular-nums">{formatMs(s.ms)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => api.current.restart()}
+              className="border border-[#181818] px-4 py-2 font-mono text-base text-[#181818] transition-colors hover:bg-[#181818] hover:text-[#f4f2ee]"
+            >
+              {labels.playAgain}
+            </button>
+            <p className="font-mono text-xs leading-5 tracking-wide text-[#9a9894] uppercase">
+              {labels.again} · {labels.exit}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

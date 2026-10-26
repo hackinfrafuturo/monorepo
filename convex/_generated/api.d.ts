@@ -10,6 +10,8 @@
 
 import type * as apiData from "../apiData.js";
 import type * as applications from "../applications.js";
+import type * as breakout from "../breakout.js";
+import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 
@@ -22,6 +24,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   apiData: typeof apiData;
   applications: typeof applications;
+  breakout: typeof breakout;
+  crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
 }>;

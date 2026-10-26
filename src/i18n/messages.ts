@@ -57,7 +57,24 @@ export type HomeMessages = {
   heroTitle: string
   sponsorLogosTitle: string
   skateHint: string
-  game: { press: string; play: string; exit: string; launch: string; win: string; over: string; again: string; lives: string }
+  game: {
+    press: string
+    play: string
+    exit: string
+    launch: string
+    win: string
+    over: string
+    again: string
+    lives: string
+    playAgain: string
+    best: string
+    board: string
+    name: string
+    save: string
+    saving: string
+    rank: (n: number) => string
+    offline: string
+  }
   heroPrizeDescription: (amount: string) => string
   register: string
   participants: string
@@ -95,6 +112,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       over: 'Game over',
       again: 'Space to play again',
       lives: 'Lives',
+      playAgain: 'Play again',
+      best: 'Best',
+      board: 'Fastest wins',
+      name: 'Your name',
+      save: 'Save',
+      saving: 'Saving…',
+      rank: (n) => `You're #${n}`,
+      offline: "Couldn't save your time",
     },
     heroPrizeDescription: function (amount) {
       return `$ ${amount} in cash for the winners.`
@@ -230,6 +255,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       over: 'Fin del juego',
       again: 'Espacio para jugar de nuevo',
       lives: 'Vidas',
+      playAgain: 'Jugar de nuevo',
+      best: 'Récord',
+      board: 'Los más rápidos',
+      name: 'Tu nombre',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      rank: (n) => `Quedaste #${n}`,
+      offline: 'No pudimos guardar tu tiempo',
     },
     heroPrizeDescription: function (amount) {
       return `$ ${amount} dólares en efectivo para los ganadores.`
