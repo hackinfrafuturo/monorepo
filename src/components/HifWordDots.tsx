@@ -14,7 +14,7 @@ import { useReducedMotion } from 'motion/react'
 
 const GRID = 0.038 // em
 const GRID_OFFSET = 0.019 // em
-const DOT_R = 0.019 * 0.9 // em: the hero uses the 90% dot cut of the font
+const DOT_R = 0.019 // em: the dots touch their neighbours
 
 // the star's repel field (HifSkater), converted from the mark's units: the mark is 1.772em across 70 units
 const UNIT = 1.772 / 70
