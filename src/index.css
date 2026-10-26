@@ -50,12 +50,14 @@
   -moz-osx-font-smoothing: unset;
 }
 
+/* Smoothed, unlike font-pixel: unsmoothed, each dot snaps to whole pixels and the gaps between the
+   smaller dots close up, so the type looks as dark as the full-size font. */
 @utility font-pixel-airy {
   font-family: var(--font-pixel-airy);
   font-weight: 500;
   font-synthesis: none;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @keyframes marquee {
