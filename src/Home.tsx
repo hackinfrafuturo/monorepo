@@ -202,10 +202,7 @@ function Door({
 
 export default function Home() {
   const [locale, setLocale] = useLocale()
-  const [skating, setSkating] = useState(false)
   const [skateRun, setSkateRun] = useState(0)
-  // the "click it" hint shows on hover until someone has clicked the skater once
-  const [skateTried, setSkateTried] = useState(false)
   // Breakout with the logo: B starts it. `game` mounts it (and hides the real logo, which it draws in
   // place); `gameUi` fades the rest of the hero, and comes back as soon as leaving starts.
   const [game, setGame] = useState<{ word: HTMLElement; mark: Element } | null>(null)
@@ -271,26 +268,10 @@ export default function Home() {
       >
         <div className={`flex items-start justify-between gap-6 px-4 pt-6 font-mono text-base leading-7 text-[#5a5956] md:px-6 md:pt-10 md:text-lg md:leading-8 ${gameFade}`}>
           <p>{t.heroDate}</p>
-          {/* keyboard only: hidden where there's no fine pointer (phones, tablets) */}
-          <p aria-hidden className="hidden shrink-0 items-center gap-2 text-sm leading-7 tracking-wide uppercase pointer-fine:flex md:text-base md:leading-8">
-            {t.game.press}
-            <kbd className="inline-grid size-6 place-items-center border border-[#181818]/30 font-mono text-xs leading-none text-[#181818] md:size-7 md:text-sm">
-              B
-            </kbd>
-            {t.game.play}
-          </p>
         </div>
 
         {/* Logo, name and claim, centred in the space between the date and the buttons. */}
         <div className="flex min-w-0 flex-col items-center justify-center gap-8 px-4 py-12 text-center md:gap-10 md:px-6">
-          <p
-            aria-hidden
-            className={`-mb-4 ${gameUi ? 'invisible' : ''} font-mono text-sm leading-5 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 md:-mb-6 ${
-              skating && !skateTried ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            {t.skateHint}
-          </p>
           {/*
             Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
             line 2 = 1.772em) and the gap is one dot of the mark.
@@ -300,16 +281,11 @@ export default function Home() {
           <h1
             ref={titleRef}
             id="hero-title"
-            onPointerEnter={(e) => e.pointerType !== 'touch' && setSkating(true)}
-            onPointerLeave={(e) => e.pointerType !== 'touch' && setSkating(false)}
-            onClick={() => {
-              setSkateRun((n) => n + 1)
-              setSkateTried(true)
-            }}
+            onClick={() => setSkateRun((n) => n + 1)}
             className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
           >
             <HifSkater run={skateRun} variant="dither" className="size-[1.772em] shrink-0" />
-            <span ref={wordRef} className="font-pixel leading-[1.05]">
+            <span ref={wordRef} className="font-pixel-airy leading-[1.05]">
               Hack Infra
               <br />
               Futuro

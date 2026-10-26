@@ -16,6 +16,16 @@
   font-display: swap;
 }
 
+/* The same font with every dot shrunk to 90% around its centre, so big type doesn't read as solid
+   strokes. Derived from GeistPixel-Circle.woff2; same OFL-1.1 licence. Used for the hero title. */
+@font-face {
+  font-family: 'Geist Pixel Circle 90';
+  src: url('./fonts/GeistPixel-Circle-90.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-background: #181818;
   --color-foreground: #d6d4d0;
@@ -29,10 +39,19 @@
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'iA Writer Quattro', ui-monospace, monospace;
   --font-pixel: 'Geist Pixel Circle', ui-monospace, monospace;
+  --font-pixel-airy: 'Geist Pixel Circle 90', 'Geist Pixel Circle', ui-monospace, monospace;
 }
 
 @utility font-pixel {
   font-family: var(--font-pixel);
+  font-weight: 500;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+@utility font-pixel-airy {
+  font-family: var(--font-pixel-airy);
   font-weight: 500;
   font-synthesis: none;
   -webkit-font-smoothing: none;
