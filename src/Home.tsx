@@ -1,7 +1,9 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { HifBreakout } from './components/HifBreakout'
+import { HifRunner } from './components/HifRunner'
 import { HifSkater } from './components/HifSkater'
+import { HifWordDots } from './components/HifWordDots'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
@@ -202,31 +204,23 @@ function Door({
 
 export default function Home() {
   const [locale, setLocale] = useLocale()
-  const [skateRun, setSkateRun] = useState(0)
-  // Breakout with the logo: B starts it. `game` mounts it (and hides the real logo, which it draws in
-  // place); `gameUi` fades the rest of the hero, and comes back as soon as leaving starts.
-  const [game, setGame] = useState<{ word: HTMLElement; mark: Element } | null>(null)
+  // Games with the logo, started by clicking it: the star and its band start Breakout, the name the
+  // runner. `game` mounts one (and hides the real logo, which it draws in place); `gameUi` fades the rest
+  // of the hero, and comes back as soon as leaving starts.
+  const [game, setGame] = useState<{ kind: 'breakout' | 'runner'; word: HTMLElement; mark: Element } | null>(null)
   const [gameUi, setGameUi] = useState(false)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const wordRef = useRef<HTMLSpanElement>(null)
-  useEffect(() => {
-    if (game) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'b' && e.key !== 'B') return
-      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return
-      const el = e.target as HTMLElement | null
-      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return
-      const word = wordRef.current
-      const mark = titleRef.current?.querySelector('svg')
-      if (!word || !mark) return
-      e.preventDefault()
-      window.scrollTo({ top: 0, behavior: 'instant' })
-      setGame({ word, mark })
-      setGameUi(true)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [game])
+  const startGame = (target: EventTarget) => {
+    const word = wordRef.current
+    const mark = titleRef.current?.querySelector('svg')
+    if (game || !word || !mark || !(target instanceof Node)) return
+    const kind = word.contains(target) ? 'runner' : mark.contains(target) ? 'breakout' : null
+    if (!kind) return
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    setGame({ kind, word, mark })
+    setGameUi(true)
+  }
   const gameFade = `transition-opacity duration-500 ${gameUi ? 'pointer-events-none opacity-0' : 'opacity-100'}`
   const t = homeMessages[locale]
   const next = otherLocale(locale)
@@ -275,22 +269,24 @@ export default function Home() {
           {/*
             Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
             line 2 = 1.772em) and the gap is one dot of the mark.
-            Hovering makes the dots near the cursor flow away from it; a click (or a tap) makes the
-            skater do a backflip. z-20 keeps the flip above the text around it.
+            Hovering makes the dots near the cursor flow away from it, on the mark and the name alike. A
+            click (or a tap) starts a game: Breakout on the mark, the runner on the name. z-20 keeps the
+            skater's motion above the text around it.
           */}
           <h1
             ref={titleRef}
             id="hero-title"
-            onClick={() => setSkateRun((n) => n + 1)}
+            onClick={(e) => startGame(e.target)}
             className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
           >
-            <HifSkater run={skateRun} variant="dither" className="size-[1.772em] shrink-0" />
+            <HifSkater run={0} variant="dither" className="size-[1.772em] shrink-0" />
             <span ref={wordRef} className="font-pixel-airy leading-[1.05]">
               Hack Infra
               <br />
               Futuro
             </span>
           </h1>
+          <HifWordDots word={wordRef} off={!!game} />
           <p className={`${gameFade} max-w-[30ch] font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
             {t.heroTitle}
           </p>
@@ -315,7 +311,16 @@ export default function Home() {
           />
         </div>
       </section>
-      {game && (
+      {game?.kind === 'runner' && (
+        <HifRunner
+          word={game.word}
+          mark={game.mark}
+          labels={{ ...t.game, ...t.runner }}
+          onExitStart={() => setGameUi(false)}
+          onDone={() => setGame(null)}
+        />
+      )}
+      {game?.kind === 'breakout' && (
         <HifBreakout
           word={game.word}
           mark={game.mark}
@@ -325,66 +330,10 @@ export default function Home() {
         />
       )}
 
-      <section className={`border-b bg-brand px-4 py-10 md:px-6 md:py-14 ${RULE}`}>
-        <p className="mx-auto max-w-[40ch] text-center font-mono text-xl leading-8 tracking-wide text-balance text-[#f4f2ee] uppercase md:text-3xl md:leading-[1.35]">
-          {t.heroPrizeDescription(prizePoolAmount)}
-        </p>
-      </section>
-
       <section
         id="contenido"
-        className="flex min-h-svh items-center px-4 py-12 md:px-6 md:py-16"
-      >
-        <div className={`grid w-full items-start gap-8 md:items-stretch ${COLUMNS}`}>
-          <figure
-            className={`aspect-square w-full border bg-brand [--ascii-bg:var(--color-brand)] ${RULE}`}
-          >
-            <AsciiField
-              src={HAND.src}
-              poster={HAND.poster}
-              invert
-              floor={0}
-              preload="metadata"
-              className="size-full"
-            />
-            <figcaption className="sr-only">{t.handLabel}</figcaption>
-          </figure>
-          <div className="flex max-w-[46ch] flex-col gap-10 font-mono text-lg leading-8 text-[#181818] md:h-full md:justify-between md:gap-12 md:py-1 md:text-xl md:leading-9">
-            <div className="space-y-4">
-              <p>{t.stuckLead}</p>
-              <p>{t.stuckBody}</p>
-            </div>
-            <p className="tabular-nums">{t.facts}</p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="prize-pool"
-        aria-labelledby="prize-pool-title"
-        aria-describedby="prize-pool-estimate"
-        className={`border-t bg-brand px-4 py-12 text-[#f4f2ee] md:px-6 md:py-20 ${RULE}`}
-      >
-        <div className={SECTION_GRID}>
-          <h2 id="prize-pool-title" className="font-pixel text-balance md:col-span-2">
-            <span className="block text-[32px] leading-[1.1] md:text-[48px]">
-              {t.prizePoolTitle}
-            </span>
-            <span className="mt-8 block text-[clamp(2rem,12vw,9rem)] leading-none tracking-[-0.04em] whitespace-nowrap tabular-nums">
-              <span aria-hidden="true">{'$ '}</span>
-              <span className="sr-only">USD </span>
-              {prizePoolAmount}
-            </span>
-          </h2>
-          <p id="prize-pool-estimate" className="font-mono text-sm leading-6 md:col-span-2">
-            {t.prizePoolEstimate}
-          </p>
-        </div>
-      </section>
-
-      <section
         aria-labelledby="sponsor-logos-title"
-        className={`border-t px-4 py-12 md:px-6 md:py-16 ${RULE}`}
+        className="px-4 py-12 md:px-6 md:py-16"
       >
         <div className={SECTION_GRID}>
           <h2 id="sponsor-logos-title" className="font-mono text-base leading-7 text-[#5a5956] md:col-span-2 md:text-lg md:leading-8">
@@ -415,6 +364,54 @@ export default function Home() {
               </Fragment>
             ))}
           </ul>
+        </div>
+      </section>
+
+      <section
+        id="prize-pool"
+        aria-labelledby="prize-pool-title"
+        aria-describedby="prize-pool-estimate"
+        className={`border-t bg-brand px-4 py-12 text-[#f4f2ee] md:px-6 md:py-20 ${RULE}`}
+      >
+        <div className={SECTION_GRID}>
+          <h2 id="prize-pool-title" className="font-pixel text-balance md:col-span-2">
+            <span className="block text-[32px] leading-[1.1] md:text-[48px]">
+              {t.prizePoolTitle}
+            </span>
+            <span className="mt-8 block text-[clamp(2rem,12vw,9rem)] leading-none tracking-[-0.04em] whitespace-nowrap tabular-nums">
+              <span aria-hidden="true">{'$ '}</span>
+              <span className="sr-only">USD </span>
+              {prizePoolAmount}
+            </span>
+          </h2>
+          <p id="prize-pool-estimate" className="font-mono text-sm leading-6 md:col-span-2">
+            {t.prizePoolEstimate}
+          </p>
+        </div>
+      </section>
+
+      <section className="flex min-h-svh items-center px-4 py-12 md:px-6 md:py-16">
+        <div className={`grid w-full items-start gap-8 md:items-stretch ${COLUMNS}`}>
+          <figure
+            className={`aspect-square w-full border bg-brand [--ascii-bg:var(--color-brand)] ${RULE}`}
+          >
+            <AsciiField
+              src={HAND.src}
+              poster={HAND.poster}
+              invert
+              floor={0}
+              preload="metadata"
+              className="size-full"
+            />
+            <figcaption className="sr-only">{t.handLabel}</figcaption>
+          </figure>
+          <div className="flex max-w-[46ch] flex-col gap-10 font-mono text-lg leading-8 text-[#181818] md:h-full md:justify-between md:gap-12 md:py-1 md:text-xl md:leading-9">
+            <div className="space-y-4">
+              <p>{t.stuckLead}</p>
+              <p>{t.stuckBody}</p>
+            </div>
+            <p className="tabular-nums">{t.facts}</p>
+          </div>
         </div>
       </section>
 

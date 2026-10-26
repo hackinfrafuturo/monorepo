@@ -58,6 +58,7 @@ export type HomeMessages = {
   sponsorLogosTitle: string
   game: {
     exit: string
+    close: string
     launch: string
     win: string
     over: string
@@ -72,7 +73,7 @@ export type HomeMessages = {
     rank: (n: number) => string
     offline: string
   }
-  heroPrizeDescription: (amount: string) => string
+  runner: { jump: string; best: string; board: string; offline: string }
   register: string
   participants: string
   sponsor: string
@@ -101,6 +102,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     sponsorLogosTitle: 'Sponsors',
     game: {
       exit: 'Esc to exit',
+      close: 'Exit',
       launch: 'Click or space to launch',
       win: 'You win!',
       over: 'Game over',
@@ -115,9 +117,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `You're #${n}`,
       offline: "Couldn't save your time",
     },
-    heroPrizeDescription: function (amount) {
-      return `$ ${amount} in cash for the winners.`
-    },
+    runner: { jump: 'Space or tap to jump · ↓ to duck', best: 'HI', board: 'Top scores', offline: "Couldn't save your score" },
     register: 'Register your team',
     participants: 'Participants',
     sponsor: 'I want to sponsor',
@@ -241,6 +241,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     sponsorLogosTitle: 'Auspician',
     game: {
       exit: 'Esc para salir',
+      close: 'Salir',
       launch: 'Clic o espacio para lanzar',
       win: '¡Ganaste!',
       over: 'Fin del juego',
@@ -255,9 +256,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `Quedaste #${n}`,
       offline: 'No pudimos guardar tu tiempo',
     },
-    heroPrizeDescription: function (amount) {
-      return `$ ${amount} dólares en efectivo para los ganadores.`
-    },
+    runner: { jump: 'Espacio o toca para saltar · ↓ para agacharte', best: 'Récord', board: 'Mejores puntajes', offline: 'No pudimos guardar tu puntaje' },
     register: 'Inscribe tu equipo',
     participants: 'Participantes',
     sponsor: 'Quiero auspiciar',

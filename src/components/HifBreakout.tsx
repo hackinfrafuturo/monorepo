@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { DITHER, DITHER_R } from './hif-dither'
+import { DITHER, DITHER_R, SPRITE_EXT, STAR_FEET, STAR_R, starSprite } from './hif-dither'
 import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, type RunId, type Score } from './breakout-board'
 
 /**
@@ -18,6 +18,7 @@ import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, typ
 
 export type BreakoutLabels = {
   exit: string
+  close: string
   launch: string
   win: string
   over: string
@@ -49,10 +50,7 @@ type Phase = 'enter' | 'ready' | 'play' | 'won' | 'over' | 'exit'
 const INK = '#181818'
 const LIVES = 3
 
-// star geometry, in mark units, relative to the star's centre (35, STAR_R)
-const STAR_R = 50 / (1 + Math.cos(Math.PI / 5))
-const FEET = 50 - STAR_R // centre to the tips of the two lower points
-const SPRITE_EXT = STAR_R + DITHER_R + 0.5
+const FEET = STAR_FEET
 
 // band geometry, relative to the band's centre (35, 60): the paddle keeps the bottom rows; the
 // dithered rows above them fade away on the way into the game
@@ -75,23 +73,6 @@ type Tween = { t: number; items: Item[]; done?: () => void }
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-function starSprite() {
-  const U = 8
-  const c = document.createElement('canvas')
-  c.width = c.height = Math.ceil(SPRITE_EXT * 2 * U)
-  const g = c.getContext('2d')!
-  g.fillStyle = INK
-  g.beginPath()
-  for (const d of DITHER.rider) {
-    const x = (d.lx + SPRITE_EXT) * U
-    const y = (d.ly + SPRITE_EXT) * U
-    g.moveTo(x + DITHER_R * U, y)
-    g.arc(x, y, DITHER_R * U, 0, Math.PI * 2)
-  }
-  g.fill()
-  return c
-}
-
 export function HifBreakout({
   word,
   mark,
@@ -113,7 +94,7 @@ export function HifBreakout({
   const canvas = useRef<HTMLCanvasElement>(null)
   const [phase, setPhase] = useState<Phase>('enter')
   const [lives, setLives] = useState(LIVES)
-  const api = useRef<{ press: () => void; restart: () => void }>({ press: () => {}, restart: () => {} })
+  const api = useRef<{ press: () => void; restart: () => void; exit: () => void }>({ press: () => {}, restart: () => {}, exit: () => {} })
   const cb = useRef({ onExitStart, onDone })
   useEffect(() => {
     cb.current = { onExitStart, onDone }
@@ -199,7 +180,7 @@ export function HifBreakout({
     const cv = canvas.current!
     const ctx = cv.getContext('2d')!
     const time = reduce ? 0.001 : 1
-    const sprite = starSprite()
+    const sprite = starSprite(INK)
     const brand = getComputedStyle(document.documentElement).getPropertyValue('--color-brand').trim() || '#7c3aec'
     const css = getComputedStyle(word)
     const family = css.fontFamily
@@ -433,6 +414,7 @@ export function HifBreakout({
     }
     api.current.press = () => press(false)
     api.current.restart = () => press(true)
+    api.current.exit = () => exit()
 
     // ---- bricks breaking into their own dots ------------------------------------------------------------
     const explode = (L: Letter) => {
@@ -594,7 +576,7 @@ export function HifBreakout({
         }
         return
       }
-      if (k === 'Escape' || k === 'b' || k === 'B') {
+      if (k === 'Escape') {
         e.preventDefault()
         exit()
         return
@@ -775,9 +757,17 @@ export function HifBreakout({
           hud ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <p>
-          Breakout <span className="text-[#9a9894]">· {labels.exit}</span>
-        </p>
+        {/* the way out: Esc on a keyboard, or a tap here */}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => api.current.exit()}
+          className="pointer-events-auto text-left uppercase transition-colors hover:text-[#181818]"
+        >
+          Breakout <span className="text-[#9a9894]">· </span>
+          <span className="hidden text-[#9a9894] pointer-fine:inline">{labels.exit}</span>
+          <span className="text-[#9a9894] pointer-fine:hidden">{labels.close}</span>
+        </button>
         <div className="text-center">
           <p ref={timerEl} className="text-[#181818] tabular-nums">
             0:00.0
@@ -814,11 +804,11 @@ export function HifBreakout({
       {/* the end of a game: the time, a name for the leaderboard, and the leaderboard */}
       <div
         role="status"
-        className={`absolute inset-0 flex items-center justify-center px-4 transition-opacity duration-300 ${ended ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center px-4 transition-opacity duration-300 ${ended ? 'opacity-100' : 'opacity-0'}`}
       >
         <div
           onPointerDown={(e) => e.stopPropagation()}
-          className="flex max-h-[calc(100svh-96px)] w-full max-w-[440px] flex-col items-center gap-5 overflow-y-auto border border-[#d6d4d0] bg-[#f4f2ee] px-5 py-7 text-center md:px-8"
+          className={`${ended ? 'pointer-events-auto' : ''} flex max-h-[calc(100svh-96px)] w-full max-w-[440px] flex-col items-center gap-5 overflow-y-auto border border-[#d6d4d0] bg-[#f4f2ee] px-5 py-7 text-center md:px-8`}
         >
           <div className="flex flex-col items-center gap-2">
             <p className={`font-pixel text-[clamp(36px,5vw,60px)] leading-none ${phase === 'won' ? 'text-brand' : 'text-[#181818]'}`}>
