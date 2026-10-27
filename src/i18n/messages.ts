@@ -96,6 +96,8 @@ export type HomeMessages = {
     title: string
     tracks: { title: string; copy: string }[]
   }[]
+  challenge: string
+  challengeLabel: string
   sponsors: Record<SponsorId, SponsorMessages>
   orgs: Record<OrgId, string>
   behindTitle: string
@@ -241,6 +243,8 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         ],
       },
     ],
+    challenge: 'Velum Labs GPU Challenge',
+    challengeLabel: 'Online before the hack. $10,000 USD in cash and AI credits',
     behindTitle: "Who's behind it",
     faqTitle: 'FAQ',
     faq: [
@@ -407,6 +411,8 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         ],
       },
     ],
+    challenge: 'Velum Labs GPU Challenge',
+    challengeLabel: 'Online antes de la hack. US$10.000 en efectivo y créditos de IA',
     behindTitle: 'Quién está detrás',
     faqTitle: 'Preguntas frecuentes',
     faq: [
