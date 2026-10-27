@@ -17,8 +17,8 @@ import { githubHandle, handleKey, playerKey } from './github'
 
 /** keep in step with the game: speed grows ACCEL of the start speed per second, up to MAX_SPEED times, and the score counts 10 a second at the start speed */
 const RATE = 10
-const ACCEL = 0.035
-const MAX_SPEED = 2.8
+const ACCEL = 0.045
+const MAX_SPEED = 3.2
 /** network time between the browser's start and crash and ours */
 const SLACK_MS = 2_000
 /** a run left open longer than this doesn't count */

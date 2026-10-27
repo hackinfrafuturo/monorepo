@@ -69,9 +69,9 @@ const STAR_H = 50 // the star, tip to feet, in mark units
 const DUCK = 0.6 // ducking squashes the star to this much of its height
 // difficulty: the start speed (a share of the screen's width) grows by ACCEL of itself a second, up to
 // MAX_SPEED times; keep ACCEL and MAX_SPEED in step with convex/runner.ts, which caps scores with them
-const ACCEL = 0.035
-const MAX_SPEED = 2.8
-const AIR_FROM = 80 // score from which letters can come in the air
+const ACCEL = 0.045
+const MAX_SPEED = 3.2
+const AIR_FROM = 40 // score from which letters can come in the air
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
@@ -284,7 +284,7 @@ export function HifRunner({
       floorY = feetY + 10 * k
       starX = clamp(0.16 * W, 70, 260)
       letterSize = (0.92 * STAR_H * k) / glyphOf('H').a
-      baseSpeed = clamp(0.65 * W, 460, 820)
+      baseSpeed = clamp(0.7 * W, 500, 900)
       const apex = 2.3 * STAR_H * k
       const air = 0.66
       jumpV = (4 * apex) / air
@@ -401,8 +401,8 @@ export function HifRunner({
 
     // ---- obstacles: the name, a letter or a few at a time ---------------------------------------------
     const spawn = () => {
-      const air = score > AIR_FROM && Math.random() < 0.4
-      const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 200))
+      const air = score > AIR_FROM && Math.random() < 0.45
+      const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 150))
       const airTime = (2 * jumpV) / gravity
       // never wider than one jump can clear at this speed
       const maxWidth = speed * airTime * 0.75 - 1.1 * STAR_R * k
@@ -421,7 +421,7 @@ export function HifRunner({
         width += w + GAP * size
       }
       // room to land and jump again before the next one
-      gap = width + speed * (airTime + 0.06 + Math.random() * 0.45)
+      gap = width + speed * (airTime + 0.06 + Math.random() * 0.35)
     }
 
     const restart = () => {
