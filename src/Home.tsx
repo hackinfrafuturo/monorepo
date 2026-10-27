@@ -54,6 +54,11 @@ const SPONSOR_LOGOS = [
   { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-6 md:max-h-8' },
 ] as const
 
+const TRACK_LOGOS: Record<string, { src: string; width: number; height: number }> = {
+  Flyra: { src: '/brand/flyra.png', width: 128, height: 128 },
+  Payku: { src: '/brand/payku.png', width: 640, height: 216 },
+}
+
 const RULE = 'border-[#d6d4d0]'
 
 const PRIZE_POOL_USD = 12_000
@@ -443,6 +448,56 @@ export default function Home() {
               <p>{t.stuckBody}</p>
             </div>
             <p className="tabular-nums">{t.facts}</p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="tracks"
+        aria-labelledby="tracks-title"
+        className={`border-t px-4 py-12 md:px-6 md:py-16 ${RULE}`}
+      >
+        <div className={SECTION_GRID}>
+          <h2 id="tracks-title" className={SECTION_TITLE}>
+            {t.tracksTitle}
+          </h2>
+          <div className="space-y-10 md:space-y-12">
+            {t.trackGroups.map((group) => (
+              <div key={group.title}>
+                <h3 className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
+                  {group.title}
+                </h3>
+                <ul className="mt-4">
+                  {group.tracks.map(({ title, copy }) => {
+                    const logo = TRACK_LOGOS[title]
+                    return (
+                      <li
+                        key={title}
+                        className={`group -mx-3 border-t px-3 py-6 transition-colors duration-150 hover:bg-[#6d4aff] ${RULE}`}
+                      >
+                        <p className="flex items-center gap-3 font-mono text-lg leading-8 text-[#181818] group-hover:text-white md:text-xl md:leading-9">
+                          {logo && (
+                            <img
+                              src={logo.src}
+                              alt=""
+                              width={logo.width}
+                              height={logo.height}
+                              decoding="async"
+                              loading="lazy"
+                              className="h-5 w-auto group-hover:brightness-0 group-hover:invert md:h-6"
+                            />
+                          )}
+                          {title}
+                        </p>
+                        <p className="font-mono text-base leading-7 text-[#5a5956] group-hover:text-white/80 md:text-lg md:leading-8">
+                          {copy}
+                        </p>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -16,7 +16,10 @@ export type Messages = {
   orgsTitle: string
   orgs: { title: string; copy: string }[]
   tracksTitle: string
-  tracks: { n: string; title: string; copy: string }[]
+  trackGroups: {
+    title: string
+    tracks: { n: string; title: string; copy: string }[]
+  }[]
   sponsorsTitle: string
   sponsorsLead: string
   sponsorsHighlight: string
@@ -88,6 +91,11 @@ export type HomeMessages = {
   handLabel: string
   prizePoolTitle: string
   prizePoolEstimate: string
+  tracksTitle: string
+  trackGroups: {
+    title: string
+    tracks: { title: string; copy: string }[]
+  }[]
   sponsors: Record<SponsorId, SponsorMessages>
   orgs: Record<OrgId, string>
   behindTitle: string
@@ -210,6 +218,29 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         'Startup community running in-person events. Last hackathon was the biggest social-impact one in Latin America, five countries.',
       ae: 'Every university entrepreneurship club in Chile. In 2026: ~3000 signed up, 1800+ showed up.',
     },
+    tracksTitle: 'Tracks',
+    trackGroups: [
+      {
+        title: 'Open tracks',
+        tracks: [
+          {
+            title: 'Agent-ready government',
+            copy: 'Public data and systems an agent can look up and act on.',
+          },
+          {
+            title: 'Agent infrastructure',
+            copy: 'Tools for building, shipping, and running agents.',
+          },
+        ],
+      },
+      {
+        title: 'Sponsor tracks',
+        tracks: [
+          { title: 'Flyra', copy: 'To be announced.' },
+          { title: 'Payku', copy: 'To be announced.' },
+        ],
+      },
+    ],
     behindTitle: "Who's behind it",
     faqTitle: 'FAQ',
     faq: [
@@ -231,7 +262,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       },
       {
         q: 'What will we build?',
-        a: 'Agents that work against real systems. There are three tracks: agent-ready government, agent-ready business, and agent infrastructure.',
+        a: 'Agents that work against real systems. There are two open tracks, agent-ready government and agent infrastructure, plus sponsor tracks from Flyra and Payku.',
       },
       {
         q: 'Can my company get involved?',
@@ -353,6 +384,29 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         'Comunidad de startups con eventos presenciales. La última hackathon fue la de impacto social más grande de Latinoamérica, en cinco países.',
       ae: 'Todos los clubes de emprendimiento universitarios de Chile. En 2026: ~3000 inscritos, 1800+ asistentes.',
     },
+    tracksTitle: 'Tracks',
+    trackGroups: [
+      {
+        title: 'Tracks abiertos',
+        tracks: [
+          {
+            title: 'Agent-ready government',
+            copy: 'Datos y sistemas públicos que un agente pueda consultar y usar.',
+          },
+          {
+            title: 'Agent infrastructure',
+            copy: 'Herramientas para armar, publicar y correr agentes.',
+          },
+        ],
+      },
+      {
+        title: 'Tracks de sponsors',
+        tracks: [
+          { title: 'Flyra', copy: 'Por anunciar.' },
+          { title: 'Payku', copy: 'Por anunciar.' },
+        ],
+      },
+    ],
     behindTitle: 'Quién está detrás',
     faqTitle: 'Preguntas frecuentes',
     faq: [
@@ -374,7 +428,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       },
       {
         q: '¿Qué vamos a construir?',
-        a: 'Agentes que funcionen con sistemas reales. Hay tres tracks: agent-ready government, agent-ready business y agent infrastructure.',
+        a: 'Agentes que funcionen con sistemas reales. Hay dos tracks abiertos, agent-ready government y agent infrastructure, más tracks de sponsors de Flyra y Payku.',
       },
       {
         q: '¿Mi empresa puede participar?',
@@ -406,7 +460,7 @@ export const messages: Record<Locale, Messages> = {
       { value: '24', label: 'Hours' },
       { value: '~500', label: 'People' },
       { value: '10k', label: 'USD in so far' },
-      { value: '3', label: 'Tracks' },
+      { value: '4', label: 'Tracks' },
     ],
     orgsTitle: "Who's behind this",
     orgs: [
@@ -424,21 +478,28 @@ export const messages: Record<Locale, Messages> = {
       },
     ],
     tracksTitle: 'Tracks',
-    tracks: [
+    trackGroups: [
       {
-        n: '01',
-        title: 'Agent-ready government',
-        copy: 'Public data and systems an agent can look up and act on.',
+        title: 'Open tracks',
+        tracks: [
+          {
+            n: '01',
+            title: 'Agent-ready government',
+            copy: 'Public data and systems an agent can look up and act on.',
+          },
+          {
+            n: '02',
+            title: 'Agent infrastructure',
+            copy: 'Tools for building, shipping, and running agents.',
+          },
+        ],
       },
       {
-        n: '02',
-        title: 'Agent-ready business',
-        copy: 'Agents wired into real company data and workflows.',
-      },
-      {
-        n: '03',
-        title: 'Agent infrastructure',
-        copy: 'Tools for building, shipping, and running agents.',
+        title: 'Sponsor tracks',
+        tracks: [
+          { n: '03', title: 'Flyra', copy: 'To be announced.' },
+          { n: '04', title: 'Payku', copy: 'To be announced.' },
+        ],
       },
     ],
     sponsorsTitle: 'Why sponsor this',
@@ -525,7 +586,7 @@ export const messages: Record<Locale, Messages> = {
       { value: '24', label: 'Horas' },
       { value: '~500', label: 'Personas' },
       { value: '10 mil', label: 'USD ya levantados' },
-      { value: '3', label: 'Tracks' },
+      { value: '4', label: 'Tracks' },
     ],
     orgsTitle: 'Quién lo organiza',
     orgs: [
@@ -543,21 +604,28 @@ export const messages: Record<Locale, Messages> = {
       },
     ],
     tracksTitle: 'Tracks',
-    tracks: [
+    trackGroups: [
       {
-        n: '01',
-        title: 'Agent-ready government',
-        copy: 'Datos y sistemas públicos que un agente pueda consultar y usar.',
+        title: 'Tracks abiertos',
+        tracks: [
+          {
+            n: '01',
+            title: 'Agent-ready government',
+            copy: 'Datos y sistemas públicos que un agente pueda consultar y usar.',
+          },
+          {
+            n: '02',
+            title: 'Agent infrastructure',
+            copy: 'Herramientas para armar, publicar y correr agentes.',
+          },
+        ],
       },
       {
-        n: '02',
-        title: 'Agent-ready business',
-        copy: 'Agentes conectados a los datos y procesos de empresas reales.',
-      },
-      {
-        n: '03',
-        title: 'Agent infrastructure',
-        copy: 'Herramientas para armar, publicar y correr agentes.',
+        title: 'Tracks de sponsors',
+        tracks: [
+          { n: '03', title: 'Flyra', copy: 'Por anunciar.' },
+          { n: '04', title: 'Payku', copy: 'Por anunciar.' },
+        ],
       },
     ],
     sponsorsTitle: 'Por qué ser sponsor',
