@@ -15,7 +15,6 @@ import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as FlagRouteImport } from './routes/flag'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as SponsorRouteImport } from './routes/sponsor'
-import { Route as StatsRouteImport } from './routes/stats'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,11 +46,6 @@ const SponsorRoute = SponsorRouteImport.update({
   path: '/sponsor',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StatsRoute = StatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,7 +54,6 @@ export interface FileRoutesByFullPath {
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
-  '/stats': typeof StatsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +62,6 @@ export interface FileRoutesByTo {
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
-  '/stats': typeof StatsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,14 +71,13 @@ export interface FileRoutesById {
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
-  '/stats': typeof StatsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor' | '/stats'
+    '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor' | '/stats'
+  to: '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor'
   id:
     | '__root__'
     | '/'
@@ -95,7 +86,6 @@ export interface FileRouteTypes {
     | '/flag'
     | '/leaderboard'
     | '/sponsor'
-    | '/stats'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,7 +95,6 @@ export interface RootRouteChildren {
   FlagRoute: typeof FlagRoute
   LeaderboardRoute: typeof LeaderboardRoute
   SponsorRoute: typeof SponsorRoute
-  StatsRoute: typeof StatsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,13 +141,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SponsorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/stats': {
-      id: '/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof StatsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -169,7 +151,6 @@ const rootRouteChildren: RootRouteChildren = {
   FlagRoute: FlagRoute,
   LeaderboardRoute: LeaderboardRoute,
   SponsorRoute: SponsorRoute,
-  StatsRoute: StatsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
