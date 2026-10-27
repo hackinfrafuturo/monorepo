@@ -19,6 +19,11 @@ export const DITHER_R = PITCH * 0.46
 const RIDER_CENTER = [35, 25] as const
 const BOARD_CENTER = [35, 60] as const
 
+/** the flag is 3:2, as Chile's: 105 × 70 units, the same 70-unit height and dot pitch as the old square mark */
+export const FLAG_W = 105
+const FLAG_COLS = Math.round(FLAG_W / PITCH)
+/** the band's centre: half way across the flag, and the old band's height (60) so the games' maths holds */
+export const BAND_CX = FLAG_W / 2
 /** where the flag's top half (square and white field) ends and the purple band starts */
 export const FLAG_SPLIT = 35
 /** the band's darkness down its height: it fades in over its first 10 units */
@@ -145,9 +150,6 @@ function build() {
       const t = (BAYER8[y % 8][x % 8] + 0.5) / 64
       const cx = (x + 0.5) * PITCH
       const cy = (y + 0.5) * PITCH
-      if (band[y][x] && bdark[y][x] > t) {
-        board.push({ bx: cx - BOARD_CENTER[0], by: cy - BOARD_CENTER[1], along: cx / 70, across: (cy - FLAG_SPLIT) / (70 - FLAG_SPLIT) })
-      }
       if (!star(x, y)) continue
       const edge = !(star(x - 1, y) && star(x + 1, y) && star(x, y - 1) && star(x, y + 1))
       if (!edge && !(dark[y][x] > t)) continue
@@ -188,6 +190,17 @@ function build() {
       })
     }
   }
+  // the band: the full width of the flag (its darkness only changes down it)
+  for (let y = 0; y < N; y++) {
+    if (!band[y][0]) continue
+    for (let x = 0; x < FLAG_COLS; x++) {
+      const cx = (x + 0.5) * PITCH
+      const cy = (y + 0.5) * PITCH
+      if (bdark[y][0] > (BAYER8[y % 8][x % 8] + 0.5) / 64) {
+        board.push({ bx: cx - BAND_CX, by: cy - BOARD_CENTER[1], along: cx / FLAG_W, across: (cy - FLAG_SPLIT) / (70 - FLAG_SPLIT) })
+      }
+    }
+  }
   return { rider, board }
 }
 
@@ -195,8 +208,8 @@ export const DITHER = build()
 
 /**
  * The band as rows that repeat every 8 columns: its darkness only changes down the band and the dither
- * is a Bayer 8 × 8, so it can be drawn at any width. `dy` is relative to the band's centre (35, 60);
- * column `col` sits at x = (col + 0.5) × DITHER_PITCH, the same columns as the 64 × 64 mark.
+ * is a Bayer 8 × 8, so it can be drawn at any width. `dy` is relative to the band's centre (BAND_CX, 60);
+ * column `col` sits at x = (col + 0.5) × DITHER_PITCH, the same columns as the flag.
  */
 export const DITHER_PITCH = PITCH
 export const BAND_ROWS = (() => {
@@ -254,7 +267,7 @@ export const FLAG = (() => {
   const square: number[] = []
   const field: number[] = []
   for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
+    for (let x = 0; x < FLAG_COLS; x++) {
       const cx = (x + 0.5) * PITCH
       const cy = (y + 0.5) * PITCH
       if (cy >= FLAG_SPLIT) continue

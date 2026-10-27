@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Ref } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { DITHER, DITHER_R, FLAG, FLAG_FIELD, FLAG_STAR, drawFlagTop, holeScale, starDistance, type StarPose } from './hif-dither'
+import { BAND_CX, DITHER, DITHER_R, FLAG, FLAG_FIELD, FLAG_STAR, FLAG_W, drawFlagTop, holeScale, starDistance, type StarPose } from './hif-dither'
 
 /**
  * The Hack Infra Futuro mark: Chile's flag in dots (see hif-dither), with the star cut out of the black
@@ -11,7 +11,7 @@ import { DITHER, DITHER_R, FLAG, FLAG_FIELD, FLAG_STAR, drawFlagTop, holeScale, 
  * springs. The dots along its edge shrink and grow with it, so it moves smoothly through the grid.
  *
  * As with the old star, the static SVG shows at rest and a canvas takes over only while anything moves.
- * Units are the mark's own: 70 × 70. Never moves under prefers-reduced-motion.
+ * Units are the mark's own: FLAG_W × 70 (3:2). Never moves under prefers-reduced-motion.
  */
 
 const INK = '#181818'
@@ -29,7 +29,7 @@ const STAR_SHY = 3.2
 const STAR_SPRING = { k: 170, c: 8 }
 
 const REST_STAR: StarPose = { x: FLAG_STAR.x, y: FLAG_STAR.y, r: FLAG_STAR.r, rot: 0 }
-const BAND = Float32Array.from(DITHER.board.flatMap((d) => [d.bx + 35, d.by + 60]))
+const BAND = Float32Array.from(DITHER.board.flatMap((d) => [d.bx + BAND_CX, d.by + 60]))
 
 /** every dot at rest: square, field and band, as one array of mark-unit positions */
 const REST = (() => {
@@ -53,7 +53,7 @@ function StaticFlag({ className, svgRef }: { className?: string; svgRef?: Ref<SV
     return out
   }
   return (
-    <svg ref={svgRef} viewBox="0 0 70 70" aria-hidden className={className}>
+    <svg ref={svgRef} viewBox={`0 0 ${FLAG_W} 70`} aria-hidden className={className}>
       <g fill={FLAG_FIELD}>{dots(SQ_END, FIELD_END)}</g>
       <g fill={INK}>{dots(0, SQ_END, (x, y) => holeScale(starDistance(x, y, REST_STAR), DITHER_R))}</g>
       <g className="fill-brand">{dots(FIELD_END, REST.length)}</g>
@@ -110,10 +110,10 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
       const box = svg.getBoundingClientRect()
-      const per = box.width / 70
+      const per = box.height / 70
       const ux = (pointer.x - box.left) / per
       const uy = (pointer.y - box.top) / per
-      const near = ux > -REPEL_RADIUS && ux < 70 + REPEL_RADIUS && uy > -REPEL_RADIUS && uy < 70 + REPEL_RADIUS
+      const near = ux > -REPEL_RADIUS && ux < FLAG_W + REPEL_RADIUS && uy > -REPEL_RADIUS && uy < 70 + REPEL_RADIUS
       pointer.vx *= 0.9
       pointer.vy *= 0.9
       if (!near && !shown) return
