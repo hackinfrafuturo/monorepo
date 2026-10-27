@@ -72,7 +72,8 @@ const DUCK = 0.6 // ducking squashes the star to this much of its height
 // MAX_SPEED times; keep ACCEL and MAX_SPEED in step with convex/runner.ts, which caps scores with them
 const ACCEL = 0.045
 const MAX_SPEED = 3.2
-const AIR_FROM = 40 // score from which letters can come in the air
+const AIR_FROM = 20 // score from which letters can come in the air
+const RAMP = 400 // score by which the obstacles are as dense as they get (the speed ramps on its own)
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
@@ -418,8 +419,9 @@ export function HifRunner({
 
     // ---- obstacles: the name, a letter or a few at a time ---------------------------------------------
     const spawn = () => {
-      const air = score > AIR_FROM && Math.random() < 0.45
-      const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 150))
+      const ramp = Math.min(1, score / RAMP)
+      const air = score > AIR_FROM && Math.random() < 0.45 + 0.15 * ramp
+      const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 80))
       const airTime = (2 * jumpV) / gravity
       // never wider than one jump can clear at this speed
       const maxWidth = speed * airTime * 0.75 - 1.1 * STAR_R * k
@@ -437,8 +439,8 @@ export function HifRunner({
         x += w + GAP * size
         width += w + GAP * size
       }
-      // room to land and jump again before the next one
-      gap = width + speed * (airTime + 0.06 + Math.random() * 0.35)
+      // room to land and jump again before the next one; the breathers get shorter as the score climbs
+      gap = width + speed * (airTime + 0.06 + Math.random() * 0.35 * (1 - 0.6 * ramp))
     }
 
     const restart = () => {
