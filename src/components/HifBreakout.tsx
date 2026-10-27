@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { DITHER, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
+import { BAND_CX, DITHER, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
 import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, type RunId, type Score } from './breakout-board'
 
 /**
@@ -53,8 +53,8 @@ const LIVES = 3
 
 const FEET = STAR_FEET
 
-// band geometry, relative to the band's centre (35, 60): the paddle keeps the bottom rows; the
-// dithered rows above them fade away on the way into the game
+// band geometry, relative to the band's centre (BAND_CX, 60): the paddle keeps the bottom rows of the
+// middle 70 units; the rows above them and the ends beyond fade away on the way into the game
 const PADDLE_CUT = 3
 const PAD_TOP = Math.min(...DITHER.board.filter((d) => d.by >= PADDLE_CUT).map((d) => d.by)) - DITHER_R
 const PAD_BOT = Math.max(...DITHER.board.map((d) => d.by)) + DITHER_R
@@ -237,17 +237,17 @@ export function HifBreakout({
     // the star at home is the one cut out of the flag's square
     const homeBall = (): Pick<Ball, 'x' | 'y' | 'k'> => {
       const r = mark.getBoundingClientRect()
-      const k = r.width / 70
+      const k = r.height / 70
       return { x: r.left + FLAG_STAR.x * k, y: r.top + FLAG_STAR.y * k, k: (k * FLAG_STAR.r) / STAR_R }
     }
     const homeFlag = () => {
       const r = mark.getBoundingClientRect()
-      return { left: r.left, top: r.top, k: r.width / 70 }
+      return { left: r.left, top: r.top, k: r.height / 70 }
     }
     const homeBand = (): Band => {
       const r = mark.getBoundingClientRect()
-      const k = r.width / 70
-      return { x: r.left + 35 * k, y: r.top + 60 * k, k, fade: 1 }
+      const k = r.height / 70
+      return { x: r.left + BAND_CX * k, y: r.top + 60 * k, k, fade: 1 }
     }
 
     const home = measureHome()
@@ -659,7 +659,7 @@ export function HifBreakout({
         ctx.globalAlpha = faded ? band.fade : 1
         ctx.beginPath()
         for (const d of DITHER.board) {
-          if (d.by < PADDLE_CUT !== faded) continue
+          if ((d.by < PADDLE_CUT || Math.abs(d.bx) > PAD_HALF) !== faded) continue
           const x = band.x + d.bx * band.k
           const y = band.y + d.by * band.k + dip * (1 - (2 * d.along - 1) ** 2)
           ctx.moveTo(x + rr, y)

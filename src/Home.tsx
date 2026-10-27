@@ -209,7 +209,7 @@ export default function Home() {
   // of the hero, and comes back as soon as leaving starts.
   const [game, setGame] = useState<{ kind: 'breakout' | 'runner'; word: HTMLElement; mark: Element } | null>(null)
   const [gameUi, setGameUi] = useState(false)
-  const titleRef = useRef<HTMLHeadingElement>(null)
+  const titleRef = useRef<HTMLDivElement>(null)
   const wordRef = useRef<HTMLSpanElement>(null)
   const startGame = (target: EventTarget) => {
     const word = wordRef.current
@@ -264,32 +264,44 @@ export default function Home() {
           <p>{t.heroDate}</p>
         </div>
 
-        {/* Logo, name and claim, left-aligned with the date and centred top to bottom between it and the buttons. */}
-        <div className="flex min-w-0 flex-col items-start justify-center gap-8 px-4 py-12 text-left md:gap-10 md:px-6">
-          {/*
-            Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
-            line 2 = 1.772em) and the gap is one dot of the mark.
-            Hovering makes the dots near the cursor flow away from it, on the mark and the name alike, and
-            the flag's star shies away from it. A click (or a tap) starts a game: Breakout on the mark, the
-            runner on the name. z-20 keeps the motion above the text around it.
-          */}
-          <h1
+        {/*
+          The name and the claim, left-aligned with the date; the flag (3:2, like Chile's) to their right,
+          exactly as tall as those four lines (cap top of the first to baseline of the last: both ends are
+          trimmed to the ink) and centred in the space left over. The block is centred top to bottom between
+          the date and the buttons. Below lg there's no room beside the text, so the flag goes above it.
+          Hovering makes the dots near the cursor flow away from it, on the flag and the name alike, and the
+          flag's star shies away from it. A click (or a tap) starts a game: Breakout on the flag, the runner
+          on the name. z-20 keeps the motion above the text around it.
+        */}
+        <div className="flex min-w-0 flex-col justify-center px-4 py-12 md:px-6">
+          <div
             ref={titleRef}
-            id="hero-title"
             onClick={(e) => startGame(e.target)}
-            className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
+            className="relative z-20 flex flex-col items-start gap-8 select-none md:gap-10 lg:flex-row lg:items-stretch lg:gap-0"
           >
-            <HifFlag off={!!game} className="size-[1.772em] shrink-0" />
-            <span ref={wordRef} className="font-pixel leading-[1.05]">
-              Hack Infra
-              <br />
-              Futuro
-            </span>
-          </h1>
+            <div className="lg:relative lg:order-last lg:flex-1">
+              <HifFlag
+                off={!!game}
+                className={`aspect-[3/2] w-[min(33vw,13.5rem)] cursor-pointer lg:absolute lg:inset-y-0 lg:left-1/2 lg:h-full lg:w-auto lg:-translate-x-1/2 ${game ? 'opacity-0' : ''}`}
+              />
+            </div>
+            <div className="flex flex-col items-start gap-8 md:gap-10">
+              <h1
+                id="hero-title"
+                className={`cursor-pointer text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
+              >
+                <span ref={wordRef} className="block font-pixel leading-[1.05] [text-box:trim-start_cap_alphabetic]">
+                  Hack Infra
+                  <br />
+                  Futuro
+                </span>
+              </h1>
+              <p className={`${gameFade} max-w-[30ch] font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase [text-box:trim-end_cap_alphabetic] sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
+                {t.heroTitle}
+              </p>
+            </div>
+          </div>
           <HifWordDots word={wordRef} off={!!game} />
-          <p className={`${gameFade} max-w-[30ch] font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
-            {t.heroTitle}
-          </p>
         </div>
 
         {/* The two ways in, side by side along the bottom of the first screen. The skater lands on this edge. */}

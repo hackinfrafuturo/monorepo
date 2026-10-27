@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
-import { BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandHas, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
+import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandHas, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
 
 /**
  * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the flag's star runs,
@@ -248,7 +248,7 @@ export function HifRunner({
     }
     const homeMark = () => {
       const r = mark.getBoundingClientRect()
-      const k = r.width / 70
+      const k = r.height / 70
       return { left: r.left, top: r.top, k }
     }
 
@@ -290,7 +290,7 @@ export function HifRunner({
     let flagAt = hm
     const flag = { alpha: 1 }
     // the band: centre, scale, half its width (in mark units), and how far the floor has scrolled (units)
-    const band = { x: hm.left + 35 * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: 35, scroll: 0, fade: 1 }
+    const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1 }
     // the star: feet position (x, y), scale, rotation; squash is a spring for landings and ducking
     const star = { x: hs.x, y: hs.y, k: hs.k, rot: 0, alpha: 1, vy: 0, air: false, airT: 0, sq: 0, sqV: 0, duck: 0, run: 0 }
     let dip = 0
@@ -368,7 +368,7 @@ export function HifRunner({
             obj: band,
             from: { ...band },
             // scroll back to where the dither pattern lines up with the logo's
-            to: { x: m.left + 35 * m.k, y: m.top + 60 * m.k, k: m.k, half: 35, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1 },
+            to: { x: m.left + BAND_CX * m.k, y: m.top + 60 * m.k, k: m.k, half: BAND_CX, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1 },
             delay: 0.1,
             dur: 0.9,
           },
@@ -604,8 +604,8 @@ export function HifRunner({
 
       // the band / floor, dot by dot, columns tiled out to either side; it dips a little under a landing
       const r = DITHER_R * band.k
-      const first = Math.floor((35 - band.half + band.scroll) / DITHER_PITCH - 0.5)
-      const last = Math.ceil((35 + band.half + band.scroll) / DITHER_PITCH - 0.5)
+      const first = Math.floor((BAND_CX - band.half + band.scroll) / DITHER_PITCH - 0.5)
+      const last = Math.ceil((BAND_CX + band.half + band.scroll) / DITHER_PITCH - 0.5)
       const dipW = 40 * band.k
       ctx.fillStyle = brand
       for (const upper of [false, true]) {
@@ -613,7 +613,7 @@ export function HifRunner({
         ctx.globalAlpha = upper ? band.fade : 1
         ctx.beginPath()
         for (let col = first; col <= last; col++) {
-          const u = (col + 0.5) * DITHER_PITCH - 35 - band.scroll
+          const u = (col + 0.5) * DITHER_PITCH - BAND_CX - band.scroll
           if (u < -band.half || u > band.half) continue
           const x = band.x + u * band.k
           const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
