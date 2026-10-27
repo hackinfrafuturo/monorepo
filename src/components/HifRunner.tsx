@@ -780,13 +780,16 @@ export function HifRunner({
       raf = requestAnimationFrame(tick)
     }
 
-    // dev only: lets the preview scripts read the game
-    if (import.meta.env.DEV) (window as unknown as { __runner?: unknown }).__runner = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
+    // Live game state for browser scripts, in development and production.
+    const runnerState = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
+    const runnerWindow = window as unknown as { __runner?: typeof runnerState }
+    runnerWindow.__runner = runnerState
     draw(performance.now())
     enter()
     raf = requestAnimationFrame(tick)
 
     return () => {
+      if (runnerWindow.__runner === runnerState) delete runnerWindow.__runner
       audio.stop()
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKey)
