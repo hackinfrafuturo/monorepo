@@ -53,6 +53,7 @@ const SPONSOR_LOGOS = [
   { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'max-h-6 md:max-h-8' },
   { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-6 md:max-h-8' },
   { id: 'udd', name: 'Universidad del Desarrollo', logo: '/brand/udd.svg', width: 264, height: 45, href: 'https://www.udd.cl', frame: 'max-h-7 md:max-h-9' },
+  { id: 'smart-plus', name: 'Smart Plus Robotics', logo: '/brand/smart-plus.webp', width: 1782, height: 852, href: 'https://smartplusrobotics.com', frame: 'max-h-9 md:max-h-11' },
 ] as const
 
 const TRACK_LOGOS: Record<string, { src: string; width: number; height: number }> = {
