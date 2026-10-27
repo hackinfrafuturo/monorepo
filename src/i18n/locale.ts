@@ -6,6 +6,7 @@ export const LOCALE_COOKIE = 'locale'
 export const HOME = '/'
 export const APPLY = '/apply'
 export const SPONSOR = '/deck'
+export const CHALLENGE = '/challenge'
 
 /** Old locale-prefixed URLs. Send people to the same page and keep the language they asked for. */
 const LEGACY: Record<string, { dest: string; locale: Locale }> = {
