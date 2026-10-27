@@ -59,11 +59,14 @@ export default defineSchema({
     startedAt: v.number(),
     finishedAt: v.optional(v.number()),
     score: v.optional(v.number()),
+    // Client-observed state-hook access, not a tamper-proof bot verdict. Absent on older rows.
+    runnerHookAccessed: v.optional(v.boolean()),
   }).index('by_startedAt', ['startedAt']),
   runnerScores: defineTable({
     name: v.string(),
     score: v.number(),
     handle: v.optional(v.string()),
+    runnerHookAccessed: v.optional(v.boolean()),
   })
     .index('by_score', ['score'])
     .index('by_handle', ['handle', 'score']),

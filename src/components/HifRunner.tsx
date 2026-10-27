@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
-import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
+import { claimRunnerRun, completeRunnerRun, markRunnerHookAccessed, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
 import { createRunnerAudio } from './runner-audio'
+import { installRunnerHook } from './runner-hook'
 import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
 /**
@@ -149,6 +150,21 @@ export function HifRunner({
     }
   })
   const runRef = useRef<Promise<RunnerRunId | null> | null>(null)
+  const hookBeforeRun = useRef(false)
+  const hookRun = useRef<{ accessed: boolean; finished: boolean; run: Promise<RunnerRunId | null> } | null>(null)
+  const trackHookAccess = useCallback(() => {
+    const tracked = hookRun.current
+    if (!tracked || tracked.finished) {
+      hookBeforeRun.current = true
+      return
+    }
+    if (tracked.accessed) return
+    tracked.accessed = true
+    // Captures this run's promise, so a delayed response cannot label a later run.
+    void tracked.run.then((runId) => {
+      if (runId) return markRunnerHookAccessed(runId)
+    }).catch(() => { /* completion also carries the flag if this report fails */ })
+  }, [])
   const gen = useRef(0)
   const boardRef = useRef(board)
   useEffect(() => {
@@ -160,9 +176,15 @@ export function HifRunner({
       start: () => {
         gen.current++
         setResult(null)
-        runRef.current = startRunnerRun()
+        const accessed = hookBeforeRun.current
+        hookBeforeRun.current = false
+        const run = startRunnerRun(accessed)
+        hookRun.current = { accessed, finished: false, run }
+        runRef.current = run
       },
       end: (score) => {
+        const runnerHookAccessed = hookRun.current?.accessed ?? false
+        if (hookRun.current) hookRun.current.finished = true
         const run = runRef.current
         runRef.current = null
         const g = ++gen.current
@@ -174,7 +196,7 @@ export function HifRunner({
         run
           .then(async (runId) => {
             if (!runId) throw new Error('no run')
-            const accepted = await completeRunnerRun(runId, score)
+            const accepted = await completeRunnerRun(runId, score, runnerHookAccessed)
             if (g === gen.current) setResult({ score: accepted, state: 'name', runId })
           })
           .catch(() => g === gen.current && setResult((r) => r && { ...r, state: 'offline' }))
@@ -782,14 +804,13 @@ export function HifRunner({
 
     // Live game state for browser scripts, in development and production.
     const runnerState = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
-    const runnerWindow = window as unknown as { __runner?: typeof runnerState }
-    runnerWindow.__runner = runnerState
+    const removeRunnerHook = installRunnerHook(runnerState, trackHookAccess)
     draw(performance.now())
     enter()
     raf = requestAnimationFrame(tick)
 
     return () => {
-      if (runnerWindow.__runner === runnerState) delete runnerWindow.__runner
+      removeRunnerHook()
       audio.stop()
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKey)
@@ -798,7 +819,7 @@ export function HifRunner({
       window.removeEventListener('resize', onResize)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [word, mark, reduce, audio])
+  }, [word, mark, reduce, audio, trackHookAccess])
 
   const hud = phase !== 'enter' && phase !== 'exit'
   const showForm = phase === 'over' && (result?.state === 'name' || result?.state === 'saving')

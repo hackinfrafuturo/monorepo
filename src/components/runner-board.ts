@@ -7,14 +7,18 @@ import { convex } from './breakout-board'
 export type RunnerScore = { _id: string; name: string; score: number }
 export type RunnerRunId = Id<'runnerRuns'>
 
-export function startRunnerRun(): Promise<RunnerRunId | null> {
+export function startRunnerRun(runnerHookAccessed = false): Promise<RunnerRunId | null> {
   const c = convex()
-  return c ? c.mutation(api.runner.start, {}).catch(() => null) : Promise.resolve(null)
+  return c ? c.mutation(api.runner.start, { runnerHookAccessed }).catch(() => null) : Promise.resolve(null)
+}
+
+export async function markRunnerHookAccessed(runId: RunnerRunId) {
+  return convex()?.mutation(api.runner.markHookAccessed, { runId })
 }
 
 /** the score the server accepts for this run */
-export async function completeRunnerRun(runId: RunnerRunId, score: number) {
-  return convex()!.mutation(api.runner.complete, { runId, score })
+export async function completeRunnerRun(runId: RunnerRunId, score: number, runnerHookAccessed = false) {
+  return convex()!.mutation(api.runner.complete, { runId, score, runnerHookAccessed })
 }
 
 export async function claimRunnerRun(runId: RunnerRunId, name: string) {
