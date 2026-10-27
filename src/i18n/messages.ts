@@ -296,7 +296,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       playAgain: 'Jugar de nuevo',
       best: 'Récord',
       board: 'Los más rápidos',
-      viewLeaderboard: 'Ver mejores marcas →',
+      viewLeaderboard: 'Ver leaderboard →',
       name: 'Tu usuario de GitHub',
       nameHint: 'Un puesto por usuario de GitHub: cuenta tu mejor marca.',
       badName: 'Eso no es un usuario de GitHub',
