@@ -31,6 +31,7 @@ export type RunnerLabels = {
   playAgain: string
   best: string
   board: string
+  viewLeaderboard: string
   name: string
   nameHint: string
   badName: string
@@ -571,6 +572,7 @@ export function HifRunner({
         exit()
         return
       }
+      if (e.target instanceof Element && e.target.closest('a, button')) return
       if (key === ' ' || key === 'ArrowUp' || key === 'w' || key === 'W' || key === 'Enter') {
         e.preventDefault()
         if (e.repeat) return
@@ -848,6 +850,12 @@ export function HifRunner({
             </p>
           )}
           {result?.state === 'offline' && <p className="font-mono text-sm text-[#5a5956]">{labels.offline}</p>}
+
+          {phase === 'over' && (
+            <a href="/leaderboard#runner" className="py-2 font-mono text-base text-brand underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand">
+              {labels.viewLeaderboard}
+            </a>
+          )}
 
           {board && board.length > 0 && (
             <div className="w-full text-left">

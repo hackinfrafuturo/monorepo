@@ -8,31 +8,34 @@ import {
 import '../index.css'
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { name: 'theme-color', content: '#181818' },
-      { name: 'color-scheme', content: 'dark' },
-      {
-        name: 'description',
-        content:
-          '24 hours, about 500 people, infrastructure agents can actually use. Santiago, 5-6 Dec 2026.',
-      },
-      { title: 'Infrastructure Hackathon' },
-    ],
-    links: [
-      { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },
-      { rel: 'canonical', href: 'https://hackinfrafuturo.cl/' },
-      { rel: 'alternate', hrefLang: 'en', href: 'https://hackinfrafuturo.cl/' },
-      { rel: 'alternate', hrefLang: 'es', href: 'https://hackinfrafuturo.cl/' },
-      {
-        rel: 'alternate',
-        hrefLang: 'x-default',
-        href: 'https://hackinfrafuturo.cl/',
-      },
-    ],
-  }),
+  head: ({ matches }) => {
+    const pageUrl = `https://hackinfrafuturo.cl${matches.at(-1)?.pathname ?? '/'}`
+    return {
+      meta: [
+        { charSet: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'theme-color', content: '#181818' },
+        { name: 'color-scheme', content: 'dark' },
+        {
+          name: 'description',
+          content:
+            '24 hours, about 500 people, infrastructure agents can actually use. Santiago, 5-6 Dec 2026.',
+        },
+        { title: 'Infrastructure Hackathon' },
+      ],
+      links: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },
+        { rel: 'canonical', href: pageUrl },
+        { rel: 'alternate', hrefLang: 'en', href: pageUrl },
+        { rel: 'alternate', hrefLang: 'es', href: pageUrl },
+        {
+          rel: 'alternate',
+          hrefLang: 'x-default',
+          href: pageUrl,
+        },
+      ],
+    }
+  },
   component: RootComponent,
 })
 
