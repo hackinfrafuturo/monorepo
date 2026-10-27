@@ -47,8 +47,6 @@ export default function Leaderboard() {
         <header className="border-b border-[#d6d4d0] pt-16 pb-10 md:pt-24 md:pb-12">
           <p className="text-sm tracking-wide text-brand uppercase">Hack Infra Futuro · Top 10</p>
           <h1 className="mt-4 font-pixel text-[clamp(40px,8vw,88px)] leading-[1.05]">{t.title}</h1>
-          <p className="mt-6 text-xl leading-8 md:text-2xl">{t.intro}</p>
-          <p className="mt-2 text-base leading-7 text-[#5a5956]">{t.best}</p>
         </header>
 
         <div className="grid md:grid-cols-2">
@@ -112,7 +110,6 @@ function Board({ game, title, rows, labels }: {
       className="min-w-0 border-b border-[#d6d4d0] py-8 last:border-b-0 md:border-r md:border-b-0 md:py-10 md:pr-10 md:last:border-r-0 md:last:pr-0 md:last:pl-10"
     >
       <h2 id={`${game}-title`} className="font-pixel text-[32px] leading-[1.1] md:text-[48px]">{title}</h2>
-      <p className="mt-3 min-h-14 text-base leading-7 text-[#5a5956]">{t.rule}</p>
 
       {rows && rows.length > 0 ? (
         <table className="mt-6 w-full table-fixed text-left text-sm sm:text-base">
