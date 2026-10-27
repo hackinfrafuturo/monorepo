@@ -2,16 +2,17 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
-import { BAND_ROWS, DITHER_PITCH, DITHER_R, SPRITE_EXT, STAR_FEET, STAR_R, bandHas, starSprite } from './hif-dither'
+import { BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandHas, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
 
 /**
- * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the dithered star runs,
+ * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the flag's star runs,
  * its purple band stretches out into the floor, and the letters of "Hack Infra Futuro" come at it as the
  * obstacles. Jump over the ones on the ground; duck under the ones in the air.
  *
  * Like HifBreakout it takes over from the real logo without a cut: on the first frame everything is drawn
- * where the hero has it, then the letters slide away, the band widens to the screen's edges and the star
- * flips into place on it. Leaving runs it backwards.
+ * where the hero has it, then the letters slide away, the band widens to the screen's edges (its upper
+ * rows fading so the floor is as thin as the old band), and the star, cut out of the flag's black square,
+ * comes out of it as a star and flips into place while the square fades. Leaving runs it backwards.
  *
  * A run is timed on the server from the first jump (convex/runner.ts); a score good enough for the top ten
  * can be named onto the leaderboard.
@@ -64,6 +65,8 @@ const MAX_SPEED = 2.5
 const AIR_FROM = 120 // score from which letters can come in the air
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
 const PATTERN = 8 * DITHER_PITCH
+/** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
+const FLOOR_TOP = -10
 
 type Glyph = { ch: string; adv: number; l: number; r: number; a: number; d: number } // metrics at 1px
 type Spot = { x: number; base: number; size: number; alpha: number }
@@ -276,11 +279,20 @@ export function HifRunner({
     layout()
 
     // ---- state ------------------------------------------------------------------------------------------
+    // the star at home is the one cut out of the flag's square; the star is placed by its feet
+    const homeStar = (m: ReturnType<typeof homeMark>) => {
+      const sk = (m.k * FLAG_STAR.r) / STAR_R
+      return { x: m.left + FLAG_STAR.x * m.k, y: m.top + FLAG_STAR.y * m.k + STAR_FEET * sk, k: sk }
+    }
     const hm = homeMark()
+    const hs = homeStar(hm)
+    // the flag's top half stays where the hero has it and fades out (and back in on the way out)
+    let flagAt = hm
+    const flag = { alpha: 1 }
     // the band: centre, scale, half its width (in mark units), and how far the floor has scrolled (units)
-    const band = { x: hm.left + 35 * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: 35, scroll: 0 }
+    const band = { x: hm.left + 35 * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: 35, scroll: 0, fade: 1 }
     // the star: feet position (x, y), scale, rotation; squash is a spring for landings and ducking
-    const star = { x: hm.left + 35 * hm.k, y: hm.top + 50 * hm.k, k: hm.k, rot: 0, alpha: 1, vy: 0, air: false, airT: 0, sq: 0, sqV: 0, duck: 0, run: 0 }
+    const star = { x: hs.x, y: hs.y, k: hs.k, rot: 0, alpha: 1, vy: 0, air: false, airT: 0, sq: 0, sqV: 0, duck: 0, run: 0 }
     let dip = 0
     let dipV = 0
     let speed = baseSpeed
@@ -327,8 +339,9 @@ export function HifRunner({
       run(
         [
           ...letters.map((L, i) => ({ obj: L.cur, from: { ...L.home }, to: { ...L.home, x: L.home.x + 0.3 * W, alpha: 0 }, delay: 0.025 * i, dur: 0.6 })),
-          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0 }, delay: 0.05, dur: 1 },
+          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0, fade: 0 }, delay: 0.05, dur: 1 },
           { obj: star, from: { x: star.x, y: star.y, k: star.k, rot: 0 }, to: { x: starX, y: feetY, k, rot: -360 }, delay: 0.15, dur: 0.95 },
+          { obj: flag, from: { alpha: 1 }, to: { alpha: 0 }, delay: 0.2, dur: 0.6 },
         ],
         () => {
           star.rot = 0
@@ -344,6 +357,8 @@ export function HifRunner({
       cb.current.onExitStart()
       const h = measureHome()
       const m = homeMark()
+      const ms = homeStar(m)
+      flagAt = m
       const n = letters.length
       for (const o of obstacles) o.hit = false
       run(
@@ -353,11 +368,13 @@ export function HifRunner({
             obj: band,
             from: { ...band },
             // scroll back to where the dither pattern lines up with the logo's
-            to: { x: m.left + 35 * m.k, y: m.top + 60 * m.k, k: m.k, half: 35, scroll: Math.round(band.scroll / PATTERN) * PATTERN },
+            to: { x: m.left + 35 * m.k, y: m.top + 60 * m.k, k: m.k, half: 35, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1 },
             delay: 0.1,
             dur: 0.9,
           },
-          { obj: star, from: { x: star.x, y: star.y, k: star.k, rot: star.rot, alpha: star.alpha }, to: { x: m.left + 35 * m.k, y: m.top + 50 * m.k, k: m.k, rot: 360, alpha: 1 }, delay: 0.1, dur: 0.9 },
+          { obj: star, from: { x: star.x, y: star.y, k: star.k, rot: star.rot, alpha: star.alpha }, to: { ...ms, rot: 360, alpha: 1 }, delay: 0.1, dur: 0.9 },
+          // the square comes back as the star reaches it, so it lands as the cut-out
+          { obj: flag, from: { alpha: flag.alpha }, to: { alpha: 1 }, delay: 0.35, dur: 0.65 },
           { obj: fade, from: { obstacles: fade.obstacles }, to: { obstacles: 0 }, delay: 0, dur: 0.3 },
         ],
         () => cb.current.onDone(),
@@ -591,20 +608,25 @@ export function HifRunner({
       const last = Math.ceil((35 + band.half + band.scroll) / DITHER_PITCH - 0.5)
       const dipW = 40 * band.k
       ctx.fillStyle = brand
-      ctx.beginPath()
-      for (let col = first; col <= last; col++) {
-        const u = (col + 0.5) * DITHER_PITCH - 35 - band.scroll
-        if (u < -band.half || u > band.half) continue
-        const x = band.x + u * band.k
-        const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
-        for (const row of BAND_ROWS) {
-          if (!bandHas(row, col)) continue
-          const y = band.y + row.dy * band.k + d
-          ctx.moveTo(x + r, y)
-          ctx.arc(x, y, r, 0, Math.PI * 2)
+      for (const upper of [false, true]) {
+        if (upper && band.fade <= 0.01) continue
+        ctx.globalAlpha = upper ? band.fade : 1
+        ctx.beginPath()
+        for (let col = first; col <= last; col++) {
+          const u = (col + 0.5) * DITHER_PITCH - 35 - band.scroll
+          if (u < -band.half || u > band.half) continue
+          const x = band.x + u * band.k
+          const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
+          for (const row of BAND_ROWS) {
+            if (row.dy < FLOOR_TOP !== upper || !bandHas(row, col)) continue
+            const y = band.y + row.dy * band.k + d
+            ctx.moveTo(x + r, y)
+            ctx.arc(x, y, r, 0, Math.PI * 2)
+          }
         }
+        ctx.fill()
       }
-      ctx.fill()
+      ctx.globalAlpha = 1
 
       // dust
       for (const p of particles) {
@@ -618,20 +640,26 @@ export function HifRunner({
       ctx.globalAlpha = 1
 
       // the star, from its feet: squashed by landings and ducking, with a little bounce while it runs
+      const sy = (1 - star.duck * (1 - DUCK)) * (1 - star.sq * 0.06)
+      const sx = (1 + star.duck * 0.22) * (1 + star.sq * 0.04)
+      const bounce = current === 'play' && !star.air ? Math.abs(Math.sin(star.run)) * 1.6 * star.k : 0
+
+      // the flag's square and white field, with the star cut out wherever the star is
+      if (flag.alpha > 0.01) {
+        ctx.globalAlpha = flag.alpha
+        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, { x: star.x, y: star.y - bounce - STAR_FEET * star.k * sy, r: STAR_R * star.k, rot: star.rot }, INK)
+        ctx.globalAlpha = 1
+      }
+
+      // inside the square it's the cut-out, outside it, itself
       if (star.alpha > 0.01) {
-        const sy = (1 - star.duck * (1 - DUCK)) * (1 - star.sq * 0.06)
-        const sx = (1 + star.duck * 0.22) * (1 + star.sq * 0.04)
-        const bounce = current === 'play' && !star.air ? Math.abs(Math.sin(star.run)) * 1.6 * star.k : 0
-        ctx.save()
-        ctx.globalAlpha = star.alpha
-        ctx.translate(star.x, star.y - bounce)
-        ctx.scale(sx, sy)
-        ctx.translate(0, -STAR_FEET * star.k)
-        ctx.rotate((star.rot * Math.PI) / 180)
-        const e = SPRITE_EXT * star.k
-        ctx.imageSmoothingQuality = 'high'
-        ctx.drawImage(sprite, -e, -e, e * 2, e * 2)
-        ctx.restore()
+        const side = FLAG_SPLIT * flagAt.k
+        drawStarFromFlag(ctx, sprite, SPRITE_EXT * star.k, star.alpha, flag.alpha, { x: flagAt.left, y: flagAt.top, w: side, h: side }, () => {
+          ctx.translate(star.x, star.y - bounce)
+          ctx.scale(sx, sy)
+          ctx.translate(0, -STAR_FEET * star.k)
+          ctx.rotate((star.rot * Math.PI) / 180)
+        })
       }
     }
 

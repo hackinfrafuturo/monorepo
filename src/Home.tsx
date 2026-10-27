@@ -2,7 +2,7 @@ import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { HifBreakout } from './components/HifBreakout'
 import { HifRunner } from './components/HifRunner'
-import { HifSkater } from './components/HifSkater'
+import { HifFlag } from './components/HifFlag'
 import { HifWordDots } from './components/HifWordDots'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
@@ -269,9 +269,9 @@ export default function Home() {
           {/*
             Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
             line 2 = 1.772em) and the gap is one dot of the mark.
-            Hovering makes the dots near the cursor flow away from it, on the mark and the name alike. A
-            click (or a tap) starts a game: Breakout on the mark, the runner on the name. z-20 keeps the
-            skater's motion above the text around it.
+            Hovering makes the dots near the cursor flow away from it, on the mark and the name alike, and
+            the flag's star shies away from it. A click (or a tap) starts a game: Breakout on the mark, the
+            runner on the name. z-20 keeps the motion above the text around it.
           */}
           <h1
             ref={titleRef}
@@ -279,7 +279,8 @@ export default function Home() {
             onClick={(e) => startGame(e.target)}
             className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
           >
-            <HifSkater run={0} variant="dither" className="size-[1.772em] shrink-0" />
+            {/* from md up the name alone is centred and the flag hangs off its left; phones keep them together */}
+            <HifFlag off={!!game} className="size-[1.772em] shrink-0 md:absolute md:top-1/2 md:right-full md:mr-[0.25em] md:-translate-y-1/2" />
             <span ref={wordRef} className="font-pixel leading-[1.05]">
               Hack Infra
               <br />
