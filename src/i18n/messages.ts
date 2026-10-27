@@ -57,6 +57,7 @@ export type HomeMessages = {
   heroTitle: string
   sponsorLogosTitle: string
   game: {
+    powers: { wide: string; multi: string; slow: string; life: string }
     exit: string
     close: string
     launch: string
@@ -68,6 +69,9 @@ export type HomeMessages = {
     best: string
     board: string
     name: string
+    nameHint: string
+    badName: string
+    kept: (best: string) => string
     save: string
     saving: string
     rank: (n: number) => string
@@ -101,6 +105,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     heroTitle: 'The biggest hackathon in Chile, ever',
     sponsorLogosTitle: 'Sponsors',
     game: {
+      powers: { wide: 'Wide paddle', multi: '×3', slow: 'Slow-mo', life: '+1 life' },
       exit: 'Esc to exit',
       close: 'Exit',
       launch: 'Click or space to launch',
@@ -111,7 +116,10 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       playAgain: 'Play again',
       best: 'Best',
       board: 'Fastest wins',
-      name: 'Your name',
+      name: 'Your GitHub username',
+      nameHint: 'One spot per GitHub user: your best counts.',
+      badName: "That isn't a GitHub username",
+      kept: (best) => `Your best stays ${best}`,
       save: 'Save',
       saving: 'Saving…',
       rank: (n) => `You're #${n}`,
@@ -240,6 +248,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
     heroTitle: 'La hackathon más grande en la historia de Chile',
     sponsorLogosTitle: 'Auspician',
     game: {
+      powers: { wide: 'Paleta ancha', multi: '×3', slow: 'Cámara lenta', life: '+1 vida' },
       exit: 'Esc para salir',
       close: 'Salir',
       launch: 'Clic o espacio para lanzar',
@@ -250,7 +259,10 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       playAgain: 'Jugar de nuevo',
       best: 'Récord',
       board: 'Los más rápidos',
-      name: 'Tu nombre',
+      name: 'Tu usuario de GitHub',
+      nameHint: 'Un puesto por usuario de GitHub: cuenta tu mejor marca.',
+      badName: 'Eso no es un usuario de GitHub',
+      kept: (best) => `Tu mejor marca sigue en ${best}`,
       save: 'Guardar',
       saving: 'Guardando…',
       rank: (n) => `Quedaste #${n}`,
