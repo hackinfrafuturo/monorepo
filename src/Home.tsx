@@ -264,8 +264,8 @@ export default function Home() {
           <p>{t.heroDate}</p>
         </div>
 
-        {/* Logo, name and claim, centred in the space between the date and the buttons. */}
-        <div className="flex min-w-0 flex-col items-center justify-center gap-8 px-4 py-12 text-center md:gap-10 md:px-6">
+        {/* Logo, name and claim, left-aligned with the date and centred top to bottom between it and the buttons. */}
+        <div className="flex min-w-0 flex-col items-start justify-center gap-8 px-4 py-12 text-left md:gap-10 md:px-6">
           {/*
             Sized in em so the mark always matches the name's letters (cap top of line 1 to baseline of
             line 2 = 1.772em) and the gap is one dot of the mark.
@@ -279,8 +279,7 @@ export default function Home() {
             onClick={(e) => startGame(e.target)}
             className={`relative z-20 flex w-fit cursor-pointer items-center gap-[0.25em] text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] select-none md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
           >
-            {/* from md up the name alone is centred and the flag hangs off its left; phones keep them together */}
-            <HifFlag off={!!game} className="size-[1.772em] shrink-0 md:absolute md:top-1/2 md:right-full md:mr-[0.25em] md:-translate-y-1/2" />
+            <HifFlag off={!!game} className="size-[1.772em] shrink-0" />
             <span ref={wordRef} className="font-pixel leading-[1.05]">
               Hack Infra
               <br />
