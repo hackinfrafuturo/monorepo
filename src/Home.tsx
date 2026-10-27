@@ -10,7 +10,7 @@ import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
 import { HOME_META } from './i18n/meta'
 import { leaderboardMessages } from './i18n/leaderboard'
-import { CHALLENGE, SPONSOR, htmlLang, otherLocale } from './i18n/locale'
+import { SPONSOR, htmlLang, otherLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { applyHref } from './apply/ref'
 
@@ -519,14 +519,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <Door
-        href={CHALLENGE}
-        action={t.challenge}
-        label={t.challengeLabel}
-        bar
-        className={`border-t px-4 py-4 md:px-6 md:py-5 ${RULE}`}
-      />
 
       <div
         id="sponsors"

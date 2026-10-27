@@ -1,3 +1,5 @@
+// Unpublished while the challenge is refined: to put it back at /challenge, restore src/routes/challenge.tsx
+// from git history and the link to it on the home page.
 import { useLayoutEffect } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { challengeMessages } from './i18n/challenge'
