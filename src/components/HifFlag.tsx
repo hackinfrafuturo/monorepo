@@ -54,9 +54,14 @@ function StaticFlag({ className, svgRef }: { className?: string; svgRef?: Ref<SV
   }
   return (
     <svg ref={svgRef} viewBox={`0 0 ${FLAG_W} 70`} aria-hidden className={className}>
-      <g fill={FLAG_FIELD}>{dots(SQ_END, FIELD_END)}</g>
-      <g fill={INK}>{dots(0, SQ_END, (x, y) => holeScale(starDistance(x, y, REST_STAR), DITHER_R))}</g>
-      <g className="fill-brand">{dots(FIELD_END, REST.length)}</g>
+      {/* the whole flag takes clicks, the gaps between dots included, and keeps taking them while the
+          canvas draws it (only the dots are hidden then) */}
+      <rect width={FLAG_W} height={70} fill="transparent" />
+      <g data-dots>
+        <g fill={FLAG_FIELD}>{dots(SQ_END, FIELD_END)}</g>
+        <g fill={INK}>{dots(0, SQ_END, (x, y) => holeScale(starDistance(x, y, REST_STAR), DITHER_R))}</g>
+        <g className="fill-brand">{dots(FIELD_END, REST.length)}</g>
+      </g>
     </svg>
   )
 }
@@ -68,8 +73,9 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
 
   useEffect(() => {
     const svg = svgRef.current
+    const dotsEl = svg?.querySelector<SVGGElement>('[data-dots]')
     const cv = canvas.current
-    if (reduce || off || !svg || !cv) return
+    if (reduce || off || !svg || !dotsEl || !cv) return
     const pointer = { x: -1e4, y: -1e4, vx: 0, vy: 0, t: 0 }
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return
@@ -100,7 +106,7 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
       if (on === shown) return
       shown = on
       cv.style.display = on ? 'block' : 'none'
-      svg.style.visibility = on ? 'hidden' : ''
+      dotsEl.style.visibility = on ? 'hidden' : ''
     }
 
     let raf = 0
@@ -223,7 +229,7 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
       window.removeEventListener('pointermove', onMove)
       document.documentElement.removeEventListener('pointerleave', onLeave)
       cv.style.display = 'none'
-      svg.style.visibility = ''
+      dotsEl.style.visibility = ''
     }
   }, [off, reduce])
 
