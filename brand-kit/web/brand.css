@@ -1,0 +1,47 @@
+/* Hack Infra Futuro — brand tokens for the web.
+   Copy web/ and fonts/ next to each other, or adjust the font URL below. */
+
+@font-face {
+  font-family: 'Geist Pixel Circle';
+  src: url('../fonts/GeistPixel-Circle.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+/* iA Writer Quattro: install from npm (@fontsource/ia-writer-quattro)
+   or download from https://github.com/iaolo/iA-Fonts */
+
+:root {
+  /* color */
+  --hif-ground: #181818;   /* background */
+  --hif-ink: #d6d4d0;      /* text and the star on dark */
+  --hif-muted: #9a9890;    /* supporting text on dark */
+  --hif-rule: #3a3a3a;     /* hairlines on dark */
+  --hif-purple: #6d4aff;   /* the band, focus, the one accent */
+  --hif-paper: #f4f3ef;    /* light background */
+  --hif-black: #181818;    /* text and the star on light */
+
+  /* type */
+  --hif-font-display: 'Geist Pixel Circle', ui-monospace, monospace;
+  --hif-font-body: 'iA Writer Quattro', 'iA Writer Quattro S', ui-monospace, monospace;
+
+  /* the dot grid: one dot pitch; the band and clear space are multiples of it */
+  --hif-dot: 10px;
+}
+
+/* Dotted purple band. Set height to one dot pitch (one row) or more.
+   `space` keeps whole dots at both ends at any width. */
+.hif-band {
+  --d: var(--hif-dot);
+  height: var(--d);
+  background-image: radial-gradient(circle at calc(var(--d) / 2) calc(var(--d) / 2),
+    var(--hif-purple) calc(var(--d) * 0.4), transparent calc(var(--d) * 0.4 + 0.5px));
+  background-size: var(--d) var(--d);
+  background-repeat: space no-repeat;
+}
+
+.hif-display {
+  font-family: var(--hif-font-display);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
