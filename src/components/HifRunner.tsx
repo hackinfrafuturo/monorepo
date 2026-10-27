@@ -3,7 +3,7 @@ import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
-import { BAND_CX, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
+import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
 /**
  * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the flag's star runs,
@@ -12,7 +12,7 @@ import { BAND_CX, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STA
  *
  * Like HifBreakout it takes over from the real logo without a cut: on the first frame everything is drawn
  * where the hero has it, then the letters slide away, the band widens to the screen's edges (its upper
- * rows fading so the floor is as thin as the old band), and the star, cut out of the flag's black square,
+ * rows fading while the ground fills down to the bottom), and the star, cut out of the flag's black square,
  * comes out of it as a star and flips into place while the square fades. Leaving runs it backwards.
  *
  * A run is timed on the server from the first jump (convex/runner.ts); a score good enough for the top ten
@@ -78,6 +78,7 @@ const RAMP = 400 // score by which the obstacles are as dense as they get (the s
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
 const FLOOR_TOP = -10
+const FLOOR_REPEAT = BAND_ROWS.filter((row) => row.dy >= FLOOR_TOP).length * DITHER_PITCH
 
 type Glyph = { ch: string; adv: number; l: number; r: number; a: number; d: number } // metrics at 1px
 type Spot = { x: number; base: number; size: number; alpha: number }
@@ -312,17 +313,27 @@ export function HifRunner({
     // pre-drawn: the floor's two tiles (its rows, and the upper ones that fade) and the flag's top half, at
     // the larger of the hero's and the game's scale so neither end is blurry
     let floorTile: BandTile
+    let groundTile: BandTile
     let upperTile: BandTile
     let flagImage: ReturnType<typeof flagTopImage>
     const buildCaches = () => {
       const scale = Math.max(hm.k, k) * dpr
       floorTile = bandTile(scale, brand, (row) => row.dy >= FLOOR_TOP)
+      // Cache the deeper ground once; each frame still copies only one tile per horizontal run.
+      const ground = document.createElement('canvas')
+      ground.width = floorTile.canvas.width
+      ground.height = Math.ceil((H / k + floorTile.height) * scale)
+      const g = ground.getContext('2d')!
+      for (let y = 0; y < ground.height; y += FLOOR_REPEAT * scale) {
+        g.drawImage(floorTile.canvas, 0, y)
+      }
+      groundTile = { ...floorTile, canvas: ground, height: ground.height / scale }
       upperTile = bandTile(scale, brand, (row) => row.dy < FLOOR_TOP)
       flagImage = flagTopImage(hm.k * dpr, INK)
     }
     buildCaches()
     // the band: centre, scale, half its width (in mark units), and how far the floor has scrolled (units)
-    const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1 }
+    const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1, depth: 0 }
     // the star: feet position (x, y), scale, rotation; squash is a spring for landings and ducking
     const star = { x: hs.x, y: hs.y, k: hs.k, rot: 0, alpha: 1, vy: 0, air: false, airT: 0, sq: 0, sqV: 0, duck: 0, run: 0 }
     let dip = 0
@@ -371,7 +382,7 @@ export function HifRunner({
       run(
         [
           ...letters.map((L, i) => ({ obj: L.cur, from: { ...L.home }, to: { ...L.home, x: L.home.x + 0.3 * W, alpha: 0 }, delay: 0.025 * i, dur: 0.6 })),
-          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0, fade: 0 }, delay: 0.05, dur: 1 },
+          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0, fade: 0, depth: 1 }, delay: 0.05, dur: 1 },
           { obj: star, from: { x: star.x, y: star.y, k: star.k, rot: 0 }, to: { x: starX, y: feetY, k, rot: -360 }, delay: 0.15, dur: 0.95 },
           { obj: flag, from: { alpha: 1 }, to: { alpha: 0 }, delay: 0.2, dur: 0.6 },
         ],
@@ -400,7 +411,7 @@ export function HifRunner({
             obj: band,
             from: { ...band },
             // scroll back to where the dither pattern lines up with the logo's
-            to: { x: m.left + BAND_CX * m.k, y: m.top + 60 * m.k, k: m.k, half: BAND_CX, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1 },
+            to: { x: m.left + BAND_CX * m.k, y: m.top + 60 * m.k, k: m.k, half: BAND_CX, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1, depth: 0 },
             delay: 0.1,
             dur: 0.9,
           },
@@ -638,7 +649,14 @@ export function HifRunner({
               const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
               return Math.abs(d) < 0.3 ? 0 : d
             }
-      drawBandTile(ctx, floorTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+      const floorBottom = band.y + (floorTile.top + floorTile.height) * band.k
+      const bottom = floorBottom + Math.max(0, H - floorBottom) * band.depth
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, 0, W, bottom)
+      ctx.clip()
+      drawBandTile(ctx, groundTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+      ctx.restore()
       if (band.fade > 0.01) {
         ctx.globalAlpha = band.fade
         drawBandTile(ctx, upperTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
@@ -794,7 +812,7 @@ export function HifRunner({
           phase === 'ready' ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {labels.jump}
+        <span className="inline-block max-w-[calc(100%-2rem)] bg-brand px-2 py-1 text-[#f4f2ee]">{labels.jump}</span>
       </p>
 
       {/* game over: the score, a name for the leaderboard if it made the top ten, and the leaderboard */}
