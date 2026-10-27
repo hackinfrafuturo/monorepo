@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as ApplyRouteImport } from './routes/apply'
-import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as FlagRouteImport } from './routes/flag'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as SponsorRouteImport } from './routes/sponsor'
@@ -31,11 +30,6 @@ const SplatRoute = SplatRouteImport.update({
 const ApplyRoute = ApplyRouteImport.update({
   id: '/apply',
   path: '/apply',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChallengeRoute = ChallengeRouteImport.update({
-  id: '/challenge',
-  path: '/challenge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlagRoute = FlagRouteImport.update({
@@ -63,7 +57,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
-  '/challenge': typeof ChallengeRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
@@ -73,7 +66,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
-  '/challenge': typeof ChallengeRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
@@ -84,7 +76,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
-  '/challenge': typeof ChallengeRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
   '/sponsor': typeof SponsorRoute
@@ -93,30 +84,14 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/$'
-    | '/apply'
-    | '/challenge'
-    | '/flag'
-    | '/leaderboard'
-    | '/sponsor'
-    | '/stats'
+    '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor' | '/stats'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/$'
-    | '/apply'
-    | '/challenge'
-    | '/flag'
-    | '/leaderboard'
-    | '/sponsor'
-    | '/stats'
+  to: '/' | '/$' | '/apply' | '/flag' | '/leaderboard' | '/sponsor' | '/stats'
   id:
     | '__root__'
     | '/'
     | '/$'
     | '/apply'
-    | '/challenge'
     | '/flag'
     | '/leaderboard'
     | '/sponsor'
@@ -127,7 +102,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   ApplyRoute: typeof ApplyRoute
-  ChallengeRoute: typeof ChallengeRoute
   FlagRoute: typeof FlagRoute
   LeaderboardRoute: typeof LeaderboardRoute
   SponsorRoute: typeof SponsorRoute
@@ -155,13 +129,6 @@ declare module '@tanstack/react-router' {
       path: '/apply'
       fullPath: '/apply'
       preLoaderRoute: typeof ApplyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/challenge': {
-      id: '/challenge'
-      path: '/challenge'
-      fullPath: '/challenge'
-      preLoaderRoute: typeof ChallengeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flag': {
@@ -199,7 +166,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   ApplyRoute: ApplyRoute,
-  ChallengeRoute: ChallengeRoute,
   FlagRoute: FlagRoute,
   LeaderboardRoute: LeaderboardRoute,
   SponsorRoute: SponsorRoute,
