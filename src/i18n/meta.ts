@@ -58,3 +58,21 @@ export const OG_LOCALE_ALTERNATE: Record<Locale, string> = {
   en: 'es_CL',
   es: 'en_US',
 }
+
+export const CHALLENGE_META: Record<
+  Locale,
+  { title: string; description: string; ogLocale: string }
+> = {
+  en: {
+    title: 'Velum Labs GPU Challenge — Infrastructure Hackathon',
+    description:
+      'Make agents faster. Three weeks online before the hackathon, $10,000 USD in cash and AI credits from Velum Labs.',
+    ogLocale: 'en_US',
+  },
+  es: {
+    title: 'Velum Labs GPU Challenge — Infrastructure Hackathon',
+    description:
+      'Agentes más rápidos. Tres semanas online antes de la hackathon, US$10.000 en efectivo y créditos de IA de Velum Labs.',
+    ogLocale: 'es_CL',
+  },
+}
