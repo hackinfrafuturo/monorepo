@@ -9,6 +9,7 @@ import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
 import { HOME_META } from './i18n/meta'
+import { leaderboardMessages } from './i18n/leaderboard'
 import { CHALLENGE, SPONSOR, htmlLang, otherLocale } from './i18n/locale'
 import { useLocale } from './i18n/use-locale'
 import { applyHref } from './apply/ref'
@@ -239,6 +240,18 @@ export default function Home() {
     typeof window === 'undefined' ? '' : window.location.search,
   )
 
+  // Links from the boards open the selected game after the hero's logo is mounted.
+  useLayoutEffect(() => {
+    const kind = new URLSearchParams(window.location.search).get('game')
+    const word = wordRef.current
+    const mark = titleRef.current?.querySelector('svg')
+    if ((kind === 'runner' || kind === 'breakout') && word && mark) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      setGame({ kind, word, mark })
+      setGameUi(true)
+    }
+  }, [])
+
   useLayoutEffect(() => {
     document.documentElement.lang = htmlLang(locale)
     document.documentElement.style.backgroundColor = '#f4f2ee'
@@ -270,6 +283,9 @@ export default function Home() {
       >
         <div className={`flex items-start justify-between gap-6 px-4 pt-6 font-mono text-base leading-7 text-[#5a5956] md:px-6 md:pt-10 md:text-lg md:leading-8 ${gameFade}`}>
           <p>{t.heroDate}</p>
+          <a href="/leaderboard" className={`shrink-0 py-0.5 ${TEXT_LINK}`}>
+            {leaderboardMessages[locale].title}
+          </a>
         </div>
 
         {/*

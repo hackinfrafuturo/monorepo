@@ -71,6 +71,7 @@ export type HomeMessages = {
     playAgain: string
     best: string
     board: string
+    viewLeaderboard: string
     name: string
     nameHint: string
     badName: string
@@ -126,6 +127,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       playAgain: 'Play again',
       best: 'Best',
       board: 'Fastest wins',
+      viewLeaderboard: 'View leaderboard →',
       name: 'Your GitHub username',
       nameHint: 'One spot per GitHub user: your best counts.',
       badName: "That isn't a GitHub username",
@@ -294,6 +296,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       playAgain: 'Jugar de nuevo',
       best: 'Récord',
       board: 'Los más rápidos',
+      viewLeaderboard: 'Ver mejores marcas →',
       name: 'Tu usuario de GitHub',
       nameHint: 'Un puesto por usuario de GitHub: cuenta tu mejor marca.',
       badName: 'Eso no es un usuario de GitHub',
