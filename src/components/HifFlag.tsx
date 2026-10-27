@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Ref } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { BAND_CX, DITHER, DITHER_R, FLAG, FLAG_FIELD, FLAG_STAR, FLAG_W, drawFlagTop, holeScale, starDistance, type StarPose } from './hif-dither'
+import { BAND_CX, DITHER, DITHER_R, FLAG, FLAG_FIELD, FLAG_STAR, FLAG_W, holeScale, starDistance, type StarPose } from './hif-dither'
 
 /**
  * The Hack Infra Futuro mark: Chile's flag in dots (see hif-dither), with the star cut out of the black
@@ -66,6 +66,29 @@ function StaticFlag({ className, svgRef }: { className?: string; svgRef?: Ref<SV
   )
 }
 
+/** The whole flag at rest (star cut out where it sits), at `scale` pixels per unit, for the canvas to start from. */
+function flagAtRest(scale: number, brand: string) {
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(FLAG_W * scale)
+  canvas.height = Math.ceil(70 * scale)
+  const g = canvas.getContext('2d')!
+  const draw = (from: number, to: number, color: string, size?: (x: number, y: number) => number) => {
+    g.fillStyle = color
+    g.beginPath()
+    for (let i = from; i < to; i += 2) {
+      const r = DITHER_R * scale * (size ? size(REST[i], REST[i + 1]) : 1)
+      if (r < 0.05) continue
+      g.moveTo(REST[i] * scale + r, REST[i + 1] * scale)
+      g.arc(REST[i] * scale, REST[i + 1] * scale, r, 0, Math.PI * 2)
+    }
+    g.fill()
+  }
+  draw(SQ_END, FIELD_END, FLAG_FIELD)
+  draw(0, SQ_END, INK, (x, y) => holeScale(starDistance(x, y, REST_STAR), DITHER_R))
+  draw(FIELD_END, REST.length, brand)
+  return { canvas, scale }
+}
+
 export function HifFlag({ className, off = false }: { className?: string; off?: boolean }) {
   const reduce = useReducedMotion()
   const svgRef = useRef<SVGSVGElement>(null)
@@ -98,7 +121,10 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
 
     const pos = REST.slice()
     const vel = new Float32Array(REST.length)
-    const views = { square: pos.subarray(0, SQ_END), field: pos.subarray(SQ_END, FIELD_END) }
+    // which dots are off their rest spot (or still moving): only those are worked on and redrawn
+    const awake = new Uint8Array(REST.length / 2)
+    const brand = getComputedStyle(svg).getPropertyValue('--color-brand').trim() || '#7c3aec'
+    let restImage: { canvas: HTMLCanvasElement; scale: number } | null = null
     // the star's offset, rotation and scale, each on a loose spring
     const star = { x: 0, y: 0, rot: 0, s: 1, vx: 0, vy: 0, vr: 0, vs: 0 }
     let shown = false
@@ -153,7 +179,8 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
         star.s += star.vs * h
       }
 
-      // the dots: pushed away from the cursor, on stiff springs
+      // the dots: pushed away from the cursor, on stiff springs. Only the ones near the cursor or still
+      // settling are worked on; the rest sit at their rest spot, untouched
       const dvx = (pointer.vx / per) * REPEL_DRAG
       const dvy = (pointer.vy / per) * REPEL_DRAG
       const r2 = REPEL_RADIUS * REPEL_RADIUS
@@ -161,6 +188,7 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
       for (let i = 0; i < REST.length; i += 2) {
         let gx = REST[i]
         let gy = REST[i + 1]
+        let pushed = false
         if (near) {
           const dx = gx - ux
           const dy = gy - uy
@@ -170,15 +198,25 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
             const fall = (1 - d / REPEL_RADIUS) ** 2
             gx += (dx / d) * REPEL_PUSH * fall + dvx * fall
             gy += (dy / d) * REPEL_PUSH * fall + dvy * fall
+            pushed = true
           }
         }
+        if (!pushed && !awake[i >> 1]) continue
         for (let s = 0; s < steps; s++) {
           vel[i] += (STIFFNESS * (gx - pos[i]) - DAMPING * vel[i]) * h
           vel[i + 1] += (STIFFNESS * (gy - pos[i + 1]) - DAMPING * vel[i + 1]) * h
           pos[i] += vel[i] * h
           pos[i + 1] += vel[i + 1] * h
         }
-        moving = Math.max(moving, Math.abs(pos[i] - REST[i]), Math.abs(pos[i + 1] - REST[i + 1]), Math.abs(vel[i]) * 0.05, Math.abs(vel[i + 1]) * 0.05)
+        const m = Math.max(Math.abs(pos[i] - REST[i]), Math.abs(pos[i + 1] - REST[i + 1]), Math.abs(vel[i]) * 0.05, Math.abs(vel[i + 1]) * 0.05)
+        if (!pushed && m < 0.01) {
+          // settled: back to its rest spot exactly, and left alone from now on
+          pos[i] = REST[i]
+          pos[i + 1] = REST[i + 1]
+          vel[i] = vel[i + 1] = 0
+          awake[i >> 1] = 0
+        } else awake[i >> 1] = 1
+        moving = Math.max(moving, m)
       }
 
       // the canvas is only shown while something moves; at rest the static mark takes over
@@ -186,41 +224,71 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
       if (!want) {
         pos.set(REST)
         vel.fill(0)
+        awake.fill(0)
         Object.assign(star, { x: 0, y: 0, rot: 0, s: 1, vx: 0, vy: 0, vr: 0, vs: 0 })
       }
       show(want)
       if (!want) return
 
+      // the canvas only covers the flag and the room its dots can be pushed into, not the whole screen
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const W = window.innerWidth
-      const H = window.innerHeight
-      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
-        cv.width = Math.round(W * dpr)
-        cv.height = Math.round(H * dpr)
+      const margin = (REPEL_PUSH + 2) * per
+      const left = Math.floor(box.left - margin)
+      const top = Math.floor(box.top - margin)
+      const cw = Math.ceil(box.width + 2 * margin)
+      const ch = Math.ceil(box.height + 2 * margin)
+      if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) {
+        cv.width = Math.round(cw * dpr)
+        cv.height = Math.round(ch * dpr)
+        cv.style.width = `${cw}px`
+        cv.style.height = `${ch}px`
       }
+      cv.style.transform = `translate(${left}px, ${top}px)`
       const ctx = cv.getContext('2d')!
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, W, H)
-      const brand = getComputedStyle(svg).getPropertyValue('--color-brand').trim() || '#7c3aec'
+      ctx.setTransform(dpr, 0, 0, dpr, -left * dpr, -top * dpr)
+      ctx.clearRect(left, top, cw, ch)
+
+      // the flag at rest, as one image; then the dots that moved are rubbed out of it and drawn where they are
+      if (!restImage || restImage.scale !== per * dpr) restImage = flagAtRest(per * dpr, brand)
+      ctx.drawImage(restImage.canvas, box.left, box.top, FLAG_W * per, 70 * per)
+      const pose: StarPose = { x: FLAG_STAR.x + star.x, y: FLAG_STAR.y + star.y, r: FLAG_STAR.r * star.s, rot: star.rot }
+      const starMoved = moving > 0 && (star.x !== 0 || star.y !== 0 || star.rot !== 0 || star.s !== 1)
+      const reach = Math.max(pose.r, FLAG_STAR.r) + Math.hypot(star.x, star.y) + 3 * DITHER_R
+      const dirty = (i: number) => {
+        if (awake[i >> 1]) return true
+        if (!starMoved || i >= SQ_END) return false
+        return Math.abs(REST[i] - FLAG_STAR.x) < reach && Math.abs(REST[i + 1] - FLAG_STAR.y) < reach
+      }
       const r = DITHER_R * per
-      ctx.fillStyle = brand
+      ctx.globalCompositeOperation = 'destination-out'
       ctx.beginPath()
-      for (let i = FIELD_END; i < pos.length; i += 2) {
-        const x = box.left + pos[i] * per
-        const y = box.top + pos[i + 1] * per
-        ctx.moveTo(x + r, y)
-        ctx.arc(x, y, r, 0, Math.PI * 2)
+      for (let i = 0; i < REST.length; i += 2) {
+        if (!dirty(i)) continue
+        const x = box.left + REST[i] * per
+        const y = box.top + REST[i + 1] * per
+        ctx.moveTo(x + r * 1.15, y)
+        ctx.arc(x, y, r * 1.15, 0, Math.PI * 2)
       }
       ctx.fill()
-      drawFlagTop(
-        ctx,
-        box.left,
-        box.top,
-        per,
-        { x: box.left + (FLAG_STAR.x + star.x) * per, y: box.top + (FLAG_STAR.y + star.y) * per, r: FLAG_STAR.r * star.s * per, rot: star.rot },
-        INK,
-        views,
-      )
+      ctx.globalCompositeOperation = 'source-over'
+      for (const [from, to, color] of [
+        [SQ_END, FIELD_END, FLAG_FIELD],
+        [0, SQ_END, INK],
+        [FIELD_END, REST.length, brand],
+      ] as const) {
+        ctx.fillStyle = color
+        ctx.beginPath()
+        for (let i = from; i < to; i += 2) {
+          if (!dirty(i)) continue
+          const rr = i < SQ_END ? r * holeScale(starDistance(pos[i], pos[i + 1], pose), DITHER_R) : r
+          if (rr < 0.05) continue
+          const x = box.left + pos[i] * per
+          const y = box.top + pos[i + 1] * per
+          ctx.moveTo(x + rr, y)
+          ctx.arc(x, y, rr, 0, Math.PI * 2)
+        }
+        ctx.fill()
+      }
     }
     raf = requestAnimationFrame(tick)
 
@@ -236,7 +304,7 @@ export function HifFlag({ className, off = false }: { className?: string; off?: 
   return (
     <>
       <StaticFlag className={className} svgRef={svgRef} />
-      <canvas ref={canvas} aria-hidden className="pointer-events-none fixed inset-0 z-30 hidden h-screen w-screen" />
+      <canvas ref={canvas} aria-hidden className="pointer-events-none fixed top-0 left-0 z-30 hidden" />
     </>
   )
 }

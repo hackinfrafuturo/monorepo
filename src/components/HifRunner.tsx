@@ -3,7 +3,7 @@ import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
-import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandHas, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
+import { BAND_CX, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
 /**
  * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the flag's star runs,
@@ -218,8 +218,11 @@ export function HifRunner({
 
     let W = 0
     let H = 0
+    // drawn at up to 2 device pixels per CSS pixel; a device that can't keep up drops to 1 (see tick)
+    let maxDpr = 2
+    let dpr = 1
     const resizeCanvas = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      dpr = Math.min(maxDpr, window.devicePixelRatio || 1)
       W = window.innerWidth
       H = window.innerHeight
       cv.width = Math.round(W * dpr)
@@ -303,6 +306,19 @@ export function HifRunner({
     // the flag's top half stays where the hero has it and fades out (and back in on the way out)
     let flagAt = hm
     const flag = { alpha: 1 }
+
+    // pre-drawn: the floor's two tiles (its rows, and the upper ones that fade) and the flag's top half, at
+    // the larger of the hero's and the game's scale so neither end is blurry
+    let floorTile: BandTile
+    let upperTile: BandTile
+    let flagImage: ReturnType<typeof flagTopImage>
+    const buildCaches = () => {
+      const scale = Math.max(hm.k, k) * dpr
+      floorTile = bandTile(scale, brand, (row) => row.dy >= FLOOR_TOP)
+      upperTile = bandTile(scale, brand, (row) => row.dy < FLOOR_TOP)
+      flagImage = flagTopImage(hm.k * dpr, INK)
+    }
+    buildCaches()
     // the band: centre, scale, half its width (in mark units), and how far the floor has scrolled (units)
     const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1 }
     // the star: feet position (x, y), scale, rotation; squash is a spring for landings and ducking
@@ -578,6 +594,7 @@ export function HifRunner({
     const onResize = () => {
       resizeCanvas()
       layout()
+      buildCaches()
       if (!tween && current !== 'enter' && current !== 'exit') {
         Object.assign(band, { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH })
         Object.assign(star, { x: starX, k })
@@ -605,6 +622,25 @@ export function HifRunner({
       }
       ctx.globalAlpha = 1
 
+      // the band / floor, copied from its tiles, columns out to either side; it dips a little under a landing
+      const first = Math.ceil((BAND_CX - band.half + band.scroll) / DITHER_PITCH - 0.5)
+      const last = Math.floor((BAND_CX + band.half + band.scroll) / DITHER_PITCH - 0.5)
+      const dipW = 40 * band.k
+      const dipAt =
+        Math.abs(dip) < 0.3
+          ? undefined
+          : (col: number) => {
+              const x = band.x + ((col + 0.5) * DITHER_PITCH - BAND_CX - band.scroll) * band.k
+              const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
+              return Math.abs(d) < 0.3 ? 0 : d
+            }
+      drawBandTile(ctx, floorTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+      if (band.fade > 0.01) {
+        ctx.globalAlpha = band.fade
+        drawBandTile(ctx, upperTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+        ctx.globalAlpha = 1
+      }
+
       // the obstacles
       for (const o of obstacles) {
         const bob = o.air ? Math.sin(o.bob) * 3 * k : 0
@@ -613,32 +649,6 @@ export function HifRunner({
         ctx.fillStyle = o.hit ? brand : INK
         ctx.font = font(o.size)
         ctx.fillText(o.g.ch, o.x + shake, o.base + bob)
-      }
-      ctx.globalAlpha = 1
-
-      // the band / floor, dot by dot, columns tiled out to either side; it dips a little under a landing
-      const r = DITHER_R * band.k
-      const first = Math.floor((BAND_CX - band.half + band.scroll) / DITHER_PITCH - 0.5)
-      const last = Math.ceil((BAND_CX + band.half + band.scroll) / DITHER_PITCH - 0.5)
-      const dipW = 40 * band.k
-      ctx.fillStyle = brand
-      for (const upper of [false, true]) {
-        if (upper && band.fade <= 0.01) continue
-        ctx.globalAlpha = upper ? band.fade : 1
-        ctx.beginPath()
-        for (let col = first; col <= last; col++) {
-          const u = (col + 0.5) * DITHER_PITCH - BAND_CX - band.scroll
-          if (u < -band.half || u > band.half) continue
-          const x = band.x + u * band.k
-          const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
-          for (const row of BAND_ROWS) {
-            if (row.dy < FLOOR_TOP !== upper || !bandHas(row, col)) continue
-            const y = band.y + row.dy * band.k + d
-            ctx.moveTo(x + r, y)
-            ctx.arc(x, y, r, 0, Math.PI * 2)
-          }
-        }
-        ctx.fill()
       }
       ctx.globalAlpha = 1
 
@@ -661,7 +671,7 @@ export function HifRunner({
       // the flag's square and white field, with the star cut out wherever the star is
       if (flag.alpha > 0.01) {
         ctx.globalAlpha = flag.alpha
-        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, { x: star.x, y: star.y - bounce - STAR_FEET * star.k * sy, r: STAR_R * star.k, rot: star.rot }, INK)
+        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, { x: star.x, y: star.y - bounce - STAR_FEET * star.k * sy, r: STAR_R * star.k, rot: star.rot }, INK, undefined, flagImage)
         ctx.globalAlpha = 1
       }
 
@@ -679,9 +689,22 @@ export function HifRunner({
 
     let raf = 0
     let last = performance.now()
+    // how long frames really take (smoothed); a device that stays slow gets the canvas at 1× from then on
+    let frameMs = 16.7
+    let slowFor = 0
     const tick = (now: number) => {
-      const dt = Math.max(0, Math.min(0.033, (now - last) / 1000))
+      const real = now - last
+      const dt = Math.max(0, Math.min(0.033, real / 1000))
       last = now
+      if (real > 0 && real < 200 && document.visibilityState === 'visible') {
+        frameMs += (real - frameMs) * 0.05
+        slowFor = frameMs > 24 ? slowFor + 1 : 0
+        if (slowFor > 90 && maxDpr > 1) {
+          maxDpr = 1
+          resizeCanvas()
+          buildCaches()
+        }
+      }
       step(dt)
       if (current === 'play') physics(dt)
       for (const o of obstacles) if (o.air) o.bob += dt * 5

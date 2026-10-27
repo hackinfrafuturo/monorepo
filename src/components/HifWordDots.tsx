@@ -181,16 +181,23 @@ export function HifWordDots({ word, off = false }: { word: RefObject<HTMLElement
       show(want)
       if (!want) return
 
+      // the canvas only covers the name and the room its dots can be pushed into, not the whole screen
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const W = window.innerWidth
-      const H = window.innerHeight
-      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
-        cv.width = Math.round(W * dpr)
-        cv.height = Math.round(H * dpr)
+      const margin = push + DOT_R * size + 4
+      const left = Math.floor(box.left - margin)
+      const top = Math.floor(box.top - margin)
+      const cw = Math.ceil(box.width + 2 * margin)
+      const ch = Math.ceil(box.height + 2 * margin)
+      if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) {
+        cv.width = Math.round(cw * dpr)
+        cv.height = Math.round(ch * dpr)
+        cv.style.width = `${cw}px`
+        cv.style.height = `${ch}px`
       }
+      cv.style.transform = `translate(${left}px, ${top}px)`
       const ctx = cv.getContext('2d')!
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, W, H)
+      ctx.setTransform(dpr, 0, 0, dpr, -left * dpr, -top * dpr)
+      ctx.clearRect(left, top, cw, ch)
       const r = DOT_R * size
       ctx.fillStyle = INK
       ctx.beginPath()
@@ -213,5 +220,5 @@ export function HifWordDots({ word, off = false }: { word: RefObject<HTMLElement
     }
   }, [word, off, reduce])
 
-  return <canvas ref={canvas} aria-hidden className="pointer-events-none fixed inset-0 z-30 hidden h-screen w-screen" />
+  return <canvas ref={canvas} aria-hidden className="pointer-events-none fixed top-0 left-0 z-30 hidden" />
 }
