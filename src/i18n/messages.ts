@@ -81,7 +81,7 @@ export type HomeMessages = {
     rank: (n: number) => string
     offline: string
   }
-  runner: { jump: string; best: string; board: string; offline: string }
+  runner: { jump: string; best: string; board: string; offline: string; sound: string; mute: string; unmute: string }
   register: string
   participants: string
   sponsor: string
@@ -135,7 +135,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `You're #${n}`,
       offline: "Couldn't save your time",
     },
-    runner: { jump: 'Space or tap to jump · ↓ to duck', best: 'HI', board: 'Top scores', offline: "Couldn't save your score" },
+    runner: { jump: 'Space or tap to jump · ↓ to duck', best: 'HI', board: 'Top scores', offline: "Couldn't save your score", sound: 'Sound', mute: 'Mute sound', unmute: 'Unmute sound' },
     register: 'Register your team',
     participants: 'Participants',
     sponsor: 'I want to sponsor',
@@ -302,7 +302,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `Quedaste #${n}`,
       offline: 'No pudimos guardar tu tiempo',
     },
-    runner: { jump: 'Espacio o toca para saltar · ↓ para agacharte', best: 'Récord', board: 'Mejores puntajes', offline: 'No pudimos guardar tu puntaje' },
+    runner: { jump: 'Espacio o toca para saltar · ↓ para agacharte', best: 'Récord', board: 'Mejores puntajes', offline: 'No pudimos guardar tu puntaje', sound: 'Sonido', mute: 'Silenciar', unmute: 'Activar sonido' },
     register: 'Inscribe tu equipo',
     participants: 'Participantes',
     sponsor: 'Quiero auspiciar',

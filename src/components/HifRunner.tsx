@@ -3,6 +3,7 @@ import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
+import { createRunnerAudio } from './runner-audio'
 import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
 /**
@@ -26,6 +27,9 @@ export type RunnerLabels = {
   exit: string
   close: string
   jump: string
+  sound: string
+  mute: string
+  unmute: string
   over: string
   again: string
   playAgain: string
@@ -122,6 +126,15 @@ export function HifRunner({
   const scoreEl = useRef<HTMLSpanElement>(null)
   const [phase, setPhase] = useState<Phase>('enter')
   const [best, setBest] = useState(readBest)
+  const [audio] = useState(createRunnerAudio)
+  const [muted, setMuted] = useState(() => audio.muted)
+
+  const toggleSound = () => {
+    const next = !audio.muted
+    audio.setMuted(next)
+    setMuted(next)
+    if (!next) audio.unlock()
+  }
 
   // ---- the leaderboard: a run is opened when play starts and closed on the crash, both on the server ----
   const nameEl = useRef<HTMLInputElement>(null)
@@ -396,6 +409,7 @@ export function HifRunner({
     // ---- out: everything back where the hero has it ----------------------------------------------------
     const exit = () => {
       if (current === 'exit') return
+      audio.stop()
       go('exit')
       cb.current.onExitStart()
       const h = measureHome()
@@ -455,6 +469,7 @@ export function HifRunner({
     }
 
     const restart = () => {
+      audio.unlock()
       obstacles = []
       score = 0
       writeScore()
@@ -468,6 +483,7 @@ export function HifRunner({
 
     const jump = () => {
       if (star.air) return
+      audio.play('jump')
       star.air = true
       star.airT = 0
       star.vy = -jumpV
@@ -476,6 +492,7 @@ export function HifRunner({
     }
 
     const down = () => {
+      audio.unlock()
       held = true
       if (tween) return
       if (current === 'ready') {
@@ -491,6 +508,7 @@ export function HifRunner({
     api.current = { down, up, restart: () => current === 'over' && !tween && restart(), exit: () => exit() }
 
     const crash = (o: Obstacle) => {
+      audio.play('crash')
       o.hit = true
       go('over')
       events.current.end(Math.floor(score))
@@ -530,6 +548,7 @@ export function HifRunner({
         const left = h > 0 || star.vy < 0 ? (star.vy + Math.sqrt(Math.max(0, star.vy * star.vy + 2 * g * h))) / g : 0
         star.rot = -360 * ease(clamp(star.airT / (star.airT + left), 0, 1))
         if (star.y >= feetY) {
+          audio.play('land')
           star.y = feetY
           star.air = false
           star.rot = 0
@@ -595,6 +614,10 @@ export function HifRunner({
       }
       if (key === 'ArrowDown' || key === 's' || key === 'S') {
         e.preventDefault()
+        if (!ducking && (current === 'ready' || current === 'play')) {
+          audio.unlock()
+          audio.play('duck')
+        }
         ducking = true
         return
       }
@@ -606,6 +629,7 @@ export function HifRunner({
       if (key === 'ArrowDown' || key === 's' || key === 'S') ducking = false
     }
     const onWheel = (e: WheelEvent) => e.preventDefault()
+    const onVisibility = () => { if (document.hidden) audio.stop() }
     const onResize = () => {
       resizeCanvas()
       layout()
@@ -621,6 +645,7 @@ export function HifRunner({
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('resize', onResize)
+    document.addEventListener('visibilitychange', onVisibility)
 
     // ---- drawing ----------------------------------------------------------------------------------------
     const draw = (now: number) => {
@@ -762,13 +787,15 @@ export function HifRunner({
     raf = requestAnimationFrame(tick)
 
     return () => {
+      audio.stop()
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('resize', onResize)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [word, mark, reduce])
+  }, [word, mark, reduce, audio])
 
   const hud = phase !== 'enter' && phase !== 'exit'
   const showForm = phase === 'over' && (result?.state === 'name' || result?.state === 'saving')
@@ -788,24 +815,43 @@ export function HifRunner({
         {/* the way out: Esc on a keyboard, or a tap here */}
         <button
           type="button"
+          title={labels.close}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => api.current.exit()}
           className="pointer-events-auto text-left uppercase transition-colors hover:text-[#181818]"
         >
-          Runner <span className="text-[#9a9894]">· </span>
-          <span className="hidden text-[#9a9894] pointer-fine:inline">{labels.exit}</span>
-          <span className="text-[#9a9894] pointer-fine:hidden">{labels.close}</span>
-        </button>
-        <p className="flex gap-4 tabular-nums">
-          {best > 0 && (
-            <span className="text-[#9a9894]">
-              {labels.best} {pad(best)}
-            </span>
-          )}
-          <span ref={scoreEl} className="text-[#181818]">
-            00000
+          Runner <span className="hidden sm:inline">
+            <span className="text-[#9a9894]">· </span>
+            <span className="hidden text-[#9a9894] pointer-fine:inline">{labels.exit}</span>
+            <span className="text-[#9a9894] pointer-fine:hidden">{labels.close}</span>
           </span>
-        </p>
+        </button>
+        <div className="flex items-start gap-2 md:gap-5">
+          <p className="flex gap-2 whitespace-nowrap tabular-nums md:gap-4">
+            {best > 0 && (
+              <span className="text-[#9a9894]">
+                {labels.best} {pad(best)}
+              </span>
+            )}
+            <span ref={scoreEl} className="text-[#181818]">
+              00000
+            </span>
+          </p>
+          <button
+            type="button"
+            aria-label={labels.sound}
+            aria-pressed={!muted}
+            title={muted ? labels.unmute : labels.mute}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={toggleSound}
+            className="pointer-events-auto -mt-1 shrink-0 p-1 text-[#5a5956] hover:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+              <path d="M11 4 6 8H3v8h3l5 4V4Z" />
+              {muted ? <path d="m16 9 6 6m0-6-6 6" /> : <><path d="M15 8a6 6 0 0 1 0 8" /><path d="M18 5a10 10 0 0 1 0 14" /></>}
+            </svg>
+          </button>
+        </div>
       </div>
       <p
         className={`pointer-events-none absolute inset-x-0 bottom-3 text-center font-mono text-sm leading-5 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 ${
