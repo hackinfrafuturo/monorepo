@@ -1,11 +1,14 @@
 /**
- * The Hack Infra Futuro mark as a dithered 64 × 64 dot field: a five-point star, raised like a low
- * faceted pyramid and lit from the top left, Bayer-dithered into dots, with a solid one-dot outline;
- * the purple band fades in from a dithered top edge. Same 70 × 70 space as the 7 × 7 mark: the star fills
- * the top 5/7, the band the bottom 2/7.
+ * The Hack Infra Futuro mark as a dithered 64 × 64 dot field, in the mark's 70 × 70 units.
  *
- * Computed once at load. Each dot carries its rest position relative to the rider's or the board's centre,
- * plus what the skater animation needs to move it like a soft body.
+ * The logo is Chile's flag in dots (FLAG): a black square top left with a white star cut out of it, the
+ * white field as faint dots, and the purple lower half fading in from a dithered top edge (the band).
+ *
+ * The games also need the star as an object (DITHER.rider): a five-point star, raised like a low faceted
+ * pyramid and lit from the top left, Bayer-dithered into dots with a solid one-dot outline. It is what the
+ * flag's star turns into once it leaves the square.
+ *
+ * Computed once at load.
  */
 
 const N = 64
@@ -15,6 +18,11 @@ export const DITHER_R = PITCH * 0.46
 
 const RIDER_CENTER = [35, 25] as const
 const BOARD_CENTER = [35, 60] as const
+
+/** where the flag's top half (square and white field) ends and the purple band starts */
+export const FLAG_SPLIT = 35
+/** the band's darkness down its height: it fades in over its first 10 units */
+const bandDark = (py: number) => Math.min(1, Math.max(0, 0.55 + 0.45 * ((py - FLAG_SPLIT) / 10)))
 
 export type RiderDotData = {
   dx: number
@@ -96,23 +104,26 @@ function build() {
   const cov: number[][] = []
   const dark: number[][] = []
   const band: boolean[][] = []
+  const bdark: number[][] = []
   for (let y = 0; y < N; y++) {
     cov.push([])
     dark.push([])
     band.push([])
-    let bandCount = 0
+    bdark.push([])
     for (let x = 0; x < N; x++) {
       let cv = 0
       let dk = 0
-      bandCount = 0
+      let bandCount = 0
+      let bk = 0
       for (let sy = 0; sy < S; sy++) {
         for (let sx = 0; sx < S; sx++) {
           const px = (x + (sx + 0.5) / S) * PITCH
           const py = (y + (sy + 0.5) / S) * PITCH
-          if (py >= 50) {
+          if (py >= FLAG_SPLIT) {
             bandCount++
-            dk += Math.min(1, Math.max(0, 0.35 + 0.65 * ((py - 50) / 14)))
-          } else if (inside(px, py)) {
+            bk += bandDark(py)
+          }
+          if (py < 50 && inside(px, py)) {
             cv++
             const ang = (((Math.atan2(py - CY, px - CX) * 180) / Math.PI + 90) % 360 + 360) % 360
             dk += 1 - 0.82 * Math.pow(shade[Math.floor(ang / 36)], 1.2)
@@ -122,6 +133,7 @@ function build() {
       cov[y].push(cv / (S * S))
       dark[y].push(dk / (S * S))
       band[y].push(bandCount / (S * S) > 0.5)
+      bdark[y].push(bk / (S * S))
     }
   }
 
@@ -133,9 +145,8 @@ function build() {
       const t = (BAYER8[y % 8][x % 8] + 0.5) / 64
       const cx = (x + 0.5) * PITCH
       const cy = (y + 0.5) * PITCH
-      if (band[y][x]) {
-        if (dark[y][x] > t) board.push({ bx: cx - BOARD_CENTER[0], by: cy - BOARD_CENTER[1], along: cx / 70, across: (cy - 50) / 20 })
-        continue
+      if (band[y][x] && bdark[y][x] > t) {
+        board.push({ bx: cx - BOARD_CENTER[0], by: cy - BOARD_CENTER[1], along: cx / 70, across: (cy - FLAG_SPLIT) / (70 - FLAG_SPLIT) })
       }
       if (!star(x, y)) continue
       const edge = !(star(x - 1, y) && star(x + 1, y) && star(x, y - 1) && star(x, y + 1))
@@ -196,9 +207,9 @@ export const BAND_ROWS = (() => {
     let dk = 0
     for (let sy = 0; sy < S; sy++) {
       const py = (y + (sy + 0.5) / S) * PITCH
-      if (py < 50) continue
+      if (py < FLAG_SPLIT) continue
       n++
-      dk += Math.min(1, Math.max(0, 0.35 + 0.65 * ((py - 50) / 14)))
+      dk += bandDark(py)
     }
     if (n / S > 0.5) rows.push({ row: y, dy: (y + 0.5) * PITCH - BOARD_CENTER[1], dark: dk / S })
   }
@@ -229,4 +240,152 @@ export function starSprite(ink: string) {
   }
   g.fill()
   return c
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// the flag: the black square with the star cut out, and the white field beside it
+
+/** the star in the square: its centre (the circle through its five tips) and tip radius, in mark units */
+export const FLAG_STAR = { x: FLAG_SPLIT / 2, y: FLAG_SPLIT / 2 + 1, r: 9.5 }
+export const FLAG_FIELD = '#c9c6c0'
+
+/** dot centres in mark units: the square (nearly solid, ink) and the white field (sparse, light grey) */
+export const FLAG = (() => {
+  const square: number[] = []
+  const field: number[] = []
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const cx = (x + 0.5) * PITCH
+      const cy = (y + 0.5) * PITCH
+      if (cy >= FLAG_SPLIT) continue
+      const t = (BAYER8[y % 8][x % 8] + 0.5) / 64
+      if (cx < FLAG_SPLIT) {
+        if (0.92 > t) square.push(cx, cy)
+      } else if (0.1 > t) field.push(cx, cy)
+    }
+  }
+  return { square: Float32Array.from(square), field: Float32Array.from(field) }
+})()
+
+/** where the star is: centre, tip radius and rotation (degrees), in whatever units the caller uses */
+export type StarPose = { x: number; y: number; r: number; rot: number }
+
+const STAR_K = 0.382 // inner radius / tip radius, as the dithered star
+const UNIT_STAR = Array.from({ length: 10 }, (_, i) => {
+  const a = ((-90 + i * 36) * Math.PI) / 180
+  const r = i % 2 === 0 ? 1 : STAR_K
+  return [Math.cos(a) * r, Math.sin(a) * r] as const
+})
+
+/** Signed distance from (px, py) to the star's outline: negative inside. */
+export function starDistance(px: number, py: number, s: StarPose) {
+  const a = (-s.rot * Math.PI) / 180
+  const dx = px - s.x
+  const dy = py - s.y
+  // into the star's own frame, in tip radii
+  const ux = (dx * Math.cos(a) - dy * Math.sin(a)) / s.r
+  const uy = (dx * Math.sin(a) + dy * Math.cos(a)) / s.r
+  let best = Infinity
+  let inside = false
+  for (let i = 0, j = 9; i < 10; j = i++) {
+    const [xi, yi] = UNIT_STAR[i]
+    const [xj, yj] = UNIT_STAR[j]
+    if (yi > uy !== yj > uy && ux < ((xj - xi) * (uy - yi)) / (yj - yi) + xi) inside = !inside
+    const ex = xi - xj
+    const ey = yi - yj
+    const t = Math.max(0, Math.min(1, ((ux - xj) * ex + (uy - yj) * ey) / (ex * ex + ey * ey)))
+    best = Math.min(best, Math.hypot(ux - xj - ex * t, uy - yj - ey * t))
+  }
+  return (inside ? -best : best) * s.r
+}
+
+/**
+ * How big a square dot is next to the star: 0 inside it, full size a dot away from it, shrinking smoothly
+ * across the outline, so the cut-out moves without dots popping in and out. `r` is the dot radius.
+ */
+export function holeScale(d: number, r: number) {
+  return Math.max(0, Math.min(1, 0.5 + d / (2.4 * r)))
+}
+
+/**
+ * Draws the flag's top half (square and white field) at a mark placed at (left, top) with `k` pixels per
+ * unit, the star cut out of the square wherever `star` is (in pixels). `pos` can override dot positions
+ * (square then field, in mark units) for a moving field.
+ */
+export function drawFlagTop(
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  top: number,
+  k: number,
+  star: StarPose,
+  ink: string,
+  pos?: { square: Float32Array; field: Float32Array },
+) {
+  const r = DITHER_R * k
+  const sq = pos?.square ?? FLAG.square
+  const fd = pos?.field ?? FLAG.field
+  ctx.fillStyle = FLAG_FIELD
+  ctx.beginPath()
+  for (let i = 0; i < fd.length; i += 2) {
+    const x = left + fd[i] * k
+    const y = top + fd[i + 1] * k
+    ctx.moveTo(x + r, y)
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+  }
+  ctx.fill()
+  ctx.fillStyle = ink
+  ctx.beginPath()
+  for (let i = 0; i < sq.length; i += 2) {
+    const x = left + sq[i] * k
+    const y = top + sq[i + 1] * k
+    const rr = r * holeScale(starDistance(x, y, star), r)
+    if (rr < 0.05) continue
+    ctx.moveTo(x + rr, y)
+    ctx.arc(x, y, rr, 0, Math.PI * 2)
+  }
+  ctx.fill()
+}
+
+/**
+ * Draws the game star (the sprite) as it comes out of the flag: inside the square it is still the cut-out,
+ * so it only shows there as the square fades (`flag` is the square's opacity); outside it, it's the star.
+ * `ext` is the sprite's half size in pixels; the caller has already moved the canvas to the star's centre
+ * and rotated it. `rect` is the square, in the canvas's coordinates before that move.
+ */
+export function drawStarFromFlag(
+  ctx: CanvasRenderingContext2D,
+  sprite: HTMLCanvasElement,
+  ext: number,
+  alpha: number,
+  flag: number,
+  rect: { x: number; y: number; w: number; h: number },
+  toLocal: () => void,
+) {
+  const draw = (a: number, clip: (c: CanvasRenderingContext2D) => void) => {
+    if (a <= 0.01) return
+    ctx.save()
+    clip(ctx)
+    toLocal()
+    ctx.globalAlpha = a
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(sprite, -ext, -ext, ext * 2, ext * 2)
+    ctx.restore()
+  }
+  if (flag <= 0.001) {
+    draw(alpha, () => {})
+    return
+  }
+  // outside the square: the star as itself
+  draw(alpha, (c) => {
+    c.beginPath()
+    c.rect(-1e5, -1e5, 2e5, 2e5)
+    c.rect(rect.x, rect.y, rect.w, rect.h)
+    c.clip('evenodd')
+  })
+  // inside it: only as the square fades away
+  draw(alpha * (1 - flag), (c) => {
+    c.beginPath()
+    c.rect(rect.x, rect.y, rect.w, rect.h)
+    c.clip()
+  })
 }

@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { DITHER, DITHER_R, SPRITE_EXT, STAR_FEET, STAR_R, starSprite } from './hif-dither'
+import { DITHER, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
 import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, type RunId, type Score } from './breakout-board'
 
 /**
- * Breakout, played with the hero's own logo: the dithered star is the ball, its purple band the paddle,
- * and the letters of "Hack Infra Futuro" the bricks.
+ * Breakout, played with the hero's own logo (Chile's flag in dots): the flag's star is the ball, its
+ * purple band the paddle, and the letters of "Hack Infra Futuro" the bricks.
  *
  * It takes over from the real logo without a cut: on the first frame everything is drawn exactly where
  * the hero has it, then the letters fly into a wall of three rows, the band slims down into a paddle at
- * the bottom, and the star flips down onto it. Leaving runs the same thing backwards, rebuilding any
+ * the bottom, and the star, cut out of the flag's black square, comes out of it as a star and flips down
+ * onto the paddle while the square fades away. Leaving runs the same thing backwards, rebuilding any
  * letters that were broken, and hands back to the page.
  *
  * Everything is drawn on one full-screen canvas; positions are CSS pixels. Star and band geometry come
@@ -233,10 +234,15 @@ export function HifBreakout({
       }
       return out
     }
+    // the star at home is the one cut out of the flag's square
     const homeBall = (): Pick<Ball, 'x' | 'y' | 'k'> => {
       const r = mark.getBoundingClientRect()
       const k = r.width / 70
-      return { x: r.left + 35 * k, y: r.top + STAR_R * k, k }
+      return { x: r.left + FLAG_STAR.x * k, y: r.top + FLAG_STAR.y * k, k: (k * FLAG_STAR.r) / STAR_R }
+    }
+    const homeFlag = () => {
+      const r = mark.getBoundingClientRect()
+      return { left: r.left, top: r.top, k: r.width / 70 }
     }
     const homeBand = (): Band => {
       const r = mark.getBoundingClientRect()
@@ -280,6 +286,9 @@ export function HifBreakout({
     const hb = homeBall()
     const ball: Ball = { ...hb, rot: 0, alpha: 1, vx: 0, vy: 0, spin: 0 }
     const band: Band = homeBand()
+    // the flag's top half stays where the hero has it and fades out (and back in on the way out)
+    let flagAt = homeFlag()
+    const flag = { alpha: 1 }
     let padTarget = W / 2
     let dip = 0
     let dipV = 0
@@ -323,6 +332,7 @@ export function HifBreakout({
           ...letters.map((L, i) => ({ obj: L.cur, from: { ...L.home }, to: { ...L.game }, delay: 0.03 * i, dur: 0.8 })),
           { obj: band, from: { ...band }, to: { x: W / 2, y: paddle.y, k: paddle.k, fade: 0 }, delay: 0.1, dur: 0.85 },
           { obj: ball, from: { x: ball.x, y: ball.y, k: ball.k, rot: 0 }, to: { ...readyBall(W / 2), rot: -360 }, delay: 0.12, dur: 0.95 },
+          { obj: flag, from: { alpha: 1 }, to: { alpha: 0 }, delay: 0.2, dur: 0.6 },
         ],
         () => {
           ball.rot = 0
@@ -340,6 +350,7 @@ export function HifBreakout({
       cb.current.onExitStart()
       const h = measureHome()
       const hbNow = homeBall()
+      flagAt = homeFlag()
       const n = letters.length
       for (const L of letters) {
         if (!L.alive) L.cur = { ...L.game, size: L.game.size * 0.6, alpha: 0 }
@@ -352,6 +363,8 @@ export function HifBreakout({
           ...letters.map((L, i) => ({ obj: L.cur, from: { ...L.cur }, to: { ...h[i].spot }, delay: 0.025 * (n - 1 - i), dur: 0.7 })),
           { obj: band, from: { ...band }, to: { ...homeBand() }, delay: 0, dur: 0.75 },
           { obj: ball, from: { x: ball.x, y: ball.y, k: ball.k, rot: ball.rot, alpha: ball.alpha }, to: { ...hbNow, rot: 0, alpha: 1 }, delay: 0.05, dur: 0.75 },
+          // the square comes back as the star reaches it, so it lands as the cut-out
+          { obj: flag, from: { alpha: flag.alpha }, to: { alpha: 1 }, delay: 0.25, dur: 0.55 },
         ],
         () => cb.current.onDone(),
       )
@@ -656,16 +669,21 @@ export function HifBreakout({
       }
       ctx.globalAlpha = 1
 
-      // the star
+      // the flag's square and white field, with the star cut out wherever the star is
+      const pose = { x: ball.x, y: ball.y, r: STAR_R * ball.k, rot: ball.rot }
+      if (flag.alpha > 0.01) {
+        ctx.globalAlpha = flag.alpha
+        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, pose, INK)
+        ctx.globalAlpha = 1
+      }
+
+      // the star: inside the square it's the cut-out, outside it, itself
       if (ball.alpha > 0.01) {
-        ctx.save()
-        ctx.globalAlpha = ball.alpha
-        ctx.translate(ball.x, ball.y)
-        ctx.rotate((ball.rot * Math.PI) / 180)
-        const e = SPRITE_EXT * ball.k
-        ctx.imageSmoothingQuality = 'high'
-        ctx.drawImage(sprite, -e, -e, e * 2, e * 2)
-        ctx.restore()
+        const side = FLAG_SPLIT * flagAt.k
+        drawStarFromFlag(ctx, sprite, SPRITE_EXT * ball.k, ball.alpha, flag.alpha, { x: flagAt.left, y: flagAt.top, w: side, h: side }, () => {
+          ctx.translate(ball.x, ball.y)
+          ctx.rotate((ball.rot * Math.PI) / 180)
+        })
       }
     }
 

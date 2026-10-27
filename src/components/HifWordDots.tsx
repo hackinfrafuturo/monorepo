@@ -6,7 +6,7 @@ import { useReducedMotion } from 'motion/react'
  * cursor slide away from it and flow back as it passes.
  *
  * The real text stays in the page. While anything moves, its dots are drawn on a canvas instead (the text
- * goes transparent underneath), and at rest the text takes over again, as HifSkater does with the star.
+ * goes transparent underneath), and at rest the text takes over again, as HifFlag does with the mark.
  *
  * Geist Pixel Circle puts every dot on a 38-unit grid (units per 1000 em), centred 19 units in, so each
  * letter's dots are found by drawing it once off screen and checking the ink at each grid centre.
@@ -16,7 +16,7 @@ const GRID = 0.038 // em
 const GRID_OFFSET = 0.019 // em
 const DOT_R = 0.019 // em: the dots touch their neighbours
 
-// the star's repel field (HifSkater), converted from the mark's units: the mark is 1.772em across 70 units
+// the mark's repel field (HifFlag), converted from the mark's units: the mark is 1.772em across 70 units
 const UNIT = 1.772 / 70
 const REPEL_RADIUS = 19 * UNIT // em
 const REPEL_PUSH = 8.5 * UNIT // em
