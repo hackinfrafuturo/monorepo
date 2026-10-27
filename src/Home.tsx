@@ -4,6 +4,7 @@ import { HifBreakout } from './components/HifBreakout'
 import { HifRunner } from './components/HifRunner'
 import { HifFlag } from './components/HifFlag'
 import { HifWordDots } from './components/HifWordDots'
+import { Marquee } from './components/Marquee'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
@@ -290,7 +291,7 @@ export default function Home() {
                 id="hero-title"
                 className={`cursor-pointer text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
               >
-                <span ref={wordRef} className="block font-pixel leading-[1.05] [text-box:trim-start_cap_alphabetic]">
+                <span ref={wordRef} className="block font-pixel leading-[1.05] antialiased! [text-box:trim-start_cap_alphabetic]">
                   Hack Infra
                   <br />
                   Futuro
@@ -401,6 +402,25 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* The way in, moving: a scrolling "register your team" bar that sticks to the top from here down. */}
+      <aside aria-label={t.register} className={`sticky top-0 z-40 border-b ${RULE}`}>
+        <a
+          href={applicationUrl}
+          {...uiSound}
+          className="group block bg-[#f4f2ee] py-3 text-[#181818] no-underline outline-none transition-colors duration-75 ease-linear hover:bg-brand hover:text-[#f4f2ee] focus-visible:bg-brand focus-visible:text-[#f4f2ee] focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 md:py-3.5"
+        >
+          <Marquee pauseOnHover className="[--duration:4s] [--gap:3rem]">
+            <span className="font-mono text-base tracking-wider uppercase md:text-lg">{t.register}</span>
+            <span
+              aria-hidden
+              className="font-mono text-base text-[#5a5956] transition-colors duration-75 ease-linear group-hover:text-[#ece6fb] group-focus-visible:text-[#ece6fb] md:text-lg"
+            >
+              {'->'}
+            </span>
+          </Marquee>
+        </a>
+      </aside>
 
       <section className="flex min-h-svh items-center px-4 py-12 md:px-6 md:py-16">
         <div className={`grid w-full items-start gap-8 md:items-stretch ${COLUMNS}`}>

@@ -2,7 +2,7 @@
  * The Hack Infra Futuro mark as a dithered 64 × 64 dot field, in the mark's 70 × 70 units.
  *
  * The logo is Chile's flag in dots (FLAG): a black square top left with a white star cut out of it, the
- * white field as faint dots, and the purple lower half fading in from a dithered top edge (the band).
+ * white field as pale dots, and the purple lower half (the band): every one an even grid of dots.
  *
  * The games also need the star as an object (DITHER.rider): a five-point star, raised like a low faceted
  * pyramid and lit from the top left, Bayer-dithered into dots with a solid one-dot outline. It is what the
@@ -26,8 +26,8 @@ const FLAG_COLS = Math.round(FLAG_W / PITCH)
 export const BAND_CX = FLAG_W / 2
 /** where the flag's top half (square and white field) ends and the purple band starts */
 export const FLAG_SPLIT = 35
-/** the band's darkness down its height: it fades in over its first 10 units */
-const bandDark = (py: number) => Math.min(1, Math.max(0, 0.55 + 0.45 * ((py - FLAG_SPLIT) / 10)))
+/** the band's darkness down its height: solid, a clean grid of dots like the rest of the flag */
+const bandDark = (_py: number) => 1
 
 export type RiderDotData = {
   dx: number
@@ -260,9 +260,9 @@ export function starSprite(ink: string) {
 
 /** the star in the square: its centre (the circle through its five tips) and tip radius, in mark units */
 export const FLAG_STAR = { x: FLAG_SPLIT / 2, y: FLAG_SPLIT / 2 + 1, r: 9.5 }
-export const FLAG_FIELD = '#c9c6c0'
+export const FLAG_FIELD = '#e3e0d9'
 
-/** dot centres in mark units: the square (nearly solid, ink) and the white field (sparse, light grey) */
+/** dot centres in mark units: the square (every dot, ink) and the white field (every dot, a pale grey) */
 export const FLAG = (() => {
   const square: number[] = []
   const field: number[] = []
@@ -271,10 +271,8 @@ export const FLAG = (() => {
       const cx = (x + 0.5) * PITCH
       const cy = (y + 0.5) * PITCH
       if (cy >= FLAG_SPLIT) continue
-      const t = (BAYER8[y % 8][x % 8] + 0.5) / 64
-      if (cx < FLAG_SPLIT) {
-        if (0.92 > t) square.push(cx, cy)
-      } else if (0.1 > t) field.push(cx, cy)
+      if (cx < FLAG_SPLIT) square.push(cx, cy)
+      else field.push(cx, cy)
     }
   }
   return { square: Float32Array.from(square), field: Float32Array.from(field) }
@@ -317,7 +315,9 @@ export function starDistance(px: number, py: number, s: StarPose) {
  * across the outline, so the cut-out moves without dots popping in and out. `r` is the dot radius.
  */
 export function holeScale(d: number, r: number) {
-  return Math.max(0, Math.min(1, 0.5 + d / (2.4 * r)))
+  const s = Math.max(0, Math.min(1, 0.5 + d / (1.2 * r)))
+  // no specks: a dot that would be tiny is left out
+  return s < 0.55 ? 0 : s
 }
 
 /**
