@@ -13,6 +13,7 @@ import type * as applications from "../applications.js";
 import type * as breakout from "../breakout.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
+import type * as github from "../github.js";
 import type * as http from "../http.js";
 import type * as runner from "../runner.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   breakout: typeof breakout;
   crons: typeof crons;
   emails: typeof emails;
+  github: typeof github;
   http: typeof http;
   runner: typeof runner;
 }>;

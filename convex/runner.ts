@@ -1,27 +1,33 @@
 import { ConvexError, v } from 'convex/values'
-import { internalMutation, mutation, query } from './_generated/server'
+import type { Id } from './_generated/dataModel'
+import { internalMutation, mutation, query, type QueryCtx } from './_generated/server'
+import { githubHandle, handleKey, playerKey } from './github'
 
 /**
  * The leaderboard for the runner easter egg on the landing (src/components/HifRunner.tsx).
  *
  * The score is a function of how long the star survives (it counts up faster as the game speeds up), so
  * the server times the run itself: `start` stamps it when play begins, `complete` stamps the crash and
- * accepts the browser's score only up to what that time allows, and `claim` puts a name on it. Like the
- * Breakout board it isn't tamper-proof (a script can still play a real run), which is fine here.
+ * accepts the browser's score only up to what that time allows, and `claim` puts a GitHub username on it.
+ * Like the Breakout board it isn't tamper-proof (a script can still play a real run), which is fine here.
+ *
+ * Everyone can play as often as they like: every named run is kept, and the board shows the ten highest
+ * scoring people, each once, with their best.
  */
 
 /** keep in step with the game: speed grows ACCEL of the start speed per second, up to MAX_SPEED times, and the score counts 10 a second at the start speed */
 const RATE = 10
-const ACCEL = 0.028
-const MAX_SPEED = 2.5
+const ACCEL = 0.035
+const MAX_SPEED = 2.8
 /** network time between the browser's start and crash and ours */
 const SLACK_MS = 2_000
 /** a run left open longer than this doesn't count */
 const MAX_MS = 60 * 60_000
 /** how long a player has to type a name */
 const CLAIM_MS = 15 * 60_000
-const NAME_MAX = 24
 const TOP = 10
+/** how many rows a board read looks through at most, while skipping people's other runs */
+const SCAN = 2000
 
 /** the highest score a run of `ms` can reach */
 export function maxScore(ms: number) {
@@ -54,42 +60,84 @@ export const complete = mutation({
   },
 })
 
-/** Trim, drop control characters, collapse spaces, cap the length. */
-function cleanName(raw: string) {
-  return raw
-    .replace(/\p{C}/gu, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, NAME_MAX)
-}
-
 export const claim = mutation({
   args: { runId: v.id('runnerRuns'), name: v.string() },
-  returns: v.object({ id: v.id('runnerScores'), score: v.number(), rank: v.number() }),
+  returns: v.object({ id: v.id('runnerScores'), score: v.number(), best: v.number(), rank: v.number(), improved: v.boolean() }),
   handler: async (ctx, { runId, name }) => {
     const run = await ctx.db.get(runId)
     if (!run || run.finishedAt === undefined || run.score === undefined || Date.now() - run.finishedAt > CLAIM_MS) {
       throw new ConvexError('Invalid run')
     }
-    const clean = cleanName(name)
-    if (clean.length === 0) throw new ConvexError('Name required')
+    const handle = githubHandle(name)
+    if (!handle) throw new ConvexError('Invalid GitHub username')
     const score = run.score
-    const id = await ctx.db.insert('runnerScores', { name: clean, score })
     await ctx.db.delete(runId)
-    const better = await ctx.db
+    // every run is kept; the board shows each person's best (GitHub usernames ignore case)
+    const key = handleKey(handle)
+    const previous = await ctx.db
       .query('runnerScores')
-      .withIndex('by_score', (q) => q.gt('score', score))
-      .take(1000)
-    return { id, score, rank: better.length + 1 }
+      .withIndex('by_handle', (q) => q.eq('handle', key))
+      .order('desc')
+      .first()
+    const id = await ctx.db.insert('runnerScores', { name: handle, score, handle: key })
+    const improved = !previous || score > previous.score
+    const best = improved ? score : previous!.score
+    return { id, score, best, rank: await rankOf(ctx, key, best), improved }
   },
 })
 
+/** Where a best of `best` places among people: one more than the number of others with a better best. */
+async function rankOf(ctx: QueryCtx, key: string, best: number) {
+  const ahead = new Set<string>()
+  let scanned = 0
+  for await (const row of ctx.db.query('runnerScores').withIndex('by_score', (q) => q.gt('score', best))) {
+    const who = playerKey(row)
+    if (who !== key) ahead.add(who)
+    if (++scanned >= SCAN) break
+  }
+  return ahead.size + 1
+}
+
+/** The board: the top ten people, each once, with their best. */
 export const top = query({
   args: {},
   returns: v.array(row),
   handler: async (ctx) => {
-    const rows = await ctx.db.query('runnerScores').withIndex('by_score').order('desc').take(TOP)
-    return rows.map(({ _id, name, score }) => ({ _id, name, score }))
+    const out: { _id: Id<'runnerScores'>; name: string; score: number }[] = []
+    const seen = new Set<string>()
+    let scanned = 0
+    for await (const row of ctx.db.query('runnerScores').withIndex('by_score').order('desc')) {
+      const who = playerKey(row)
+      if (!seen.has(who)) {
+        seen.add(who)
+        out.push({ _id: row._id, name: row.name, score: row.score })
+        if (out.length === TOP) break
+      }
+      if (++scanned >= SCAN) break
+    }
+    return out
+  },
+})
+
+/**
+ * One-off: rows saved before the board used GitHub usernames get a handle when their name is a valid
+ * username, so they count as the same person as that user's later runs. Nothing is deleted; names that
+ * can't be usernames are left as they are. Run with `pnpm exec convex run runner:keyOldScores` (add
+ * --prod for production).
+ */
+export const keyOldScores = internalMutation({
+  args: {},
+  returns: v.object({ keyed: v.number() }),
+  handler: async (ctx) => {
+    let keyed = 0
+    for (const row of await ctx.db.query('runnerScores').take(2000)) {
+      if (row.handle) continue
+      const handle = githubHandle(row.name)
+      if (!handle) continue
+      await ctx.db.patch(row._id, { handle: handleKey(handle) })
+      keyed++
+    }
+    return { keyed }
   },
 })
 

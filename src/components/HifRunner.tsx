@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
@@ -31,6 +32,9 @@ export type RunnerLabels = {
   best: string
   board: string
   name: string
+  nameHint: string
+  badName: string
+  kept: (best: string) => string
   save: string
   saving: string
   rank: (n: number) => string
@@ -44,6 +48,11 @@ type Result = {
   runId?: RunnerRunId
   id?: string
   rank?: number
+  /** after saving: the person's best on the board, and whether this run beat it */
+  best?: number
+  improved?: boolean
+  /** the username it was saved under, to find the player's row on the board */
+  handle?: string
 }
 
 type Phase = 'enter' | 'ready' | 'play' | 'over' | 'exit'
@@ -60,9 +69,9 @@ const STAR_H = 50 // the star, tip to feet, in mark units
 const DUCK = 0.6 // ducking squashes the star to this much of its height
 // difficulty: the start speed (a share of the screen's width) grows by ACCEL of itself a second, up to
 // MAX_SPEED times; keep ACCEL and MAX_SPEED in step with convex/runner.ts, which caps scores with them
-const ACCEL = 0.028
-const MAX_SPEED = 2.5
-const AIR_FROM = 120 // score from which letters can come in the air
+const ACCEL = 0.035
+const MAX_SPEED = 2.8
+const AIR_FROM = 80 // score from which letters can come in the air
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
@@ -115,6 +124,7 @@ export function HifRunner({
   const nameEl = useRef<HTMLInputElement>(null)
   const [board, setBoard] = useState<RunnerScore[] | null>(null)
   const [result, setResult] = useState<Result | null>(null)
+  const [nameError, setNameError] = useState(false)
   const [name, setName] = useState(() => {
     try {
       return localStorage.getItem(NAME_KEY) ?? ''
@@ -168,23 +178,27 @@ export function HifRunner({
 
   const save = (e: FormEvent) => {
     e.preventDefault()
-    const clean = name.trim()
-    if (!result?.runId || !clean || result.state !== 'name') return
+    if (!result?.runId || result.state !== 'name') return
+    // the board is keyed on GitHub usernames: check it here so a typo doesn't cost the run
+    const handle = githubHandle(name)
+    setNameError(!handle)
+    if (!handle) return
     const g = gen.current
     setResult({ ...result, state: 'saving' })
     try {
-      localStorage.setItem(NAME_KEY, clean)
+      localStorage.setItem(NAME_KEY, handle)
     } catch {
       // private mode: the name just isn't remembered
     }
-    claimRunnerRun(result.runId, clean)
-      .then(async ({ id, rank, score }) => {
+    claimRunnerRun(result.runId, handle)
+      .then(async ({ id, rank, score, best, improved }) => {
         if (g !== gen.current) return
-        setResult((r) => r && { ...r, score, id, rank, state: 'saved' })
+        setResult((r) => r && { ...r, score, id, rank, best, improved, handle, state: 'saved' })
         setBoard(await topRunnerScores())
       })
       .catch(() => g === gen.current && setResult((r) => r && { ...r, state: 'offline' }))
   }
+
   const api = useRef({ down: () => {}, up: () => {}, restart: () => {}, exit: () => {} })
   const cb = useRef({ onExitStart, onDone })
   useEffect(() => {
@@ -270,7 +284,7 @@ export function HifRunner({
       floorY = feetY + 10 * k
       starX = clamp(0.16 * W, 70, 260)
       letterSize = (0.92 * STAR_H * k) / glyphOf('H').a
-      baseSpeed = clamp(0.6 * W, 420, 760)
+      baseSpeed = clamp(0.65 * W, 460, 820)
       const apex = 2.3 * STAR_H * k
       const air = 0.66
       jumpV = (4 * apex) / air
@@ -387,7 +401,7 @@ export function HifRunner({
 
     // ---- obstacles: the name, a letter or a few at a time ---------------------------------------------
     const spawn = () => {
-      const air = score > AIR_FROM && Math.random() < 0.35
+      const air = score > AIR_FROM && Math.random() < 0.4
       const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 200))
       const airTime = (2 * jumpV) / gravity
       // never wider than one jump can clear at this speed
@@ -407,7 +421,7 @@ export function HifRunner({
         width += w + GAP * size
       }
       // room to land and jump again before the next one
-      gap = width + speed * (airTime + 0.08 + Math.random() * 0.55)
+      gap = width + speed * (airTime + 0.06 + Math.random() * 0.45)
     }
 
     const restart = () => {
@@ -666,7 +680,7 @@ export function HifRunner({
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
-      const dt = Math.min(0.033, (now - last) / 1000)
+      const dt = Math.max(0, Math.min(0.033, (now - last) / 1000))
       last = now
       step(dt)
       if (current === 'play') physics(dt)
@@ -775,10 +789,17 @@ export function HifRunner({
               <input
                 ref={nameEl}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={24}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setNameError(false)
+                }}
+                maxLength={40}
                 required
-                autoComplete="nickname"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={nameError}
+                aria-describedby="board-name-hint"
                 placeholder={labels.name}
                 aria-label={labels.name}
                 disabled={result?.state === 'saving'}
@@ -793,8 +814,15 @@ export function HifRunner({
               </button>
             </form>
           )}
+          {showForm && (
+            <p id="board-name-hint" className={`-mt-3 w-full text-left font-mono text-sm leading-5 ${nameError ? 'text-[#b42318]' : 'text-[#5a5956]'}`}>
+              {nameError ? labels.badName : labels.nameHint}
+            </p>
+          )}
           {result?.state === 'saved' && result.rank && (
-            <p className="font-mono text-base tracking-wide text-brand uppercase">{labels.rank(result.rank)}</p>
+            <p className="font-mono text-base tracking-wide text-brand uppercase">
+              {result.improved === false && result.best !== undefined ? `${labels.kept(pad(result.best))} · ${labels.rank(result.rank)}` : labels.rank(result.rank)}
+            </p>
           )}
           {result?.state === 'offline' && <p className="font-mono text-sm text-[#5a5956]">{labels.offline}</p>}
 
@@ -805,7 +833,7 @@ export function HifRunner({
                 {board.map((s, i) => (
                   <li
                     key={s._id}
-                    className={`grid grid-cols-[2ch_1fr_auto] gap-3 border-t border-[#d6d4d0] ${s._id === result?.id ? 'text-brand' : 'text-[#181818]'}`}
+                    className={`grid grid-cols-[2ch_1fr_auto] gap-3 border-t border-[#d6d4d0] ${result?.handle && s.name.toLowerCase() === result.handle.toLowerCase() ? 'text-brand' : 'text-[#181818]'}`}
                   >
                     <span className="text-right text-[#9a9894]">{i + 1}</span>
                     <span className="truncate">{s.name}</span>
