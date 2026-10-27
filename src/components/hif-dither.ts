@@ -333,8 +333,17 @@ export function drawFlagTop(
   star: StarPose,
   ink: string,
   pos?: { square: Float32Array; field: Float32Array },
+  image?: { canvas: HTMLCanvasElement; scale: number },
 ) {
   const r = DITHER_R * k
+  // only dots this close to the star's centre can be inside it or on its edge
+  const reach = star.r + 2 * r
+  const side = FLAG_SPLIT * k
+  const clear = star.x + reach < left || star.x - reach > left + side || star.y + reach < top || star.y - reach > top + side
+  if (image && !pos && clear) {
+    ctx.drawImage(image.canvas, left, top, (image.canvas.width / image.scale) * k, (image.canvas.height / image.scale) * k)
+    return
+  }
   const sq = pos?.square ?? FLAG.square
   const fd = pos?.field ?? FLAG.field
   ctx.fillStyle = FLAG_FIELD
@@ -351,7 +360,8 @@ export function drawFlagTop(
   for (let i = 0; i < sq.length; i += 2) {
     const x = left + sq[i] * k
     const y = top + sq[i + 1] * k
-    const rr = r * holeScale(starDistance(x, y, star), r)
+    const near = Math.abs(x - star.x) < reach && Math.abs(y - star.y) < reach
+    const rr = near ? r * holeScale(starDistance(x, y, star), r) : r
     if (rr < 0.05) continue
     ctx.moveTo(x + rr, y)
     ctx.arc(x, y, rr, 0, Math.PI * 2)
@@ -401,4 +411,102 @@ export function drawStarFromFlag(
     c.rect(rect.x, rect.y, rect.w, rect.h)
     c.clip()
   })
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// the band, pre-drawn: it repeats every 8 columns, so one 8-column tile drawn once covers any width with a
+// handful of image copies a frame (instead of thousands of dots), and a column can still be moved on its own
+
+export type BandTile = { canvas: HTMLCanvasElement; scale: number; top: number; height: number }
+const TILE_COLS = 8
+
+/**
+ * The 8-column tile of the band's rows that `keep` accepts, at `scale` pixels per mark unit. `top` and
+ * `height` are its extent in mark units, relative to the band's centre (BAND_CX, 60).
+ */
+export function bandTile(scale: number, color: string, keep: (row: (typeof BAND_ROWS)[number]) => boolean): BandTile {
+  const rows = BAND_ROWS.filter(keep)
+  const top = Math.min(...rows.map((r) => r.dy)) - DITHER_R - 0.5
+  const height = Math.max(...rows.map((r) => r.dy)) + DITHER_R + 0.5 - top
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(TILE_COLS * PITCH * scale)
+  canvas.height = Math.ceil(height * scale)
+  const g = canvas.getContext('2d')!
+  g.fillStyle = color
+  g.beginPath()
+  for (let col = 0; col < TILE_COLS; col++) {
+    for (const row of rows) {
+      if (!bandHas(row, col)) continue
+      const x = (col + 0.5) * PITCH * scale
+      const y = (row.dy - top) * scale
+      g.moveTo(x + DITHER_R * scale, y)
+      g.arc(x, y, DITHER_R * scale, 0, Math.PI * 2)
+    }
+  }
+  g.fill()
+  return { canvas, scale, top, height }
+}
+
+/**
+ * Draws band columns `first`…`last` (column c sits at x = (c + 0.5) × DITHER_PITCH in the flag) from a tile,
+ * the band centred at (x, y) with `k` pixels per unit and scrolled left by `scroll` units. `shift(c)` moves a
+ * column down (a dip); columns it leaves at 0 are copied in runs, the rest one by one.
+ */
+export function drawBandTile(
+  ctx: CanvasRenderingContext2D,
+  tile: BandTile,
+  x: number,
+  y: number,
+  k: number,
+  scroll: number,
+  first: number,
+  last: number,
+  shift?: (col: number) => number,
+) {
+  const colW = PITCH * tile.scale
+  const destW = PITCH * k
+  const dy = y + tile.top * k
+  const dh = tile.height * k
+  const colX = (c: number) => x + (c * PITCH - BAND_CX - scroll) * k
+  let c = first
+  while (c <= last) {
+    const s = shift ? shift(c) : 0
+    if (s !== 0) {
+      const j = ((c % TILE_COLS) + TILE_COLS) % TILE_COLS
+      ctx.drawImage(tile.canvas, j * colW, 0, colW, tile.canvas.height, colX(c), dy + s, destW, dh)
+      c++
+      continue
+    }
+    // a run of unshifted columns, up to the end of this tile
+    const j = ((c % TILE_COLS) + TILE_COLS) % TILE_COLS
+    let n = Math.min(TILE_COLS - j, last - c + 1)
+    if (shift) for (let m = 1; m < n; m++) if (shift(c + m) !== 0) n = m
+    ctx.drawImage(tile.canvas, j * colW, 0, n * colW, tile.canvas.height, colX(c), dy, n * destW, dh)
+    c += n
+  }
+}
+
+/**
+ * The flag's top half (square and white field) pre-drawn at `scale` pixels per unit, with no star cut out:
+ * while the star is clear of the square it is one image copy instead of three thousand dots.
+ */
+export function flagTopImage(scale: number, ink: string) {
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(FLAG_W * scale)
+  canvas.height = Math.ceil(FLAG_SPLIT * scale)
+  const g = canvas.getContext('2d')!
+  const r = DITHER_R * scale
+  for (const [dots, color] of [
+    [FLAG.field, FLAG_FIELD],
+    [FLAG.square, ink],
+  ] as const) {
+    g.fillStyle = color
+    g.beginPath()
+    for (let i = 0; i < dots.length; i += 2) {
+      g.moveTo(dots[i] * scale + r, dots[i + 1] * scale)
+      g.arc(dots[i] * scale, dots[i + 1] * scale, r, 0, Math.PI * 2)
+    }
+    g.fill()
+  }
+  return { canvas, scale }
 }

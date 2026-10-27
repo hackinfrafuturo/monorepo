@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
-import { BAND_CX, DITHER, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, drawFlagTop, drawStarFromFlag, starSprite } from './hif-dither'
+import { BAND_CX, DITHER, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, FLAG_W, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 import { boardEnabled, claimRun, completeRun, formatMs, startRun, topScores, type RunId, type Score } from './breakout-board'
 
 /**
@@ -230,8 +230,11 @@ export function HifBreakout({
 
     let W = 0
     let H = 0
+    // drawn at up to 2 device pixels per CSS pixel; a device that can't keep up drops to 1 (see tick)
+    let maxDpr = 2
+    let dpr = 1
     const resizeCanvas = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      dpr = Math.min(maxDpr, window.devicePixelRatio || 1)
       W = window.innerWidth
       H = window.innerHeight
       cv.width = Math.round(W * dpr)
@@ -329,6 +332,20 @@ export function HifBreakout({
     // the flag's top half stays where the hero has it and fades out (and back in on the way out)
     let flagAt = homeFlag()
     const flag = { alpha: 1 }
+
+    // pre-drawn: the band's two tiles (the paddle's rows, and the ones above that fade) and the flag's top
+    // half, at the larger of the hero's and the paddle's scale so neither end is blurry
+    let lowerTile: BandTile
+    let upperTile: BandTile
+    let flagImage: ReturnType<typeof flagTopImage>
+    const homeK = flagAt.k
+    const buildCaches = () => {
+      const scale = Math.max(homeK, paddle.k) * dpr
+      lowerTile = bandTile(scale, brand, (row) => row.dy >= PADDLE_CUT)
+      upperTile = bandTile(scale, brand, (row) => row.dy < PADDLE_CUT)
+      flagImage = flagTopImage(homeK * dpr, INK)
+    }
+    buildCaches()
     let padTarget = W / 2
     let dip = 0
     let dipV = 0
@@ -829,6 +846,7 @@ export function HifBreakout({
     const onResize = () => {
       resizeCanvas()
       layout()
+      buildCaches()
       if (!tween && current !== 'enter' && current !== 'exit') {
         for (const L of letters) if (L.alive) L.cur = { ...L.game }
         Object.assign(band, { y: paddle.y, k: paddle.k })
@@ -870,23 +888,27 @@ export function HifBreakout({
       }
       ctx.globalAlpha = 1
 
-      // the band / paddle, dot by dot; the deck dips a little when the star lands on it
-      ctx.fillStyle = brand
-      const rr = DITHER_R * band.k
-      for (const faded of [false, true]) {
-        if (faded && band.fade <= 0.01) continue
-        ctx.globalAlpha = faded ? band.fade : 1
-        ctx.beginPath()
-        for (const d of DITHER.board) {
-          if ((d.by < PADDLE_CUT || Math.abs(d.bx) > padHalf) !== faded) continue
-          const x = band.x + d.bx * band.k
-          const y = band.y + d.by * band.k + dip * (1 - (2 * d.along - 1) ** 2)
-          ctx.moveTo(x + rr, y)
-          ctx.arc(x, y, rr, 0, Math.PI * 2)
-        }
-        ctx.fill()
+      // the band / paddle, copied from its tiles column by column: the paddle is the lower rows of the middle
+      // columns; the rest fades away on the way in. The deck dips a little when the star lands on it.
+      const COLS = Math.round(FLAG_W / DITHER_PITCH)
+      const pFirst = Math.max(0, Math.ceil((BAND_CX - padHalf) / DITHER_PITCH - 0.5))
+      const pLast = Math.min(COLS - 1, Math.floor((BAND_CX + padHalf) / DITHER_PITCH - 0.5))
+      const dipAt =
+        Math.abs(dip) < 0.3
+          ? undefined
+          : (col: number) => {
+              const along = ((col + 0.5) * DITHER_PITCH) / FLAG_W
+              const d = dip * (1 - (2 * along - 1) ** 2)
+              return Math.abs(d) < 0.3 ? 0 : d
+            }
+      drawBandTile(ctx, lowerTile, band.x, band.y, band.k, 0, pFirst, pLast, dipAt)
+      if (band.fade > 0.01) {
+        ctx.globalAlpha = band.fade
+        if (pFirst > 0) drawBandTile(ctx, lowerTile, band.x, band.y, band.k, 0, 0, pFirst - 1, dipAt)
+        if (pLast < COLS - 1) drawBandTile(ctx, lowerTile, band.x, band.y, band.k, 0, pLast + 1, COLS - 1, dipAt)
+        drawBandTile(ctx, upperTile, band.x, band.y, band.k, 0, 0, COLS - 1, dipAt)
+        ctx.globalAlpha = 1
       }
-      ctx.globalAlpha = 1
 
       // the "?" blocks: a square of purple dots with a question mark, bobbing a little
       for (const k of blocks) {
@@ -967,7 +989,7 @@ export function HifBreakout({
       const pose = { x: ball.x, y: ball.y, r: STAR_R * ball.k, rot: ball.rot }
       if (flag.alpha > 0.01) {
         ctx.globalAlpha = flag.alpha
-        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, pose, INK)
+        drawFlagTop(ctx, flagAt.left, flagAt.top, flagAt.k, pose, INK, undefined, flagImage)
         ctx.globalAlpha = 1
       }
 
@@ -983,9 +1005,22 @@ export function HifBreakout({
 
     let raf = 0
     let last = performance.now()
+    // how long frames really take (smoothed); a device that stays slow gets the canvas at 1× from then on
+    let frameMs = 16.7
+    let slowFor = 0
     const tick = (now: number) => {
-      const dt = Math.max(0, Math.min(0.033, (now - last) / 1000))
+      const real = now - last
+      const dt = Math.max(0, Math.min(0.033, real / 1000))
       last = now
+      if (real > 0 && real < 200 && document.visibilityState === 'visible') {
+        frameMs += (real - frameMs) * 0.05
+        slowFor = frameMs > 24 ? slowFor + 1 : 0
+        if (slowFor > 90 && maxDpr > 1) {
+          maxDpr = 1
+          resizeCanvas()
+          buildCaches()
+        }
+      }
       step(dt)
       if (wait) {
         wait.t -= dt
@@ -999,7 +1034,9 @@ export function HifBreakout({
       // paddle follows the pointer (or the arrow keys) once the game is on
       if (current !== 'enter' && current !== 'exit') {
         const dir = (keys.has('arrowright') || keys.has('d') ? 1 : 0) - (keys.has('arrowleft') || keys.has('a') ? 1 : 0)
-        if (dir) padTarget = band.x + dir * 900 * dt * 1.6
+        // the keys move it at a set speed (about a screen width a second): the step is scaled up by the
+        // easing below, so the paddle really covers it
+        if (dir) padTarget = band.x + (dir * clamp(1.1 * W, 950, 1700) * dt) / Math.min(1, dt * 22)
         padHalf += ((wideT > 0 ? WIDE_HALF : PAD_HALF) - padHalf) * Math.min(1, dt * 10)
         const half = padHalf * band.k
         padTarget = clamp(padTarget, half + 8, W - half - 8)
