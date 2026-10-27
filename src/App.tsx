@@ -201,28 +201,39 @@ export default function App() {
                 className="h-full"
               />
             </div>
-            <ol className="grid content-center gap-12">
-              {t.tracks.map(({ n, title, copy }) => (
-                <li
-                  key={title}
-                  className="grid grid-cols-[4rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-3 md:gap-x-10"
-                >
-                  <span
-                    className={`font-mono text-base leading-none md:text-lg ${MUTED}`}
-                  >
-                    {n}
-                  </span>
-                  <p className="font-pixel text-[24px] leading-[1.1] text-[#d6d4d0] md:text-[32px]">
-                    {title}
-                  </p>
+            <div className="grid content-center gap-16">
+              {t.trackGroups.map((group) => (
+                <div key={group.title}>
                   <p
-                    className={`col-start-2 max-w-[36rem] font-mono text-base leading-7 ${MUTED}`}
+                    className={`font-mono text-sm uppercase tracking-[0.12em] ${MUTED}`}
                   >
-                    {copy}
+                    {group.title}
                   </p>
-                </li>
+                  <ol className="mt-8 grid gap-12">
+                    {group.tracks.map(({ n, title, copy }) => (
+                      <li
+                        key={title}
+                        className="grid grid-cols-[4rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-3 md:gap-x-10"
+                      >
+                        <span
+                          className={`font-mono text-base leading-none md:text-lg ${MUTED}`}
+                        >
+                          {n}
+                        </span>
+                        <p className="font-pixel text-[24px] leading-[1.1] text-[#d6d4d0] md:text-[32px]">
+                          {title}
+                        </p>
+                        <p
+                          className={`col-start-2 max-w-[36rem] font-mono text-base leading-7 ${MUTED}`}
+                        >
+                          {copy}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               ))}
-            </ol>
+            </div>
           </div>
         </Section>
 
