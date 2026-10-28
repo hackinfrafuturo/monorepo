@@ -55,11 +55,6 @@
           "id": "wispr-flow",
           "name": "Wispr Flow",
           "image": { "src": "images/sponsors/wispr-flow.png", "width": 2420, "height": 391 }
-        },
-        {
-          "id": "croma",
-          "name": "Croma",
-          "image": { "src": "images/sponsors/croma-white.svg", "width": 626, "height": 85 }
         }
       ]
     }
