@@ -4,7 +4,7 @@ Landing for the Santiago hackathon: 5-6 December 2026.
 
 ## Source of truth
 
-[velum-labs/infrastructure-hackathon](https://github.com/velum-labs/infrastructure-hackathon) `main` is the canonical code branch for this site. Vercel deploys that branch to [hackinfrafuturo.cl](https://hackinfrafuturo.cl). The [indies-cl/infrastructure-hackathon](https://github.com/indies-cl/infrastructure-hackathon) repository is this repo's upstream fork source; bring over changes explicitly when they are needed for the Velum site.
+[hackinfrafuturo/monorepo](https://github.com/hackinfrafuturo/monorepo) `main` is the canonical code branch for this site. Vercel deploys that branch to [hackinfrafuturo.cl](https://hackinfrafuturo.cl). The [indies-cl/infrastructure-hackathon](https://github.com/indies-cl/infrastructure-hackathon) repository is this repo's upstream fork source; bring over changes explicitly when they are needed for the Velum site.
 
 ```bash
 pnpm install
