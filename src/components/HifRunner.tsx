@@ -4,6 +4,7 @@ import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
 import { claimRunnerRun, completeRunnerRun, markRunnerHookAccessed, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
 import { createRunnerAudio } from './runner-audio'
+import { RUNNER_KNOBS, makeRng, nextChunk, type Rng } from './runner-course'
 import { installRunnerHook } from './runner-hook'
 import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
@@ -77,8 +78,6 @@ const DUCK = 0.6 // ducking squashes the star to this much of its height
 // MAX_SPEED times; keep ACCEL and MAX_SPEED in step with convex/runner.ts, which caps scores with them
 const ACCEL = 0.045
 const MAX_SPEED = 3.2
-const AIR_FROM = 20 // score from which letters can come in the air
-const RAMP = 400 // score by which the obstacles are as dense as they get (the speed ramps on its own)
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
@@ -88,7 +87,8 @@ const FLOOR_REPEAT = BAND_ROWS.filter((row) => row.dy >= FLOOR_TOP).length * DIT
 type Glyph = { ch: string; adv: number; l: number; r: number; a: number; d: number } // metrics at 1px
 type Spot = { x: number; base: number; size: number; alpha: number }
 type Letter = { g: Glyph; home: Spot; cur: Spot }
-type Obstacle = { g: Glyph; x: number; base: number; size: number; air: boolean; hit: boolean; bob: number }
+/** `lift` raises a stacked letter off the floor, in mark units; air letters bob by `amp` units at `bobSpeed` */
+type Obstacle = { g: Glyph; x: number; base: number; size: number; air: boolean; lift: number; hit: boolean; bob: number; amp: number; bobSpeed: number }
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; r: number; brand: boolean }
 type Item = { obj: Record<string, unknown>; from: Record<string, number>; to: Record<string, number>; delay: number; dur: number }
 type Tween = { t: number; items: Item[]; done?: () => void }
@@ -381,7 +381,8 @@ export function HifRunner({
     let tween: Tween | null = null
     let obstacles: Obstacle[] = []
     let next = 0 // index into NAME
-    let gap = 0 // distance to cover before the next obstacle
+    let gap = 0 // distance to cover before the next chunk of the course
+    let rng: Rng = makeRng(RUNNER_KNOBS.seed)
     const particles: Particle[] = []
     const fade = { obstacles: 1 } // obstacles fade out on the way back to the hero
 
@@ -464,30 +465,36 @@ export function HifRunner({
       star.sq = 0
     }
 
-    // ---- obstacles: the name, a letter or a few at a time ---------------------------------------------
+    // ---- obstacles: the name, a letter or a few at a time, laid out by the course (runner-course.ts) --------
+    // in the air: low enough to hit the star standing, high enough to duck under
+    const baseOf = (o: Pick<Obstacle, 'g' | 'size' | 'air' | 'lift'>) => (o.air ? feetY - STAR_H * k * (DUCK + 0.08) - o.g.d * o.size : feetY - o.lift * k)
     const spawn = () => {
-      const ramp = Math.min(1, score / RAMP)
-      const air = score > AIR_FROM && Math.random() < 0.45 + 0.15 * ramp
-      const count = air ? 1 : 1 + Math.floor(Math.random() * Math.min(4, 1 + score / 80))
-      const airTime = (2 * jumpV) / gravity
-      // never wider than one jump can clear at this speed
-      const maxWidth = speed * airTime * 0.75 - 1.1 * STAR_R * k
-      let x = W + 20
-      let width = 0
-      for (let i = 0; i < count; i++) {
-        const g = glyphOf(NAME[next % NAME.length])
-        if (i > 0 && width + (g.l + g.r) * letterSize > maxWidth) break
-        next++
+      const glyph = (i: number) => glyphOf(NAME[(next + i) % NAME.length])
+      const chunk = nextChunk(
+        {
+          score,
+          speed,
+          airTime: (2 * jumpV) / gravity,
+          apex: (jumpV * jumpV) / (2 * gravity),
+          starW: 1.1 * STAR_R * k,
+          letterW: (i) => (glyph(i).l + glyph(i).r + GAP) * letterSize,
+          letterH: (i) => glyph(i).a * letterSize,
+        },
+        rng,
+      )
+      let below: Obstacle | undefined
+      for (const p of chunk.pieces) {
+        const g = glyphOf(NAME[next++ % NAME.length])
         const size = letterSize
-        // in the air: low enough to hit the star standing, high enough to duck under
-        const base = air ? feetY - STAR_H * k * (DUCK + 0.08) - g.d * size : feetY
-        obstacles.push({ g, x: x + g.l * size, base, size, air, hit: false, bob: Math.random() * 6 })
-        const w = (g.l + g.r) * size
-        x += w + GAP * size
-        width += w + GAP * size
+        const air = p.level === 'air'
+        // a stacked letter stands on the one below it, a hair above
+        const lift = p.level === 'stack' && below ? (below.lift * k + below.g.a * below.size) / k + 1 : 0
+        const o: Obstacle = { g, x: W + 20 + p.at + g.l * size, base: 0, size, air, lift, hit: false, bob: rng() * 6, amp: p.bob, bobSpeed: p.bobSpeed }
+        o.base = baseOf(o)
+        obstacles.push(o)
+        if (p.level === 'ground') below = o
       }
-      // room to land and jump again before the next one; the breathers get shorter as the score climbs
-      gap = width + speed * (airTime + 0.06 + Math.random() * 0.35 * (1 - 0.6 * ramp))
+      gap = chunk.length
     }
 
     const restart = () => {
@@ -496,7 +503,8 @@ export function HifRunner({
       score = 0
       writeScore()
       speed = baseSpeed
-      gap = W * 0.6
+      gap = W * RUNNER_KNOBS.firstGap
+      rng = makeRng(RUNNER_KNOBS.seed)
       Object.assign(star, { y: feetY, vy: 0, air: false, rot: 0, sq: 0, sqV: 0, alpha: 1 })
       go('play')
       events.current.start()
@@ -518,7 +526,8 @@ export function HifRunner({
       held = true
       if (tween) return
       if (current === 'ready') {
-        gap = W * 0.6
+        gap = W * RUNNER_KNOBS.firstGap
+        rng = makeRng(RUNNER_KNOBS.seed)
         go('play')
         events.current.start()
         jump()
@@ -599,7 +608,7 @@ export function HifRunner({
         const w = (o.g.l + o.g.r) * o.size
         const x0 = o.x - o.g.l * o.size + w * 0.14
         const x1 = o.x + o.g.r * o.size - w * 0.14
-        const bob = o.air ? Math.sin(o.bob) * 3 * k : 0
+        const bob = o.air ? Math.sin(o.bob) * o.amp * k : 0
         const y0 = o.base - o.g.a * o.size * 0.92 + bob
         const y1 = o.base + o.g.d * o.size + bob
         if (x0 < sx1 && x1 > sx0 && y0 < sy1 && y1 > sy0) {
@@ -660,7 +669,7 @@ export function HifRunner({
         Object.assign(band, { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH })
         Object.assign(star, { x: starX, k })
         if (!star.air) star.y = feetY
-        for (const o of obstacles) o.base = o.air ? feetY - STAR_H * k * (DUCK + 0.08) - o.g.d * o.size : feetY
+        for (const o of obstacles) o.base = baseOf(o)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -712,7 +721,7 @@ export function HifRunner({
 
       // the obstacles
       for (const o of obstacles) {
-        const bob = o.air ? Math.sin(o.bob) * 3 * k : 0
+        const bob = o.air ? Math.sin(o.bob) * o.amp * k : 0
         const shake = o.hit && current === 'over' ? Math.sin(now / 18) * o.size * 0.02 : 0
         ctx.globalAlpha = fade.obstacles
         ctx.fillStyle = o.hit ? brand : INK
@@ -776,7 +785,7 @@ export function HifRunner({
       }
       step(dt)
       if (current === 'play') physics(dt)
-      for (const o of obstacles) if (o.air) o.bob += dt * 5
+      for (const o of obstacles) if (o.air) o.bob += dt * o.bobSpeed
 
       // ducking (only on the ground, or to drop faster in the air), and the squash spring
       const duckTarget = ducking && (current === 'play' || current === 'ready') ? 1 : 0
@@ -805,6 +814,8 @@ export function HifRunner({
     // Live game state for browser scripts, in development and production.
     const runnerState = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
     const removeRunnerHook = installRunnerHook(runnerState, trackHookAccess)
+    // in development, the course's knobs can be turned live from the console: __runnerKnobs.rest.min = 0
+    if (import.meta.env.DEV) Object.assign(window, { __runnerKnobs: RUNNER_KNOBS })
     draw(performance.now())
     enter()
     raf = requestAnimationFrame(tick)
