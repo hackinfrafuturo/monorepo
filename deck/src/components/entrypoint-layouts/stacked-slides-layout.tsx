@@ -141,6 +141,18 @@ function useStackedHashScroll({
     const syncFromHash = () => {
       const faceId = getFaceIdFromHash(faceIds);
       if (!faceId || faceId === getCurrentStackedFaceId()) return;
+      // The embedded site router restores scroll on replaceState entries
+      // (back/forward or its own bookkeeping). Only honor hashes the deck
+      // itself wrote; anything else is an external nav, not a slide request.
+      if (
+        typeof window.history.state === "object" &&
+        window.history.state !== null &&
+        "deck-face" in window.history.state &&
+        (window.history.state as Record<string, unknown>)["deck-face"] !==
+          faceId
+      ) {
+        return;
+      }
       setCurrentStackedFaceId(faceId);
       scrollStackedFaceIntoView(faceId, "smooth", orientation);
     };
@@ -216,12 +228,15 @@ function useStackedKeyboardNavigation({
 
       e.preventDefault();
 
+      // Jump instantly: the track is a plain overflow container, so smooth
+      // programmatic scrolls never animate and leave the view behind the
+      // tracked slide. The hash still updates, so deep links keep working.
       setTimeout(() => {
         if (e.cancelBubble) return;
         const faceId = faceIds[next];
         if (!faceId) return;
         setCurrentStackedFaceId(faceId);
-        scrollStackedFaceIntoView(faceId, "smooth", orientation);
+        scrollStackedFaceIntoView(faceId, "instant", orientation);
       }, 0);
     };
 
