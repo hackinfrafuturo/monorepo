@@ -10,7 +10,7 @@
 }
 
 
-:root {
+#deck {
   --background: #FFFFFF;
   --foreground: #0A0A0B;
   --muted: #FAFAFA;
@@ -36,7 +36,7 @@
   --radius: 0.5rem;
 }
 
-.dark {
+#deck.dark {
   --background: #0A0A0B;
   --foreground: #FAFAFA;
   --muted: #27272A;
@@ -62,7 +62,7 @@
   --radius: 0.5rem;
 }
 
-:root {
+#deck {
   --background: #1a0933;
   --surface: #140727;
   --overlay: #0e041c;
@@ -83,16 +83,18 @@
 @tailwind utilities;
 
 @layer base {
-  * {
+  #deck,
+  #deck * {
     border-color: var(--border);
   }
 
-  body {
+  #deck {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
     font-family: var(--font-body, "Inter"), sans-serif;
     background-color: black !important;
+    color: var(--foreground);
   }
 
   
@@ -202,13 +204,13 @@
 /* On touch devices, keep vertical pans on the page scroll path so selecting
    one slide does not trap gestures inside the selected slide's subtree. */
 @media (hover: none) and (pointer: coarse) {
-  body:not([data-preview-mode]) .scroll-container {
+  #deck .scroll-container {
     touch-action: pan-y;
   }
 
-  body:not([data-preview-mode]) .slide-face-wrapper,
-  body:not([data-preview-mode]) .slide-face-wrapper [data-face-root],
-  body:not([data-preview-mode]) .slide-face-wrapper [data-face-root] * {
+  #deck .slide-face-wrapper,
+  #deck .slide-face-wrapper [data-face-root],
+  #deck .slide-face-wrapper [data-face-root] * {
     touch-action: pan-y;
   }
 }

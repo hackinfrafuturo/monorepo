@@ -26,7 +26,7 @@ export default function Leaderboard() {
     document.documentElement.lang = htmlLang(locale)
     document.documentElement.style.backgroundColor = '#f4f2ee'
     document.documentElement.style.colorScheme = 'light'
-    document.title = `${t.title} — Infrastructure Hackathon`
+    document.title = `${t.title} — Hack Infra Futuro 2026`
     document.querySelector('meta[name="description"]')?.setAttribute('content', t.description)
     return () => {
       document.documentElement.style.backgroundColor = ''

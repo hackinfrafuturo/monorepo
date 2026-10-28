@@ -1,4 +1,5 @@
 import type { Locale } from './locale'
+import { MIN_ANSWER } from '../apply/model'
 import type { Diet, ErrorKey, Gender, YesNo } from '../apply/model'
 
 export type ApplyMessages = {
@@ -13,9 +14,14 @@ export type ApplyMessages = {
     title: string
     hint: string
     conduct: string
+    conductBody: string
     readConduct: string
+    answers: string
+    answersBody: string
     sharing: string
+    sharingBody: string
     submission: string
+    submissionBody: string
     exceptions: string
     accept: string
   }
@@ -66,11 +72,18 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     consent: {
       title: 'Before you apply',
       hint: 'Read and accept these conditions to continue.',
-      conduct: 'You accept the code of conduct.',
+      conduct: 'Code of conduct',
+      conductBody: 'You accept it.',
       readConduct: 'Read the code of conduct',
-      sharing: 'We will share your contact information with relevant parties. This is necessary if you win or receive free credits from our sponsors.',
-      submission: 'Take this application seriously. You cannot change your answers after submitting it.',
-      exceptions: 'There are no exceptions whatsoever.',
+      answers: 'Your answers',
+      answersBody:
+        "They decide whether you're in. Recruiters read them, and so do people who can help you build a company. Write something impressive.",
+      sharing: 'Sponsors',
+      sharingBody:
+        'If you win or receive free credits, we share your contact details with them.',
+      submission: 'No edits',
+      submissionBody: "You can't change your answers after submitting.",
+      exceptions: 'No exceptions whatsoever.',
       accept: 'I accept and continue',
     },
     size: {
@@ -161,6 +174,7 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     },
     errors: {
       required: 'This one is required.',
+      tooShort: `A bit more: at least ${MIN_ANSWER} characters.`,
       email: 'Check the email.',
       github: 'Check the GitHub username.',
       linkedin: 'Check the LinkedIn username.',
@@ -180,10 +194,17 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     consent: {
       title: 'Antes de postular',
       hint: 'Lee y acepta estas condiciones para continuar.',
-      conduct: 'Aceptas el código de conducta.',
+      conduct: 'Código de conducta',
+      conductBody: 'Lo aceptas.',
       readConduct: 'Lee el código de conducta',
-      sharing: 'Compartiremos tus datos de contacto con las partes correspondientes. Esto es necesario si ganas o recibes créditos gratuitos de nuestros auspiciadores.',
-      submission: 'Tómate esta postulación en serio. No podrás modificar tus respuestas después de enviarla.',
+      answers: 'Tus respuestas',
+      answersBody:
+        'Deciden si quedas. Las leen reclutadores y personas que pueden ayudarte a construir una empresa. Escribe algo impresionante.',
+      sharing: 'Auspiciadores',
+      sharingBody:
+        'Si ganas o recibes créditos gratuitos, les compartimos tus datos de contacto.',
+      submission: 'Sin cambios',
+      submissionBody: 'No puedes modificar tus respuestas después de enviarlas.',
       exceptions: 'No hay excepciones de ningún tipo.',
       accept: 'Acepto y continúo',
     },
@@ -275,6 +296,7 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
     },
     errors: {
       required: 'Falta este dato.',
+      tooShort: `Un poco más: al menos ${MIN_ANSWER} caracteres.`,
       email: 'Revisa el email.',
       github: 'Revisa el usuario de GitHub.',
       linkedin: 'Revisa el usuario de LinkedIn.',

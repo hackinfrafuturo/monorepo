@@ -40,22 +40,40 @@ export function maxScore(ms: number) {
 const row = v.object({ _id: v.id('runnerScores'), name: v.string(), score: v.number() })
 
 export const start = mutation({
-  args: {},
+  args: { runnerHookAccessed: v.optional(v.boolean()) },
   returns: v.id('runnerRuns'),
-  handler: async (ctx) => ctx.db.insert('runnerRuns', { startedAt: Date.now() }),
+  handler: async (ctx, { runnerHookAccessed }) => ctx.db.insert('runnerRuns', {
+    startedAt: Date.now(),
+    runnerHookAccessed: runnerHookAccessed ?? false,
+  }),
+})
+
+/** One-way, idempotent telemetry. Late reports after a claim/cleanup are harmless. */
+export const markHookAccessed = mutation({
+  args: { runId: v.id('runnerRuns') },
+  returns: v.null(),
+  handler: async (ctx, { runId }) => {
+    const run = await ctx.db.get(runId)
+    if (run && !run.runnerHookAccessed) await ctx.db.patch(runId, { runnerHookAccessed: true })
+    return null
+  },
 })
 
 export const complete = mutation({
-  args: { runId: v.id('runnerRuns'), score: v.number() },
+  args: { runId: v.id('runnerRuns'), score: v.number(), runnerHookAccessed: v.optional(v.boolean()) },
   returns: v.number(),
-  handler: async (ctx, { runId, score }) => {
+  handler: async (ctx, { runId, score, runnerHookAccessed }) => {
     const run = await ctx.db.get(runId)
     if (!run || run.finishedAt !== undefined || !Number.isFinite(score) || score < 1) throw new ConvexError('Invalid run')
     const now = Date.now()
     const ms = now - run.startedAt
     if (ms > MAX_MS) throw new ConvexError('Invalid run')
     const accepted = Math.floor(Math.min(score, maxScore(ms + SLACK_MS)))
-    await ctx.db.patch(runId, { finishedAt: now, score: accepted })
+    await ctx.db.patch(runId, {
+      finishedAt: now,
+      score: accepted,
+      runnerHookAccessed: run.runnerHookAccessed === true || runnerHookAccessed === true,
+    })
     return accepted
   },
 })
@@ -79,7 +97,12 @@ export const claim = mutation({
       .withIndex('by_handle', (q) => q.eq('handle', key))
       .order('desc')
       .first()
-    const id = await ctx.db.insert('runnerScores', { name: handle, score, handle: key })
+    const id = await ctx.db.insert('runnerScores', {
+      name: handle,
+      score,
+      handle: key,
+      ...(run.runnerHookAccessed !== undefined ? { runnerHookAccessed: run.runnerHookAccessed } : {}),
+    })
     const improved = !previous || score > previous.score
     const best = improved ? score : previous!.score
     return { id, score, best, rank: await rankOf(ctx, key, best), improved }

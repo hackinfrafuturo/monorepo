@@ -1,84 +1,64 @@
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
-import http from 'node:http'
+import { createRequire } from 'node:module'
 import { nitro } from 'nitro/vite'
 import { defineConfig, type Plugin } from 'vite'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const DECK_DEV_PORT = 5174
+const deckDir = fileURLToPath(new URL('./deck/', import.meta.url))
+const deckCss = fileURLToPath(new URL('./deck/src/index.css', import.meta.url))
+const deckSrc = fileURLToPath(new URL('./deck/src/', import.meta.url))
+const requireFromDeck = createRequire(new URL('./deck/package.json', import.meta.url))
 
-/** In dev, /deck is the deck Vite server so slide edits hot-reload. */
-function deckDevProxy(): Plugin {
+/** The slides stay in deck/, but they render inside this app. Their Tailwind v3 build is scoped to #deck. */
+function deckCssPlugin(): Plugin {
   return {
-    name: 'deck-dev-proxy',
-    apply: 'serve',
+    name: 'deck-css',
     enforce: 'pre',
+    async transform(code, id) {
+      if (id.split('?')[0] !== deckCss) return null
+      const postcss = requireFromDeck('postcss')
+      const tailwindcss = requireFromDeck('tailwindcss')
+      const autoprefixer = requireFromDeck('autoprefixer')
+      const userConfig = (await import(pathToFileURL(`${deckDir}tailwind.config.js`).href)).default
+      const result = await postcss([
+        tailwindcss({
+          ...userConfig,
+          content: [`${deckDir}index.html`, `${deckDir}src/**/*.{ts,tsx}`],
+          important: '#deck',
+          corePlugins: { preflight: false },
+        }),
+        autoprefixer(),
+      ]).process(code, { from: deckCss })
+      return { code: result.css, map: result.map?.toString() }
+    },
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const url = req.url ?? ''
-        if (url !== '/deck' && !url.startsWith('/deck/') && !url.startsWith('/deck?')) {
-          next()
-          return
-        }
-        if (url === '/deck' || url.startsWith('/deck?')) {
-          const query = url.slice('/deck'.length)
-          res.statusCode = 302
-          res.setHeader('Location', `/deck/${query}`)
-          res.end()
-          return
-        }
-
-        const proxyReq = http.request(
-          {
-            hostname: '127.0.0.1',
-            port: DECK_DEV_PORT,
-            method: req.method,
-            path: url,
-            headers: {
-              ...req.headers,
-              host: `127.0.0.1:${DECK_DEV_PORT}`,
-            },
-          },
-          (proxyRes) => {
-            res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)
-            proxyRes.pipe(res)
-          },
-        )
-        proxyReq.on('error', () => {
-          if (res.headersSent) return
-          res.statusCode = 502
-          res.setHeader('content-type', 'text/plain; charset=utf-8')
-          res.end('Deck dev server is not running.')
-        })
-        req.pipe(proxyReq)
-      })
+      server.watcher.add(deckSrc)
+    },
+    handleHotUpdate(ctx) {
+      if (!ctx.file.startsWith(deckSrc) || ctx.file === deckCss) return
+      const mods = ctx.server.moduleGraph.getModulesByFile(deckCss)
+      if (!mods) return
+      return [...ctx.modules, ...mods]
     },
   }
 }
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(() => ({
+  resolve: {
+    alias: [{ find: /^@\//, replacement: deckSrc }],
+  },
   plugins: [
-    deckDevProxy(),
+    deckCssPlugin(),
     tailwindcss(),
     tanstackStart({ srcDirectory: 'src' }),
     react(),
     nitro({
       renderer: false,
       publicAssets: [
-        // Production serves the built deck. In dev the proxy above serves it with HMR.
-        ...(command === 'build'
-          ? [
-              {
-                dir: fileURLToPath(new URL('./deck/dist', import.meta.url)),
-                baseURL: '/deck',
-                maxAge: 0,
-                fallthrough: false,
-              },
-            ]
-          : []),
         {
-          // Slide content also references photos with root-relative image URLs.
+          // Slide content references photos with root-relative image URLs.
           dir: fileURLToPath(new URL('./deck/public/images', import.meta.url)),
           baseURL: '/images',
           maxAge: 0,

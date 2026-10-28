@@ -37,7 +37,7 @@ export type Messages = {
 
 export type OrgId = 'velum' | 'indies' | 'ae'
 
-export type SponsorId = 'elevenlabs' | 'firecrawl' | 'markip' | 'wispr-flow'
+export type SponsorId = 'elevenlabs' | 'firecrawl' | 'markip' | 'wispr-flow' | 'croma'
 
 type SponsorOffer = {
   audience: string
@@ -81,8 +81,9 @@ export type HomeMessages = {
     rank: (n: number) => string
     offline: string
   }
-  runner: { jump: string; best: string; board: string; offline: string }
+  runner: { jump: string; best: string; board: string; offline: string; sound: string; mute: string; unmute: string }
   register: string
+  applyHere: string
   participants: string
   sponsor: string
   companies: string
@@ -110,7 +111,7 @@ export type HomeMessages = {
 export const homeMessages: Record<Locale, HomeMessages> = {
   en: {
     skip: 'Skip to content',
-    heroDate: 'December 5-6, Universidad del Desarrollo, Santiago, Chile',
+    heroDate: 'December 5-6, Universidad del Desarrollo, Las Condes',
     heroTitle: 'The biggest hackathon in Chile, ever',
     sponsorLogosTitle: 'Sponsors',
     game: {
@@ -135,8 +136,9 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `You're #${n}`,
       offline: "Couldn't save your time",
     },
-    runner: { jump: 'Space or tap to jump · ↓ to duck', best: 'HI', board: 'Top scores', offline: "Couldn't save your score" },
+    runner: { jump: 'Space or tap to jump · ↓ to duck', best: 'HI', board: 'Top scores', offline: "Couldn't save your score", sound: 'Sound', mute: 'Mute sound', unmute: 'Unmute sound' },
     register: 'Register your team',
+    applyHere: 'Apply here',
     participants: 'Participants',
     sponsor: 'I want to sponsor',
     companies: 'Companies',
@@ -213,6 +215,30 @@ export const homeMessages: Record<Locale, HomeMessages> = {
           message: 'Sponsorship details yet to be revealed.',
         },
       },
+      croma: {
+        description: 'Croma is a government data API for AI agents.',
+        useCase: 'Look up court cases, companies, sanctions, vehicles, procurement, and legislation from official sources in 9 countries.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'All participants',
+              benefit: '1 month of Hobby, free',
+              details: '20,000 credits. Normally USD 20/month.',
+            },
+            {
+              audience: 'First place',
+              benefit: '3 months of Pro for each team member',
+              details: '350,000 credits/month. USD 299/month value per team member.',
+            },
+            {
+              audience: 'Second and third place',
+              benefit: '2 months of Standard for each team member',
+              details: '100,000 credits/month. USD 99/month value per team member.',
+            },
+          ],
+        },
+      },
     },
     orgs: {
       velum: 'AI startup, Chilean founders. First into YC in almost three years.',
@@ -277,7 +303,7 @@ export const homeMessages: Record<Locale, HomeMessages> = {
   },
   es: {
     skip: 'Saltar al contenido',
-    heroDate: '5 y 6 de diciembre, Universidad del Desarrollo, Santiago, Chile',
+    heroDate: '5 y 6 de diciembre, Universidad del Desarrollo, Las Condes',
     heroTitle: 'La hackathon más grande en la historia de Chile',
     sponsorLogosTitle: 'Auspician',
     game: {
@@ -302,8 +328,9 @@ export const homeMessages: Record<Locale, HomeMessages> = {
       rank: (n) => `Quedaste #${n}`,
       offline: 'No pudimos guardar tu tiempo',
     },
-    runner: { jump: 'Espacio o toca para saltar · ↓ para agacharte', best: 'Récord', board: 'Mejores puntajes', offline: 'No pudimos guardar tu puntaje' },
+    runner: { jump: 'Espacio o toca para saltar · ↓ para agacharte', best: 'Récord', board: 'Mejores puntajes', offline: 'No pudimos guardar tu puntaje', sound: 'Sonido', mute: 'Silenciar', unmute: 'Activar sonido' },
     register: 'Inscribe tu equipo',
+    applyHere: 'Postula aquí',
     participants: 'Participantes',
     sponsor: 'Quiero auspiciar',
     companies: 'Empresas',
@@ -378,6 +405,30 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         benefits: {
           status: 'pending',
           message: 'Detalles del auspicio por revelar.',
+        },
+      },
+      croma: {
+        description: 'Croma es una API de datos gubernamentales para agentes de IA.',
+        useCase: 'Consulta causas judiciales, empresas, sanciones, vehículos, licitaciones y legislación desde fuentes oficiales en 9 países.',
+        benefits: {
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'Todos los participantes',
+              benefit: '1 mes de Hobby gratis',
+              details: '20.000 créditos. Precio habitual: USD 20/mes.',
+            },
+            {
+              audience: 'Primer lugar',
+              benefit: '3 meses de Pro para cada integrante',
+              details: '350.000 créditos/mes. Valor de USD 299/mes por integrante.',
+            },
+            {
+              audience: 'Segundo y tercer lugar',
+              benefit: '2 meses de Standard para cada integrante',
+              details: '100.000 créditos/mes. Valor de USD 99/mes por integrante.',
+            },
+          ],
         },
       },
     },

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { githubHandle } from '../../convex/github'
 import { useReducedMotion } from 'motion/react'
 import { boardEnabled } from './breakout-board'
-import { claimRunnerRun, completeRunnerRun, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
-import { BAND_CX, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
+import { claimRunnerRun, completeRunnerRun, markRunnerHookAccessed, startRunnerRun, topRunnerScores, type RunnerRunId, type RunnerScore } from './runner-board'
+import { createRunnerAudio } from './runner-audio'
+import { installRunnerHook } from './runner-hook'
+import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STAR_FEET, STAR_R, bandTile, drawBandTile, drawFlagTop, drawStarFromFlag, flagTopImage, starSprite, type BandTile } from './hif-dither'
 
 /**
  * An endless runner, played with the hero's own logo (the Chrome dinosaur game): the flag's star runs,
@@ -12,7 +14,7 @@ import { BAND_CX, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRITE_EXT, STA
  *
  * Like HifBreakout it takes over from the real logo without a cut: on the first frame everything is drawn
  * where the hero has it, then the letters slide away, the band widens to the screen's edges (its upper
- * rows fading so the floor is as thin as the old band), and the star, cut out of the flag's black square,
+ * rows fading while the ground fills down to the bottom), and the star, cut out of the flag's black square,
  * comes out of it as a star and flips into place while the square fades. Leaving runs it backwards.
  *
  * A run is timed on the server from the first jump (convex/runner.ts); a score good enough for the top ten
@@ -26,6 +28,9 @@ export type RunnerLabels = {
   exit: string
   close: string
   jump: string
+  sound: string
+  mute: string
+  unmute: string
   over: string
   again: string
   playAgain: string
@@ -78,6 +83,7 @@ const RAMP = 400 // score by which the obstacles are as dense as they get (the s
 const PATTERN = 8 * DITHER_PITCH
 /** the floor keeps the band's rows from here down (relative to its centre); the ones above fade away */
 const FLOOR_TOP = -10
+const FLOOR_REPEAT = BAND_ROWS.filter((row) => row.dy >= FLOOR_TOP).length * DITHER_PITCH
 
 type Glyph = { ch: string; adv: number; l: number; r: number; a: number; d: number } // metrics at 1px
 type Spot = { x: number; base: number; size: number; alpha: number }
@@ -121,6 +127,15 @@ export function HifRunner({
   const scoreEl = useRef<HTMLSpanElement>(null)
   const [phase, setPhase] = useState<Phase>('enter')
   const [best, setBest] = useState(readBest)
+  const [audio] = useState(createRunnerAudio)
+  const [muted, setMuted] = useState(() => audio.muted)
+
+  const toggleSound = () => {
+    const next = !audio.muted
+    audio.setMuted(next)
+    setMuted(next)
+    if (!next) audio.unlock()
+  }
 
   // ---- the leaderboard: a run is opened when play starts and closed on the crash, both on the server ----
   const nameEl = useRef<HTMLInputElement>(null)
@@ -135,6 +150,21 @@ export function HifRunner({
     }
   })
   const runRef = useRef<Promise<RunnerRunId | null> | null>(null)
+  const hookBeforeRun = useRef(false)
+  const hookRun = useRef<{ accessed: boolean; finished: boolean; run: Promise<RunnerRunId | null> } | null>(null)
+  const trackHookAccess = useCallback(() => {
+    const tracked = hookRun.current
+    if (!tracked || tracked.finished) {
+      hookBeforeRun.current = true
+      return
+    }
+    if (tracked.accessed) return
+    tracked.accessed = true
+    // Captures this run's promise, so a delayed response cannot label a later run.
+    void tracked.run.then((runId) => {
+      if (runId) return markRunnerHookAccessed(runId)
+    }).catch(() => { /* completion also carries the flag if this report fails */ })
+  }, [])
   const gen = useRef(0)
   const boardRef = useRef(board)
   useEffect(() => {
@@ -146,9 +176,15 @@ export function HifRunner({
       start: () => {
         gen.current++
         setResult(null)
-        runRef.current = startRunnerRun()
+        const accessed = hookBeforeRun.current
+        hookBeforeRun.current = false
+        const run = startRunnerRun(accessed)
+        hookRun.current = { accessed, finished: false, run }
+        runRef.current = run
       },
       end: (score) => {
+        const runnerHookAccessed = hookRun.current?.accessed ?? false
+        if (hookRun.current) hookRun.current.finished = true
         const run = runRef.current
         runRef.current = null
         const g = ++gen.current
@@ -160,7 +196,7 @@ export function HifRunner({
         run
           .then(async (runId) => {
             if (!runId) throw new Error('no run')
-            const accepted = await completeRunnerRun(runId, score)
+            const accepted = await completeRunnerRun(runId, score, runnerHookAccessed)
             if (g === gen.current) setResult({ score: accepted, state: 'name', runId })
           })
           .catch(() => g === gen.current && setResult((r) => r && { ...r, state: 'offline' }))
@@ -312,17 +348,27 @@ export function HifRunner({
     // pre-drawn: the floor's two tiles (its rows, and the upper ones that fade) and the flag's top half, at
     // the larger of the hero's and the game's scale so neither end is blurry
     let floorTile: BandTile
+    let groundTile: BandTile
     let upperTile: BandTile
     let flagImage: ReturnType<typeof flagTopImage>
     const buildCaches = () => {
       const scale = Math.max(hm.k, k) * dpr
       floorTile = bandTile(scale, brand, (row) => row.dy >= FLOOR_TOP)
+      // Cache the deeper ground once; each frame still copies only one tile per horizontal run.
+      const ground = document.createElement('canvas')
+      ground.width = floorTile.canvas.width
+      ground.height = Math.ceil((H / k + floorTile.height) * scale)
+      const g = ground.getContext('2d')!
+      for (let y = 0; y < ground.height; y += FLOOR_REPEAT * scale) {
+        g.drawImage(floorTile.canvas, 0, y)
+      }
+      groundTile = { ...floorTile, canvas: ground, height: ground.height / scale }
       upperTile = bandTile(scale, brand, (row) => row.dy < FLOOR_TOP)
       flagImage = flagTopImage(hm.k * dpr, INK)
     }
     buildCaches()
     // the band: centre, scale, half its width (in mark units), and how far the floor has scrolled (units)
-    const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1 }
+    const band = { x: hm.left + BAND_CX * hm.k, y: hm.top + 60 * hm.k, k: hm.k, half: BAND_CX, scroll: 0, fade: 1, depth: 0 }
     // the star: feet position (x, y), scale, rotation; squash is a spring for landings and ducking
     const star = { x: hs.x, y: hs.y, k: hs.k, rot: 0, alpha: 1, vy: 0, air: false, airT: 0, sq: 0, sqV: 0, duck: 0, run: 0 }
     let dip = 0
@@ -371,7 +417,7 @@ export function HifRunner({
       run(
         [
           ...letters.map((L, i) => ({ obj: L.cur, from: { ...L.home }, to: { ...L.home, x: L.home.x + 0.3 * W, alpha: 0 }, delay: 0.025 * i, dur: 0.6 })),
-          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0, fade: 0 }, delay: 0.05, dur: 1 },
+          { obj: band, from: { ...band }, to: { x: W / 2, y: floorY, k, half: W / (2 * k) + 2 * DITHER_PITCH, scroll: 0, fade: 0, depth: 1 }, delay: 0.05, dur: 1 },
           { obj: star, from: { x: star.x, y: star.y, k: star.k, rot: 0 }, to: { x: starX, y: feetY, k, rot: -360 }, delay: 0.15, dur: 0.95 },
           { obj: flag, from: { alpha: 1 }, to: { alpha: 0 }, delay: 0.2, dur: 0.6 },
         ],
@@ -385,6 +431,7 @@ export function HifRunner({
     // ---- out: everything back where the hero has it ----------------------------------------------------
     const exit = () => {
       if (current === 'exit') return
+      audio.stop()
       go('exit')
       cb.current.onExitStart()
       const h = measureHome()
@@ -400,7 +447,7 @@ export function HifRunner({
             obj: band,
             from: { ...band },
             // scroll back to where the dither pattern lines up with the logo's
-            to: { x: m.left + BAND_CX * m.k, y: m.top + 60 * m.k, k: m.k, half: BAND_CX, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1 },
+            to: { x: m.left + BAND_CX * m.k, y: m.top + 60 * m.k, k: m.k, half: BAND_CX, scroll: Math.round(band.scroll / PATTERN) * PATTERN, fade: 1, depth: 0 },
             delay: 0.1,
             dur: 0.9,
           },
@@ -444,6 +491,7 @@ export function HifRunner({
     }
 
     const restart = () => {
+      audio.unlock()
       obstacles = []
       score = 0
       writeScore()
@@ -457,6 +505,7 @@ export function HifRunner({
 
     const jump = () => {
       if (star.air) return
+      audio.play('jump')
       star.air = true
       star.airT = 0
       star.vy = -jumpV
@@ -465,6 +514,7 @@ export function HifRunner({
     }
 
     const down = () => {
+      audio.unlock()
       held = true
       if (tween) return
       if (current === 'ready') {
@@ -480,6 +530,7 @@ export function HifRunner({
     api.current = { down, up, restart: () => current === 'over' && !tween && restart(), exit: () => exit() }
 
     const crash = (o: Obstacle) => {
+      audio.play('crash')
       o.hit = true
       go('over')
       events.current.end(Math.floor(score))
@@ -519,6 +570,7 @@ export function HifRunner({
         const left = h > 0 || star.vy < 0 ? (star.vy + Math.sqrt(Math.max(0, star.vy * star.vy + 2 * g * h))) / g : 0
         star.rot = -360 * ease(clamp(star.airT / (star.airT + left), 0, 1))
         if (star.y >= feetY) {
+          audio.play('land')
           star.y = feetY
           star.air = false
           star.rot = 0
@@ -584,6 +636,10 @@ export function HifRunner({
       }
       if (key === 'ArrowDown' || key === 's' || key === 'S') {
         e.preventDefault()
+        if (!ducking && (current === 'ready' || current === 'play')) {
+          audio.unlock()
+          audio.play('duck')
+        }
         ducking = true
         return
       }
@@ -595,6 +651,7 @@ export function HifRunner({
       if (key === 'ArrowDown' || key === 's' || key === 'S') ducking = false
     }
     const onWheel = (e: WheelEvent) => e.preventDefault()
+    const onVisibility = () => { if (document.hidden) audio.stop() }
     const onResize = () => {
       resizeCanvas()
       layout()
@@ -610,6 +667,7 @@ export function HifRunner({
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('resize', onResize)
+    document.addEventListener('visibilitychange', onVisibility)
 
     // ---- drawing ----------------------------------------------------------------------------------------
     const draw = (now: number) => {
@@ -638,7 +696,14 @@ export function HifRunner({
               const d = dip * Math.exp(-(((x - star.x) / dipW) ** 2))
               return Math.abs(d) < 0.3 ? 0 : d
             }
-      drawBandTile(ctx, floorTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+      const floorBottom = band.y + (floorTile.top + floorTile.height) * band.k
+      const bottom = floorBottom + Math.max(0, H - floorBottom) * band.depth
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, 0, W, bottom)
+      ctx.clip()
+      drawBandTile(ctx, groundTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
+      ctx.restore()
       if (band.fade > 0.01) {
         ctx.globalAlpha = band.fade
         drawBandTile(ctx, upperTile, band.x, band.y, band.k, band.scroll, first, last, dipAt)
@@ -737,20 +802,24 @@ export function HifRunner({
       raf = requestAnimationFrame(tick)
     }
 
-    // dev only: lets the preview scripts read the game
-    if (import.meta.env.DEV) (window as unknown as { __runner?: unknown }).__runner = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
+    // Live game state for browser scripts, in development and production.
+    const runnerState = { star, band, get obstacles() { return obstacles }, get phase() { return current } }
+    const removeRunnerHook = installRunnerHook(runnerState, trackHookAccess)
     draw(performance.now())
     enter()
     raf = requestAnimationFrame(tick)
 
     return () => {
+      removeRunnerHook()
+      audio.stop()
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('resize', onResize)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [word, mark, reduce])
+  }, [word, mark, reduce, audio, trackHookAccess])
 
   const hud = phase !== 'enter' && phase !== 'exit'
   const showForm = phase === 'over' && (result?.state === 'name' || result?.state === 'saving')
@@ -770,31 +839,50 @@ export function HifRunner({
         {/* the way out: Esc on a keyboard, or a tap here */}
         <button
           type="button"
+          title={labels.close}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => api.current.exit()}
           className="pointer-events-auto text-left uppercase transition-colors hover:text-[#181818]"
         >
-          Runner <span className="text-[#9a9894]">· </span>
-          <span className="hidden text-[#9a9894] pointer-fine:inline">{labels.exit}</span>
-          <span className="text-[#9a9894] pointer-fine:hidden">{labels.close}</span>
-        </button>
-        <p className="flex gap-4 tabular-nums">
-          {best > 0 && (
-            <span className="text-[#9a9894]">
-              {labels.best} {pad(best)}
-            </span>
-          )}
-          <span ref={scoreEl} className="text-[#181818]">
-            00000
+          Runner <span className="hidden sm:inline">
+            <span className="text-[#9a9894]">· </span>
+            <span className="hidden text-[#9a9894] pointer-fine:inline">{labels.exit}</span>
+            <span className="text-[#9a9894] pointer-fine:hidden">{labels.close}</span>
           </span>
-        </p>
+        </button>
+        <div className="flex items-start gap-2 md:gap-5">
+          <p className="flex gap-2 whitespace-nowrap tabular-nums md:gap-4">
+            {best > 0 && (
+              <span className="text-[#9a9894]">
+                {labels.best} {pad(best)}
+              </span>
+            )}
+            <span ref={scoreEl} className="text-[#181818]">
+              00000
+            </span>
+          </p>
+          <button
+            type="button"
+            aria-label={labels.sound}
+            aria-pressed={!muted}
+            title={muted ? labels.unmute : labels.mute}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={toggleSound}
+            className="pointer-events-auto -mt-1 shrink-0 p-1 text-[#5a5956] hover:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+              <path d="M11 4 6 8H3v8h3l5 4V4Z" />
+              {muted ? <path d="m16 9 6 6m0-6-6 6" /> : <><path d="M15 8a6 6 0 0 1 0 8" /><path d="M18 5a10 10 0 0 1 0 14" /></>}
+            </svg>
+          </button>
+        </div>
       </div>
       <p
         className={`pointer-events-none absolute inset-x-0 bottom-3 text-center font-mono text-sm leading-5 tracking-wide text-[#5a5956] uppercase transition-opacity duration-300 ${
           phase === 'ready' ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {labels.jump}
+        <span className="inline-block max-w-[calc(100%-2rem)] bg-brand px-2 py-1 text-[#f4f2ee]">{labels.jump}</span>
       </p>
 
       {/* game over: the score, a name for the leaderboard if it made the top ten, and the leaderboard */}

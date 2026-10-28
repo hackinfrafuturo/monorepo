@@ -295,22 +295,43 @@ export default function Apply() {
     hint = t.consent.hint
     body = (
       <div>
-        <ul className="list-disc space-y-6 pl-5 text-base leading-7 md:text-lg md:leading-8">
-          <li>
-            <p>{t.consent.conduct}</p>
-            <a
-              href="https://indies.la/conducta/"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block underline underline-offset-4 hover:bg-[#e8e5df] focus-visible:bg-[#e8e5df] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
-            >
-              {t.consent.readConduct}
-            </a>
-          </li>
-          <li>{t.consent.sharing}</li>
-          <li>{t.consent.submission}</li>
-          <li className="font-bold">{t.consent.exceptions}</li>
-        </ul>
+        <dl className={`border-t ${RULE}`}>
+          <div className={`border-b py-4 ${RULE}`}>
+            <dt className="text-lg leading-7">{t.consent.conduct}</dt>
+            <dd className="mt-1 text-base leading-6 text-[#5a5956]">
+              {t.consent.conductBody}{' '}
+              <a
+                href="https://indies.la/conducta/"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-4 hover:bg-[#e8e5df] focus-visible:bg-[#e8e5df] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+              >
+                {t.consent.readConduct}
+              </a>
+            </dd>
+          </div>
+          <div className={`border-b py-4 ${RULE}`}>
+            <dt className="text-lg leading-7">{t.consent.answers}</dt>
+            <dd className="mt-1 text-base leading-6 text-[#5a5956]">
+              {t.consent.answersBody}
+            </dd>
+          </div>
+          <div className={`border-b py-4 ${RULE}`}>
+            <dt className="text-lg leading-7">{t.consent.sharing}</dt>
+            <dd className="mt-1 text-base leading-6 text-[#5a5956]">
+              {t.consent.sharingBody}
+            </dd>
+          </div>
+          <div className={`border-b py-4 ${RULE}`}>
+            <dt className="text-lg leading-7">{t.consent.submission}</dt>
+            <dd className="mt-1 text-base leading-6 text-[#5a5956]">
+              {t.consent.submissionBody}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-6 text-base leading-7 font-bold md:text-lg md:leading-8">
+          {t.consent.exceptions}
+        </p>
         <Nav backLabel={t.back}>
           <Button
             type="button"

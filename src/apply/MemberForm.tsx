@@ -6,6 +6,7 @@ import {
   DIETS,
   FIELD_ORDER,
   GENDERS,
+  MIN_ANSWER,
   NORMALIZE,
   YES_NO,
   fieldId,
@@ -219,19 +220,40 @@ function Question({
     case 'deep':
       return (
         <Bound form={form} index={index} field="deep" t={t}>
-          {(props) => <TextArea {...props} label={f.deep.label} hint={f.deep.hint} />}
+          {(props) => (
+            <TextArea
+              {...props}
+              label={f.deep.label}
+              hint={f.deep.hint}
+              minLength={MIN_ANSWER}
+            />
+          )}
         </Bound>
       )
     case 'hardest':
       return (
         <Bound form={form} index={index} field="hardest" t={t}>
-          {(props) => <TextArea {...props} label={f.hardest.label} hint={f.hardest.hint} />}
+          {(props) => (
+            <TextArea
+              {...props}
+              label={f.hardest.label}
+              hint={f.hardest.hint}
+              minLength={MIN_ANSWER}
+            />
+          )}
         </Bound>
       )
     case 'favorite':
       return (
         <Bound form={form} index={index} field="favorite" t={t}>
-          {(props) => <TextArea {...props} label={f.favorite.label} hint={f.favorite.hint} />}
+          {(props) => (
+            <TextArea
+              {...props}
+              label={f.favorite.label}
+              hint={f.favorite.hint}
+              minLength={MIN_ANSWER}
+            />
+          )}
         </Bound>
       )
     case 'linkedin':

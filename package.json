@@ -8,9 +8,8 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "dev:deck": "pnpm --filter deck dev",
-    "build": "tsc -b && pnpm --filter deck run build:embedded && vite build",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "node .output/server/index.mjs",
     "start": "node .output/server/index.mjs"

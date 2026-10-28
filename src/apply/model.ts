@@ -12,6 +12,9 @@ export type YesNo = (typeof YES_NO)[number]
 export const DIETS = ['vegan', 'veggie', 'omnivore'] as const
 export type Diet = (typeof DIETS)[number]
 
+/** Shortest accepted answer for the written questions. Stops "Nada", "Ninguna" and similar. */
+export const MIN_ANSWER = 40
+
 export type Member = {
   name: string
   gender: Gender | ''
@@ -34,6 +37,7 @@ export type FieldKey = keyof Member
 
 export type ErrorKey =
   | 'required'
+  | 'tooShort'
   | 'email'
   | 'github'
   | 'linkedin'

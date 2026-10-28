@@ -140,11 +140,15 @@ export function TextArea({
   value,
   onValueChange,
   onBlur,
+  minLength,
 }: Base & {
   value: string
   onValueChange: (value: string) => void
   onBlur?: () => void
+  /** Counts characters under the box, so the minimum is visible before they press Next. */
+  minLength?: number
 }) {
+  const written = value.trim().length
   return (
     <Field.Root name={name} invalid={Boolean(error)} className={ROOT}>
       <Field.Label className={LABEL}>
@@ -160,6 +164,11 @@ export function TextArea({
         render={<textarea rows={3} />}
         className={`${CONTROL} min-h-[6.5rem] resize-y`}
       />
+      {minLength === undefined ? null : (
+        <p className={`text-right text-base leading-6 tabular-nums ${HINT}`}>
+          {written} / {minLength}
+        </p>
+      )}
       <ErrorLine error={error} />
     </Field.Root>
   )
