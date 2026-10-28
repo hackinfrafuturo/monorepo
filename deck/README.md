@@ -2,7 +2,7 @@
 
 The Infrastructure Hackathon sponsor deck, built as a Faces project (Vite + React + Tailwind CSS).
 
-This package is part of the parent repository's pnpm workspace. The built deck is served at **/deck** on the main site ([hackinfrafuturo.cl/deck](https://hackinfrafuturo.cl/deck)) and is also deployed standalone to [deck.indies.la](https://deck.indies.la) via Cloudflare (see `wrangler.jsonc`).
+This package is part of the parent repository's pnpm workspace. The main site renders these slides at **/deck** ([hackinfrafuturo.cl/deck](https://hackinfrafuturo.cl/deck)). The same source can still be built standalone for [deck.indies.la](https://deck.indies.la) (see `wrangler.jsonc`).
 
 ## Commands
 
@@ -10,12 +10,12 @@ Run from the repository root:
 
 ```bash
 pnpm install
-pnpm dev:deck                 # deck dev server
-pnpm build                    # embedded deck + main Nitro site build
+pnpm dev                      # site, application, and deck on one server
+pnpm build                    # production build of that app
 pnpm --filter deck run build  # standalone build for Cloudflare (outputs deck/dist)
 ```
 
-`build:embedded` compiles the deck with `--base=/deck/` into `deck/dist/` before the main site's Nitro build. Nitro registers that directory at `/deck` and `deck/public/images` at `/images`, because slide content also references images with root-relative paths. These assets must exist before Nitro builds its asset manifest and deployment output; copying them into `.output/public` afterward leaves them out of the deployed site. Nitro writes them into `.output/public` locally and `.vercel/output/static` on Vercel.
+The site compiles `deck/src` into the same Vite build and serves slide photos from `deck/public/images` at `/images`. `pnpm --filter deck run build` is only the standalone Cloudflare export.
 
 ## Project structure
 
@@ -26,5 +26,5 @@ pnpm --filter deck run build  # standalone build for Cloudflare (outputs deck/di
 
 ## Notes
 
-- The deck keeps its own Tailwind v3 + Vite 6 stack; the main site uses Tailwind v4 + Vite 8. The two never share a build.
+- Slide styles still use the deck's Tailwind v3 config, compiled into the site build and scoped to `#deck`. The site itself uses Tailwind v4.
 - Interactive plugins that relied on hosted services (form submissions, AI presenter) are stubbed out and will not function.

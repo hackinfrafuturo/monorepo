@@ -38,6 +38,13 @@ import {
   type ComponentType,
 } from "react";
 
+declare global {
+  interface Window {
+    __faceDisplayScale?: number
+    __facePerformanceMode?: 'editor' | 'presentation'
+  }
+}
+
 const MOBILE_BREAKPOINT = 600;
 const SLIDESHOW_MOUNT_PROXIMITY = 3;
 

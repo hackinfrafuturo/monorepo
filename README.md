@@ -21,7 +21,7 @@ Live: [hackinfrafuturo.cl](https://hackinfrafuturo.cl)
 
 ## Deck
 
-The sponsor deck lives in the `deck/` workspace package and is served at [hackinfrafuturo.cl/deck](https://hackinfrafuturo.cl/deck). It keeps its own Vite + Tailwind stack: `pnpm build` includes it in the main `dist/deck/` output, and `pnpm dev:deck` runs it locally. It is also deployed standalone to [deck.indies.la](https://deck.indies.la) via Cloudflare from `deck/dist`.
+The sponsor deck is a route in this app at [hackinfrafuturo.cl/deck](https://hackinfrafuturo.cl/deck). Slide source stays in `deck/`. `pnpm dev` serves the landing page, the application, and the deck together. A standalone export for [deck.indies.la](https://deck.indies.la) still builds from `deck/` with `pnpm --filter deck run build`.
 
 ## Application referral links
 

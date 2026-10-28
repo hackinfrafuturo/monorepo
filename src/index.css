@@ -4,7 +4,7 @@
 @import 'tailwindcss';
 @import '../public/sans-font-experiment.css';
 
-/* The deck sub-app ships its own Tailwind v3 build; keep it out of ours. */
+/* Deck slides keep their own Tailwind build, scoped to #deck. */
 @source not "../deck";
 
 /* Geist Pixel Circle — OFL-1.1, The Geist Project Authors */

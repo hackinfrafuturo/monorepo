@@ -1,10 +1,11 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { HifBreakout } from './components/HifBreakout'
 import { HifRunner } from './components/HifRunner'
 import { HifFlag } from './components/HifFlag'
 import { HifWordDots } from './components/HifWordDots'
 import { Marquee } from './components/Marquee'
+import { PrizeBoard } from './components/PrizeBoard'
 import { uiSound } from './ui-sound'
 import { AsciiField } from './v2/AsciiField'
 import { homeMessages, type OrgId, type SponsorId, type SponsorMessages } from './i18n/messages'
@@ -27,10 +28,11 @@ const ORGS = [
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
 const SPONSOR_SECTIONS = [
-  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-[18px] md:max-h-6' },
-  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-6 md:max-h-8' },
-  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-6 md:max-h-8' },
-  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-[18px] md:max-h-6' },
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-8 md:max-h-10' },
+  { id: 'croma', name: 'Croma', logo: '/brand/croma.svg', width: 626, height: 85, frame: 'max-h-8 md:max-h-10' },
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-6 md:max-h-8' },
+  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-8 md:max-h-10' },
+  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-6 md:max-h-8' },
 ] as const satisfies readonly {
   id: SponsorId
   name: string
@@ -49,18 +51,13 @@ const SPONSOR_LOGOS = [
     width: 606,
     height: 184,
     href: 'https://cenia.cl',
-    frame: 'max-h-8 md:max-h-10',
+    frame: 'max-h-10 md:max-h-12',
   },
-  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'max-h-6 md:max-h-8' },
-  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-6 md:max-h-8' },
-  { id: 'udd', name: 'Universidad del Desarrollo', logo: '/brand/udd.svg', width: 264, height: 45, href: 'https://www.udd.cl', frame: 'max-h-7 md:max-h-9' },
-  { id: 'smart-plus', name: 'Smart Plus Robotics', logo: '/brand/smart-plus.webp', width: 1782, height: 852, href: 'https://smartplusrobotics.com', frame: 'max-h-9 md:max-h-11' },
+  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 128, height: 128, href: 'https://flyra.io', frame: 'max-h-8 md:max-h-10' },
+  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-8 md:max-h-10' },
+  { id: 'udd', name: 'Universidad del Desarrollo', logo: '/brand/udd.svg', width: 264, height: 45, href: 'https://www.udd.cl', frame: 'max-h-9 md:max-h-11' },
+  { id: 'smart-plus', name: 'Smart Plus Robotics', logo: '/brand/smart-plus.webp', width: 1782, height: 852, href: 'https://smartplusrobotics.com', frame: 'max-h-11 md:max-h-14' },
 ] as const
-
-const TRACK_LOGOS: Record<string, { src: string; width: number; height: number }> = {
-  Flyra: { src: '/brand/flyra.png', width: 128, height: 128 },
-  Payku: { src: '/brand/payku.png', width: 640, height: 216 },
-}
 
 const RULE = 'border-[#d6d4d0]'
 
@@ -185,7 +182,7 @@ function Door({
     >
       <div>
         <span
-          className={`block font-mono text-lg leading-7 transition-colors duration-75 ease-linear md:text-xl lg:text-2xl lg:leading-8 ${c.action}`}
+          className={`block font-mono text-xl leading-8 transition-colors duration-75 ease-linear md:text-2xl md:leading-9 ${c.action}`}
         >
           {action}
         </span>
@@ -203,7 +200,7 @@ function Door({
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="square"
-        className={`size-6 shrink-0 ${bar ? 'self-center' : 'self-end'} transition-colors duration-75 ease-linear md:size-8 ${c.arrow}`}
+        className={`size-8 shrink-0 ${bar ? 'self-center' : 'self-end'} transition-colors duration-75 ease-linear md:size-10 ${c.arrow}`}
       >
         <path d="M6 18L18 6M8 6h10v10" />
       </svg>
@@ -213,18 +210,20 @@ function Door({
 
 export default function Home() {
   const [locale, setLocale] = useLocale()
-  // Games with the logo, started by clicking it: the star and its band start Breakout, the name the
-  // runner. `game` mounts one (and hides the real logo, which it draws in place); `gameUi` fades the rest
-  // of the hero, and comes back as soon as leaving starts.
+  // Games with the logo, started by clicking it: the star and its band start Breakout, the name (or the
+  // claim under it) the runner. `game` mounts one (and hides the real logo, which it draws in place);
+  // `gameUi` fades the rest of the hero, and comes back as soon as leaving starts.
   const [game, setGame] = useState<{ kind: 'breakout' | 'runner'; word: HTMLElement; mark: Element } | null>(null)
   const [gameUi, setGameUi] = useState(false)
   const titleRef = useRef<HTMLDivElement>(null)
   const wordRef = useRef<HTMLSpanElement>(null)
+  const copyRef = useRef<HTMLDivElement>(null)
   const startGame = (target: EventTarget) => {
     const word = wordRef.current
+    const copy = copyRef.current
     const mark = titleRef.current?.querySelector('svg')
-    if (game || !word || !mark || !(target instanceof Node)) return
-    const kind = word.contains(target) ? 'runner' : mark.contains(target) ? 'breakout' : null
+    if (game || !word || !copy || !mark || !(target instanceof Node)) return
+    const kind = copy.contains(target) ? 'runner' : mark.contains(target) ? 'breakout' : null
     if (!kind) return
     window.scrollTo({ top: 0, behavior: 'instant' })
     setGame({ kind, word, mark })
@@ -279,11 +278,16 @@ export default function Home() {
       <section
         id="top"
         aria-labelledby="hero-title"
-        className={`grid min-h-svh grid-cols-1 grid-rows-[auto_1fr_auto] border-b ${RULE}`}
+        className={`grid min-h-svh grid-cols-1 grid-rows-[auto_1fr] border-b ${RULE}`}
       >
-        <div className={`flex items-start justify-between gap-6 px-4 pt-6 font-mono text-base leading-7 text-[#5a5956] md:px-6 md:pt-10 md:text-lg md:leading-8 ${gameFade}`}>
+        {/*
+          The top padding is the side padding minus the room the line box leaves above the caps (half the
+          leading, plus Quattro's ascent over its cap height), so the date sits as far from the top edge as
+          from the left. The link's negative margin cancels its padding so both lines share a cap top.
+        */}
+        <div className={`flex items-start justify-between gap-6 px-4 pt-2 font-mono text-base leading-7 text-[#5a5956] md:px-6 md:pt-[15px] md:text-lg md:leading-8 ${gameFade}`}>
           <p>{t.heroDate}</p>
-          <a href="/leaderboard" className={`shrink-0 py-0.5 ${TEXT_LINK}`}>
+          <a href="/leaderboard" className={`-mt-0.5 shrink-0 py-0.5 ${TEXT_LINK}`}>
             {leaderboardMessages[locale].title}
           </a>
         </div>
@@ -295,13 +299,14 @@ export default function Home() {
           the date and the buttons. Below lg there's no room beside the text, so the flag goes above it.
           Hovering makes the dots near the cursor flow away from it, on the flag and the name alike, and the
           flag's star shies away from it. A click (or a tap) starts a game: Breakout on the flag, the runner
-          on the name. z-20 keeps the motion above the text around it.
+          on the name or the claim. z-20 keeps the motion above the text around it. The name is capitals in
+          the markup, not through CSS, because the games redraw it from its characters.
         */}
-        <div className="flex min-w-0 flex-col justify-center px-4 py-12 md:px-6">
+        <div className="flex min-w-0 flex-col justify-center px-4 py-12 md:px-6 md:py-16">
           <div
             ref={titleRef}
             onClick={(e) => startGame(e.target)}
-            className="relative z-20 flex flex-col items-start gap-8 select-none md:gap-10 lg:flex-row lg:items-stretch lg:gap-0"
+            className="relative z-20 flex flex-col items-start gap-12 select-none md:gap-16 lg:flex-row lg:items-stretch lg:gap-0"
           >
             <div className="lg:relative lg:order-last lg:flex-1">
               <HifFlag
@@ -309,44 +314,44 @@ export default function Home() {
                 className={`aspect-[3/2] w-[min(33vw,13.5rem)] cursor-pointer lg:absolute lg:inset-y-0 lg:left-1/2 lg:h-full lg:w-auto lg:-translate-x-1/2 ${game ? 'opacity-0' : ''}`}
               />
             </div>
-            <div className="flex flex-col items-start gap-8 md:gap-10">
+            <div ref={copyRef} className="flex flex-col items-start gap-10 md:gap-14">
               <h1
                 id="hero-title"
                 className={`cursor-pointer text-left text-[clamp(40px,12.5vw,88px)] text-[#181818] md:text-[min(calc(8.6vw-8px),calc(22svh-50px))] ${game ? 'opacity-0' : ''}`}
               >
                 <span ref={wordRef} className="block font-pixel leading-[1.05] antialiased! [text-box:trim-start_cap_alphabetic]">
-                  Hack Infra
+                  HACK INFRA
                   <br />
-                  Futuro
+                  FUTURO
                 </span>
               </h1>
-              <p className={`${gameFade} max-w-[30ch] font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase [text-box:trim-end_cap_alphabetic] sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
+              <p className={`${gameFade} max-w-[30ch] cursor-pointer font-mono text-xl leading-[1.3] tracking-wide text-balance text-[#181818] uppercase [text-box:trim-end_cap_alphabetic] sm:text-2xl md:text-[clamp(22px,2.4vw,36px)]`}>
                 {t.heroTitle}
               </p>
             </div>
           </div>
           <HifWordDots word={wordRef} off={!!game} />
         </div>
-
-        {/* The two ways in, side by side along the bottom of the first screen. The skater lands on this edge. */}
-        <div data-skate-floor className={`grid grid-cols-1 border-t sm:grid-cols-2 ${RULE} ${gameFade}`}>
-          <Door
-            href={applicationUrl}
-            action={t.register}
-            label={t.participants}
-            theme="brand"
-            bar
-            className="px-4 py-4 md:px-6 md:py-5"
-          />
-          <Door
-            href={SPONSOR}
-            action={t.sponsor}
-            label={t.companies}
-            bar
-            className={`border-t px-4 py-4 sm:border-t-0 sm:border-l md:px-6 md:py-5 ${RULE}`}
-          />
-        </div>
       </section>
+
+      {/* The two ways in, side by side right under the first screen. */}
+      <div className={`grid grid-cols-1 border-b sm:grid-cols-2 ${RULE} ${gameFade}`}>
+        <Door
+          href={SPONSOR}
+          action={t.sponsor}
+          label={t.companies}
+          bar
+          className="px-4 py-6 md:px-6 md:py-8"
+        />
+        <Door
+          href={applicationUrl}
+          action={t.register}
+          label={t.participants}
+          theme="brand"
+          bar
+          className={`border-t px-4 py-6 sm:border-t-0 sm:border-l md:px-6 md:py-8 ${RULE}`}
+        />
+      </div>
       {game?.kind === 'runner' && (
         <HifRunner
           word={game.word}
@@ -369,20 +374,19 @@ export default function Home() {
       <section
         id="contenido"
         aria-labelledby="sponsor-logos-title"
-        className="px-4 py-12 md:px-6 md:py-16"
+        className="px-4 py-16 md:px-6 md:py-24"
       >
         <div className={SECTION_GRID}>
           <h2 id="sponsor-logos-title" className="font-mono text-base leading-7 text-[#5a5956] md:col-span-2 md:text-lg md:leading-8">
             {t.sponsorLogosTitle}
           </h2>
-          <ul className="flex flex-wrap items-center gap-x-12 gap-y-8 md:col-span-2 md:gap-y-4">
-            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, index) => (
-              <Fragment key={id}>
-              {/* Row 1: the four sponsors with a section below. Row 2: everyone else. */}
-              {index === SPONSOR_SECTIONS.length && (
-                <li aria-hidden className="hidden h-0 basis-full md:block" />
-              )}
-              <li className="flex min-w-0 max-w-full">
+          {/* Three rows: four logos, then two rows of three. Twelve tracks let 3 and 4 both fill a row. */}
+          <ul className="grid grid-cols-2 items-center gap-x-12 gap-y-10 sm:grid-cols-3 md:col-span-2 md:grid-cols-12 md:gap-y-14">
+            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, i) => (
+              <li
+                key={id}
+                className={`flex min-w-0 max-w-full justify-center ${i < 4 ? 'md:col-span-3' : 'md:col-span-4'}`}
+              >
                 <a
                   href={href}
                   className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
@@ -397,47 +401,46 @@ export default function Home() {
                   />
                 </a>
               </li>
-              </Fragment>
             ))}
           </ul>
         </div>
       </section>
 
+      {/* The prize as a dot-matrix sign. */}
       <section
         id="prize-pool"
         aria-labelledby="prize-pool-title"
         aria-describedby="prize-pool-estimate"
-        className={`border-t bg-brand px-4 py-12 text-[#f4f2ee] md:px-6 md:py-20 ${RULE}`}
+        className={`@container border-y py-10 text-[#181818] md:py-16 ${RULE}`}
       >
-        <div className={SECTION_GRID}>
-          <h2 id="prize-pool-title" className="font-pixel text-balance md:col-span-2">
-            <span className="block text-[32px] leading-[1.1] md:text-[48px]">
-              {t.prizePoolTitle}
-            </span>
-            <span className="mt-8 block text-[clamp(2rem,12vw,9rem)] leading-none tracking-[-0.04em] whitespace-nowrap tabular-nums">
-              <span aria-hidden="true">{'$ '}</span>
-              <span className="sr-only">USD </span>
-              {prizePoolAmount}
-            </span>
-          </h2>
-          <p id="prize-pool-estimate" className="font-mono text-sm leading-6 md:col-span-2">
-            {t.prizePoolEstimate}
-          </p>
+        <div className="flex items-baseline justify-between gap-6 px-4 font-mono text-base leading-7 tracking-wide uppercase md:px-6 md:text-xl md:leading-8">
+          <p>{t.prizePoolTitle}</p>
+          <p aria-hidden>USD</p>
         </div>
+        <h2 id="prize-pool-title" className="mt-4 md:mt-6">
+          <span className="sr-only">USD {prizePoolAmount}</span>
+          <PrizeBoard value={`$${prizePoolAmount}`} />
+        </h2>
+        <p
+          id="prize-pool-estimate"
+          className="mt-4 px-4 font-mono text-base leading-7 text-[#5a5956] md:mt-6 md:px-6 md:text-xl md:leading-8"
+        >
+          {t.prizePoolEstimate}
+        </p>
       </section>
 
       {/* The way in, moving: a scrolling "register your team" bar that sticks to the top from here down. */}
-      <aside aria-label={t.register} className={`sticky top-0 z-40 border-b ${RULE}`}>
+      <aside aria-label={t.register} className="sticky top-0 z-40">
         <a
           href={applicationUrl}
           {...uiSound}
-          className="group block bg-[#f4f2ee] py-3 text-[#181818] no-underline outline-none transition-colors duration-75 ease-linear hover:bg-brand hover:text-[#f4f2ee] focus-visible:bg-brand focus-visible:text-[#f4f2ee] focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 md:py-3.5"
+          className="group block bg-brand py-3 text-[#f4f2ee] no-underline outline-none transition-colors duration-75 ease-linear hover:bg-brand-hover focus-visible:bg-brand-hover focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 md:py-3.5"
         >
           <Marquee pauseOnHover className="[--duration:4s] [--gap:3rem]">
             <span className="font-mono text-base tracking-wider uppercase md:text-lg">{t.register}</span>
             <span
               aria-hidden
-              className="font-mono text-base text-[#5a5956] transition-colors duration-75 ease-linear group-hover:text-[#ece6fb] group-focus-visible:text-[#ece6fb] md:text-lg"
+              className="font-mono text-base text-[#ece6fb] transition-colors duration-75 ease-linear group-hover:text-[#f4f2ee] group-focus-visible:text-[#f4f2ee] md:text-lg"
             >
               {'->'}
             </span>
@@ -466,56 +469,6 @@ export default function Home() {
               <p>{t.stuckBody}</p>
             </div>
             <p className="tabular-nums">{t.facts}</p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="tracks"
-        aria-labelledby="tracks-title"
-        className={`border-t px-4 py-12 md:px-6 md:py-16 ${RULE}`}
-      >
-        <div className={SECTION_GRID}>
-          <h2 id="tracks-title" className={SECTION_TITLE}>
-            {t.tracksTitle}
-          </h2>
-          <div className="space-y-10 md:space-y-12">
-            {t.trackGroups.map((group) => (
-              <div key={group.title}>
-                <h3 className="font-mono text-base leading-7 text-[#5a5956] md:text-lg md:leading-8">
-                  {group.title}
-                </h3>
-                <ul className="mt-4">
-                  {group.tracks.map(({ title, copy }) => {
-                    const logo = TRACK_LOGOS[title]
-                    return (
-                      <li
-                        key={title}
-                        className={`group -mx-3 border-t px-3 py-6 transition-colors duration-150 hover:bg-[#6d4aff] ${RULE}`}
-                      >
-                        <p className="flex items-center gap-3 font-mono text-lg leading-8 text-[#181818] group-hover:text-white md:text-xl md:leading-9">
-                          {logo && (
-                            <img
-                              src={logo.src}
-                              alt=""
-                              width={logo.width}
-                              height={logo.height}
-                              decoding="async"
-                              loading="lazy"
-                              className="h-5 w-auto group-hover:brightness-0 group-hover:invert md:h-6"
-                            />
-                          )}
-                          {title}
-                        </p>
-                        <p className="font-mono text-base leading-7 text-[#5a5956] group-hover:text-white/80 md:text-lg md:leading-8">
-                          {copy}
-                        </p>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -626,7 +579,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="px-4 pt-2 pb-10 md:px-6">
+      <div className={`border-t px-4 pt-2 pb-6 md:px-6 ${RULE}`}>
         <button
           type="button"
           className="border-0 bg-transparent p-0 font-mono text-base leading-7 text-[#5a5956] transition-[background-color,color] duration-75 ease-linear hover:bg-[#e8e5df] hover:text-[#181818] focus-visible:bg-[#e8e5df] focus-visible:text-[#181818] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
@@ -634,7 +587,33 @@ export default function Home() {
         >
           {t.seeOther}
         </button>
-      </footer>
+      </div>
+
+      <section aria-labelledby="apply-here-title" className={`border-t bg-brand ${RULE}`}>
+        <a
+          href={applicationUrl}
+          {...uiSound}
+          className="group flex min-h-[42svh] items-center justify-between gap-6 px-4 py-12 text-[#f4f2ee] no-underline outline-none transition-colors duration-75 ease-linear hover:bg-brand-hover focus-visible:bg-brand-hover focus-visible:outline-2 focus-visible:outline-[#181818] focus-visible:-outline-offset-2 md:min-h-[50svh] md:px-6 md:py-16"
+        >
+          <h2
+            id="apply-here-title"
+            className="font-pixel text-[clamp(3rem,11vw,8rem)] leading-none text-balance"
+          >
+            {t.applyHere}
+          </h2>
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="square"
+            className="size-8 shrink-0 md:size-12"
+          >
+            <path d="M6 18L18 6M8 6h10v10" />
+          </svg>
+        </a>
+      </section>
     </div>
   )
 }

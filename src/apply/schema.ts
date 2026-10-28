@@ -3,6 +3,7 @@ import {
   DIETS,
   FIELD_ORDER,
   GENDERS,
+  MIN_ANSWER,
   TEAM_SIZES,
   YES_NO,
   cleanGithub,
@@ -26,6 +27,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const ERROR_KEYS = [
   'required',
+  'tooShort',
   'email',
   'github',
   'linkedin',
@@ -37,6 +39,11 @@ const ERROR_KEYS = [
 /** `abort` keeps a single message: an empty answer is "required", not also "invalid". */
 function requiredText() {
   return z.string().trim().min(1, { error: 'required', abort: true })
+}
+
+/** A written answer: long enough to say something, not just a word. */
+function answerText() {
+  return requiredText().min(MIN_ANSWER, { error: 'tooShort' })
 }
 
 function oneOf<const T extends readonly string[]>(values: T) {
@@ -162,9 +169,9 @@ function memberSchema(others: readonly Member[], coding: YesNo | '') {
     site: siteSchema,
     jobs: oneOf(YES_NO),
     role: requiredText(),
-    deep: requiredText(),
-    hardest: requiredText(),
-    favorite: requiredText(),
+    deep: answerText(),
+    hardest: answerText(),
+    favorite: answerText(),
     diet: oneOf(DIETS),
     allergies: z.string().trim(),
   })

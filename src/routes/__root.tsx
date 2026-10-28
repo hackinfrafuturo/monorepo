@@ -19,9 +19,43 @@ export const Route = createRootRoute({
         {
           name: 'description',
           content:
-            '24 hours, about 500 people, infrastructure agents can actually use. Santiago, 5-6 Dec 2026.',
+            'La hackathon más grande de Chile. 24 horas, ~500 personas, infraestructura que un agente pueda usar de verdad. Santiago, 5 y 6 de diciembre de 2026.',
         },
-        { title: 'Infrastructure Hackathon' },
+        { title: 'Hack Infra Futuro 2026' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: pageUrl },
+        { property: 'og:locale', content: 'es_CL' },
+        { property: 'og:locale:alternate', content: 'en_US' },
+        {
+          property: 'og:title',
+          content: 'Hack Infra Futuro 2026 — La hackathon más grande de Chile',
+        },
+        {
+          property: 'og:description',
+          content:
+            'La hackathon más grande de Chile. 24 horas, ~500 personas, infraestructura que un agente pueda usar de verdad. Santiago, 5 y 6 de diciembre de 2026.',
+        },
+        {
+          property: 'og:image',
+          content: 'https://hackinfrafuturo.cl/og.webp',
+        },
+        {
+          property: 'og:image:secure_url',
+          content: 'https://hackinfrafuturo.cl/og.webp',
+        },
+        { property: 'og:image:type', content: 'image/webp' },
+        { property: 'og:image:width', content: '2400' },
+        { property: 'og:image:height', content: '1260' },
+        {
+          property: 'og:image:alt',
+          content:
+            'Hack Infra Futuro 2026. La hackathon más grande de Chile. 5 y 6 de diciembre, Santiago.',
+        },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        {
+          name: 'twitter:image',
+          content: 'https://hackinfrafuturo.cl/og.webp',
+        },
       ],
       links: [
         { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },

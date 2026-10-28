@@ -1,4 +1,3 @@
-import React from "react";
 import { Agentation } from "agentation";
 import { DeckLocaleProvider, useDeckLocale } from "@/i18n/locale-context";
 import type { Locale } from "@/i18n/locale";

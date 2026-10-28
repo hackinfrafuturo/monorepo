@@ -5,16 +5,21 @@ import { useReducedMotion } from 'motion/react'
  * The hover field of the logo's star, applied to the wordmark: the dots of "Hack Infra Futuro" near the
  * cursor slide away from it and flow back as it passes.
  *
- * The real text stays in the page. While anything moves, its dots are drawn on a canvas instead (the text
+ * The real text stays in the page. While anything moves, the word is drawn on a canvas instead (the text
  * goes transparent underneath), and at rest the text takes over again, as HifFlag does with the mark.
  *
  * Geist Pixel Circle puts every dot on a 38-unit grid (units per 1000 em), centred 19 units in, so each
  * letter's dots are found by drawing it once off screen and checking the ink at each grid centre.
+ *
+ * The canvas doesn't draw its own circles: the browser renders the font's dots fuller than plain circles
+ * of the same size, so the word would visibly thin out the moment the canvas took over. Instead the word
+ * is rendered with the font onto a sheet, on the same device-pixel grid as the page, and the canvas shows
+ * that sheet, lifting each displaced dot's cell off its place and putting it down where the dot is now.
+ * With nothing displaced the canvas is the text, pixel for pixel.
  */
 
 const GRID = 0.038 // em
 const GRID_OFFSET = 0.019 // em
-const DOT_R = 0.019 // em: the dots touch their neighbours
 
 // the mark's repel field (HifFlag), converted from the mark's units: the mark is 1.772em across 70 units
 const UNIT = 1.772 / 70
@@ -27,6 +32,42 @@ const DAMPING = 26
 const INK = '#181818'
 
 type Field = { width: number; size: number; n: number; rest: Float32Array; pos: Float32Array; vel: Float32Array }
+
+/** the word rendered with its font, in device pixels; `pad` of room on every side for ink past the box */
+type Sheet = { canvas: HTMLCanvasElement; dpr: number; size: number; width: number; pad: number; x: number; y: number }
+
+function drawSheet(word: HTMLElement, dpr: number, canvas = document.createElement('canvas')): Sheet {
+  const css = getComputedStyle(word)
+  const size = parseFloat(css.fontSize)
+  const box = word.getBoundingClientRect()
+  const pad = Math.ceil(size * 0.1 * dpr)
+  // the sheet's origin sits on a whole device pixel, so the glyphs keep the page's sub-pixel offsets
+  const ox = Math.floor(box.left * dpr) - pad
+  const oy = Math.floor(box.top * dpr) - pad
+  canvas.width = Math.ceil(box.width * dpr) + 2 * pad + 1
+  canvas.height = Math.ceil(box.height * dpr) + 2 * pad + 1
+  const g = canvas.getContext('2d')!
+  g.setTransform(dpr, 0, 0, dpr, -ox, -oy)
+  g.font = `${css.fontWeight} ${size}px ${css.fontFamily}`
+  g.fillStyle = INK
+  const ascent = g.measureText('H').fontBoundingBoxAscent
+  const walker = document.createTreeWalker(word, NodeFilter.SHOW_TEXT)
+  const range = document.createRange()
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? ''
+    for (let i = 0; i < text.length; i++) {
+      if (/\s/.test(text[i])) continue
+      range.setStart(node, i)
+      range.setEnd(node, i + 1)
+      const r = range.getBoundingClientRect()
+      g.fillText(text[i], r.left, r.top + ascent)
+    }
+  }
+  return { canvas, dpr, size, width: box.width, pad, x: box.left * dpr, y: box.top * dpr }
+}
+
+/** whether the word has moved by a fraction of a device pixel since the sheet was drawn */
+const offGrid = (now: number, then: number) => Math.abs(now - then - Math.round(now - then)) > 0.01
 
 /** every dot of the word, relative to its box, in CSS pixels */
 function sample(word: HTMLElement): Field {
@@ -62,8 +103,10 @@ function sample(word: HTMLElement): Field {
       g.fillText(text[i], pad, pad + ascent)
       const ink = g.getImageData(0, 0, w, h).data
       const baseline = r.top + ascent - box.top
+      // rows count from the baseline, the font's descent isn't a whole number of them
+      const low = off - Math.ceil(descent / pitch) * pitch
       for (let x = off; x < adv; x += pitch) {
-        for (let y = off - descent; y < ascent; y += pitch) {
+        for (let y = low; y < ascent; y += pitch) {
           const px = Math.round(pad + x)
           const py = Math.round(pad + ascent - y)
           if (px < 0 || py < 0 || px >= w || py >= h || ink[(py * w + px) * 4 + 3] < 128) continue
@@ -105,6 +148,8 @@ export function HifWordDots({ word, off = false }: { word: RefObject<HTMLElement
     document.documentElement.addEventListener('pointerleave', onLeave)
 
     let field: Field | null = null
+    let sheet: Sheet | null = null
+    const moved: number[] = []
     let shown = false
     const show = (on: boolean) => {
       if (on === shown) return
@@ -181,33 +226,67 @@ export function HifWordDots({ word, off = false }: { word: RefObject<HTMLElement
       show(want)
       if (!want) return
 
-      // the canvas only covers the name and the room its dots can be pushed into, not the whole screen
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const margin = push + DOT_R * size + 4
-      const left = Math.floor(box.left - margin)
-      const top = Math.floor(box.top - margin)
-      const cw = Math.ceil(box.width + 2 * margin)
-      const ch = Math.ceil(box.height + 2 * margin)
-      if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) {
-        cv.width = Math.round(cw * dpr)
-        cv.height = Math.round(ch * dpr)
-        cv.style.width = `${cw}px`
-        cv.style.height = `${ch}px`
+      const dpr = window.devicePixelRatio || 1
+      if (
+        !sheet ||
+        sheet.dpr !== dpr ||
+        sheet.size !== size ||
+        Math.abs(sheet.width - box.width) > 0.5 ||
+        offGrid(box.left * dpr, sheet.x) ||
+        offGrid(box.top * dpr, sheet.y)
+      ) {
+        sheet = drawSheet(el, dpr, sheet?.canvas)
       }
-      cv.style.transform = `translate(${left}px, ${top}px)`
+      const S = sheet
+
+      // the canvas only covers the name and the room its dots can be pushed into, not the whole screen; it
+      // works in device pixels and sits on whole ones, so the sheet lands on the page's own pixels
+      const margin = push + GRID * size + 4
+      const left = Math.floor((box.left - margin) * dpr)
+      const top = Math.floor((box.top - margin) * dpr)
+      const cw = Math.ceil((box.width + 2 * margin) * dpr)
+      const ch = Math.ceil((box.height + 2 * margin) * dpr)
+      if (cv.width !== cw || cv.height !== ch) {
+        cv.width = cw
+        cv.height = ch
+        cv.style.width = `${cw / dpr}px`
+        cv.style.height = `${ch / dpr}px`
+      }
+      cv.style.left = `${left / dpr}px`
+      cv.style.top = `${top / dpr}px`
       const ctx = cv.getContext('2d')!
-      ctx.setTransform(dpr, 0, 0, dpr, -left * dpr, -top * dpr)
-      ctx.clearRect(left, top, cw, ch)
-      const r = DOT_R * size
-      ctx.fillStyle = INK
-      ctx.beginPath()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.imageSmoothingEnabled = false
+      ctx.clearRect(0, 0, cw, ch)
+      const sx = Math.floor(box.left * dpr) - S.pad
+      const sy = Math.floor(box.top * dpr) - S.pad
+      ctx.drawImage(S.canvas, sx - left, sy - top)
+
+      // each displaced dot owns one cell of the grid (edges rounded the same way for neighbours, so the
+      // cells tile): clear all of them first, then put every dot down where it is now
+      const half = (GRID * size) / 2
+      moved.length = 0
       for (let i = 0; i < F.n; i++) {
-        const x = box.left + F.pos[i * 2]
-        const y = box.top + F.pos[i * 2 + 1]
-        ctx.moveTo(x + r, y)
-        ctx.arc(x, y, r, 0, Math.PI * 2)
+        if (Math.abs(F.pos[i * 2] - F.rest[i * 2]) * dpr >= 0.5 || Math.abs(F.pos[i * 2 + 1] - F.rest[i * 2 + 1]) * dpr >= 0.5) {
+          moved.push(i)
+        }
       }
-      ctx.fill()
+      for (const i of moved) {
+        const x0 = Math.round((box.left + F.rest[i * 2] - half) * dpr)
+        const y0 = Math.round((box.top + F.rest[i * 2 + 1] - half) * dpr)
+        const x1 = Math.round((box.left + F.rest[i * 2] + half) * dpr)
+        const y1 = Math.round((box.top + F.rest[i * 2 + 1] + half) * dpr)
+        ctx.clearRect(x0 - left, y0 - top, x1 - x0, y1 - y0)
+      }
+      for (const i of moved) {
+        const x0 = Math.round((box.left + F.rest[i * 2] - half) * dpr)
+        const y0 = Math.round((box.top + F.rest[i * 2 + 1] - half) * dpr)
+        const x1 = Math.round((box.left + F.rest[i * 2] + half) * dpr)
+        const y1 = Math.round((box.top + F.rest[i * 2 + 1] + half) * dpr)
+        const dx = Math.round((F.pos[i * 2] - F.rest[i * 2]) * dpr)
+        const dy = Math.round((F.pos[i * 2 + 1] - F.rest[i * 2 + 1]) * dpr)
+        ctx.drawImage(S.canvas, x0 - sx, y0 - sy, x1 - x0, y1 - y0, x0 - left + dx, y0 - top + dy, x1 - x0, y1 - y0)
+      }
     }
     raf = requestAnimationFrame(tick)
 

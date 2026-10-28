@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 import { blocks as sourceBlocks } from "./face.content.json";
 import { useLocalized } from "@/i18n/use-localized";
