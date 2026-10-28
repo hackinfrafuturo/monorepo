@@ -1,0 +1,9 @@
+aws_account_id = "123456789012" # Replace with the approved account, not a guessed local profile.
+aws_region = "us-east-1"        # Choose explicitly before planning.
+vpc_cidr = "10.203.0.0/16"    # Verify no overlapping tailnet/subnet routes.
+runtime_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:backoffice/runtime-REPLACE"
+tailscale_auth_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:backoffice/tailscale-REPLACE"
+# Confirm the StableID in the target console. Display names can differ from login names.
+tailscale_expected_tailnet = "TnAZzXkpd211CNTRL"
+# Foundation first. Set to CodeBuild's published sha256 digest for app deployment.
+image_digest = null

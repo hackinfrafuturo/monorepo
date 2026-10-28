@@ -1,0 +1,8 @@
+.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+*.zip
+crash.log
+
+*.backend.hcl

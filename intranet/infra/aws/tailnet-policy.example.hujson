@@ -1,0 +1,15 @@
+// Merge into velum-hackinfrafuturo only. Confirm CIDRs against Terraform outputs.
+// Existing broad grants remain effective; remove overlaps if they defeat this restriction.
+{
+  "tagOwners": { "tag:intranet-router": ["autogroup:admin"] },
+  "grants": [
+    {
+      "src": ["autogroup:member"],
+      "dst": ["10.203.16.0/24", "10.203.17.0/24"],
+      "ip": ["tcp:443"],
+    },
+  ],
+  "tests": [
+    { "src": "organizer@example.com", "accept": ["10.203.16.10:443"], "deny": ["10.203.16.10:3100", "10.203.17.10:22"] },
+  ],
+}

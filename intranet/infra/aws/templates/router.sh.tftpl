@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+dnf install -y dnf-plugins-core python3
+curl --fail --silent --show-error https://pkgs.tailscale.com/stable/amazon-linux/2023/tailscale.repo -o /etc/yum.repos.d/tailscale.repo
+dnf install -y tailscale
+cat > /etc/sysctl.d/99-tailscale.conf <<'SYSCTL'
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+SYSCTL
+sysctl --system
+systemctl enable --now tailscaled
+aws secretsmanager get-secret-value --region '${region}' --secret-id '${secret_arn}' --query SecretString --output text > /run/backoffice-tailscale.key
+trap 'rm -f /run/backoffice-tailscale.key /run/backoffice-tailnet.json' EXIT
+tailscale up --auth-key=file:/run/backoffice-tailscale.key --hostname=hif-backoffice-router --advertise-tags=tag:intranet-router --accept-dns=false --accept-routes=false
+tailscale status --json > /run/backoffice-tailnet.json
+if ! python3 - '${expected_tailnet}' <<'PY'
+import json,sys
+with open('/run/backoffice-tailnet.json') as f: status=json.load(f)
+tailnet=status.get('CurrentTailnet',{})
+sys.exit(0 if status.get('BackendState')=='Running' and sys.argv[1] in (tailnet.get('Name'),tailnet.get('StableID')) else 1)
+PY
+then
+  tailscale down
+  echo 'Enrollment rejected: unexpected tailnet. No subnet routes were advertised.' >&2
+  exit 1
+fi
+tailscale set --advertise-routes='${routes}' --snat-subnet-routes=false
+
+printf '%s' '${identity_service}' | base64 -d > /usr/local/sbin/tailscale-identity.py
+chmod 700 /usr/local/sbin/tailscale-identity.py
+cat > /etc/systemd/system/backoffice-identity.service <<'SERVICE'
+[Unit]
+Description=Private Tailscale identity lookup
+After=tailscaled.service network-online.target
+Requires=tailscaled.service
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/sbin/tailscale-identity.py ${router_ip}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+[Install]
+WantedBy=multi-user.target
+SERVICE
+systemctl daemon-reload
+systemctl enable --now backoffice-identity.service

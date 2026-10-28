@@ -1,6 +1,9 @@
 packages:
   - .
   - deck
+  - intranet
+  - intranet/apps/*
+  - intranet/packages/*
 
 allowBuilds:
   esbuild: true

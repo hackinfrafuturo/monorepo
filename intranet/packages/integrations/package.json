@@ -1,0 +1,11 @@
+{
+  "name": "@intranet/integrations",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./infra-futuro": "./src/infra-futuro.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

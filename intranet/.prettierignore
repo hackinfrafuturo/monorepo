@@ -1,0 +1,3 @@
+node_modules
+.output
+apps/backoffice/src/routeTree.gen.ts

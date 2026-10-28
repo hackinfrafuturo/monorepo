@@ -1,0 +1,14 @@
+// Merge into your existing policy; this is not a complete replacement.
+// Review existing wildcard grants: access rules are additive.
+{
+  "tagOwners": {
+    "tag:intranet": ["autogroup:admin"],
+  },
+  "grants": [
+    {
+      "src": ["autogroup:member"],
+      "dst": ["tag:intranet"],
+      "ip": ["tcp:443"],
+    },
+  ],
+}

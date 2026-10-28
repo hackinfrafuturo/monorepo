@@ -9,6 +9,10 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:intranet": "pnpm --filter @intranet/backoffice dev",
+    "build:intranet": "pnpm --filter @intranet/backoffice build",
+    "start:intranet": "pnpm --filter @intranet/backoffice start",
+    "test:intranet": "pnpm --filter @intranet/workspace test",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "node .output/server/index.mjs",

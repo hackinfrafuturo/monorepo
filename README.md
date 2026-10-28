@@ -4,7 +4,7 @@ Landing for the Santiago hackathon: 5-6 December 2026.
 
 ## Source of truth
 
-[hackinfrafuturo/monorepo](https://github.com/hackinfrafuturo/monorepo) `main` is the canonical code branch for this site. Vercel deploys that branch to [hackinfrafuturo.cl](https://hackinfrafuturo.cl). The [indies-cl/infrastructure-hackathon](https://github.com/indies-cl/infrastructure-hackathon) repository is this repo's upstream fork source; bring over changes explicitly when they are needed for the Velum site.
+[hackinfrafuturo/monorepo](https://github.com/hackinfrafuturo/monorepo) `main` is the canonical branch for the public site and private intranet. The public site is hosted on Vercel at [hackinfrafuturo.cl](https://hackinfrafuturo.cl). The [indies-cl/infrastructure-hackathon](https://github.com/indies-cl/infrastructure-hackathon) repository is the original upstream source; bring over changes explicitly when needed.
 
 ```bash
 pnpm install
@@ -18,6 +18,10 @@ pnpm build
 Deployments are managed by Vercel from the `main` branch.
 
 Live: [hackinfrafuturo.cl](https://hackinfrafuturo.cl)
+
+## Intranet
+
+The private backoffice lives in [`intranet/`](intranet/README.md), in the same pnpm workspace with an independent server and build. Its first feature is registration stats at `/projects/infra-futuro/stats` (`/stats` redirects there on the intranet). Run `pnpm dev:intranet` after configuring its server environment. The public site build does not include the intranet.
 
 ## Deck
 

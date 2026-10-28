@@ -1,0 +1,5 @@
+bucket       = "REPLACE-WITH-APPROVED-PRIVATE-STATE-BUCKET"
+key          = "hackinfrafuturo/backoffice/production.tfstate"
+region       = "us-east-1"
+encrypt      = true
+use_lockfile = true

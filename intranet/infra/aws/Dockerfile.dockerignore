@@ -1,0 +1,16 @@
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!intranet/
+!intranet/**
+intranet/**/node_modules
+intranet/**/.output
+intranet/**/.tanstack
+intranet/**/.env*
+intranet/**/.terraform
+intranet/**/artifacts
+intranet/**/*.tfvars
+intranet/**/*.tfstate*
+intranet/**/*.tfplan
+intranet/**/*.zip

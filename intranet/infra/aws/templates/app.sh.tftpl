@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+dnf install -y docker python3
+systemctl enable --now docker
+cat > /usr/local/sbin/prepare-backoffice <<'PREPARE'
+#!/bin/bash
+set -euo pipefail
+umask 077
+aws secretsmanager get-secret-value --region '${region}' --secret-id '${secret_arn}' --query SecretString --output text > /run/backoffice-secret.json
+trap 'rm -f /run/backoffice-secret.json' EXIT
+python3 <<'PY'
+import json,os
+with open('/run/backoffice-secret.json') as f: secret=json.load(f)
+values={key:secret[key] for key in ['INFRA_FUTURO_API_TOKEN']}
+values.update({
+ 'INFRA_FUTURO_API_URL':'https://polite-spider-810.convex.site',
+ 'INTRANET_AUTH_MODE':'tailscale-alb',
+ 'INTRANET_IDENTITY_URL':'${identity_url}',
+ 'NODE_ENV':'production','PORT':'3100',
+})
+for value in values.values():
+ if not isinstance(value,str) or not value.strip() or '\n' in value or '\r' in value: raise ValueError('Invalid runtime configuration')
+fd=os.open('/run/backoffice.env',os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+with os.fdopen(fd,'w') as f:
+ for key,value in values.items(): f.write(key+'='+value+'\n')
+PY
+aws ecr get-login-password --region '${region}' | docker login --username AWS --password-stdin '${registry}'
+docker pull '${image}'
+PREPARE
+chmod 700 /usr/local/sbin/prepare-backoffice
+cat > /etc/systemd/system/backoffice.service <<'SERVICE'
+[Unit]
+Description=Private backoffice container
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+[Service]
+ExecStartPre=/usr/local/sbin/prepare-backoffice
+ExecStart=/usr/bin/docker run --rm --name backoffice --publish 3100:3100 --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --env-file /run/backoffice.env --log-driver awslogs --log-opt awslogs-region=${region} --log-opt awslogs-group=${log_group} --log-opt awslogs-stream=runtime ${image}
+ExecStop=/usr/bin/docker stop --time 20 backoffice
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=300
+TimeoutStopSec=30
+[Install]
+WantedBy=multi-user.target
+SERVICE
+systemctl daemon-reload
+systemctl enable --now backoffice.service
