@@ -47,15 +47,11 @@ export function setFaceIdInHash(
   }
   if (window.location.hash === nextHash) return;
 
-  // Replace (never push) so each arrow-key step reuses one history entry and
-  // the router's scroll restoration never snaps the deck back mid-navigation.
+  // Keep the existing state: the site's router stores its entry key and
+  // history index there, and a null state resets both.
   const url = new URL(window.location.href);
   url.hash = nextHash;
-  window.history.replaceState(
-    { ...(window.history.state ?? {}), "deck-face": faceId },
-    "",
-    url.toString(),
-  );
+  window.history.replaceState(window.history.state, "", url.toString());
 
   if (!options.silent) {
     window.dispatchEvent(new Event("hashchange"));

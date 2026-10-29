@@ -105,17 +105,6 @@ function useSlidesNavigation({ faces }: { faces: FaceEntry[] }) {
       if (!faceId) return;
       const index = visibleFaces.findIndex((face) => face.id === faceId);
       if (index === -1) return;
-      // Ignore hash changes the deck didn't write (e.g. the embedded site
-      // router's scroll-restoration bookkeeping rewriting the entry).
-      if (
-        typeof window.history.state === "object" &&
-        window.history.state !== null &&
-        "deck-face" in window.history.state &&
-        (window.history.state as Record<string, unknown>)["deck-face"] !==
-          faceId
-      ) {
-        return;
-      }
       setSlideIndex(clamp(index, 0, maxIndex));
     };
     window.addEventListener("hashchange", syncFromHash);
