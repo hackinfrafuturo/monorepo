@@ -29,7 +29,7 @@ const ORGS = [
 
 const SPONSOR_SECTIONS = [
   { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-8 md:max-h-10' },
-  { id: 'croma', name: 'Croma', logo: '/brand/croma.svg', width: 626, height: 85, frame: 'max-h-8 md:max-h-10' },
+  { id: 'croma', name: 'Croma', logo: '/brand/croma.svg', width: 1728, height: 237, frame: 'max-h-8 md:max-h-10' },
   { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-6 md:max-h-8' },
   { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-8 md:max-h-10' },
   { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-6 md:max-h-8' },
