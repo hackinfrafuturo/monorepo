@@ -35,3 +35,38 @@ export const santiago = (when: string | number, withTime = true) =>
     month: 'short',
     ...(withTime ? { hour: '2-digit', minute: '2-digit', hour12: false } : {}),
   }).format(new Date(when))
+
+/** the review scale (convex/admin/review.ts) */
+export const SCORES = [1, 2, 3, 4] as const
+export const SCORE_LABELS: Record<number, string> = {
+  1: 'No',
+  2: 'Dudoso',
+  3: 'Sí',
+  4: 'Sí, sin duda',
+}
+
+/** an average score, the way people say it here: 3,5 */
+export const score = (value: number) =>
+  new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(value)
+
+export const reviewsLabel = (count: number) =>
+  `${count} ${count === 1 ? 'revisión' : 'revisiones'}`
+
+type Entry = {
+  action: 'status' | 'review' | 'capacity'
+  from?: Status
+  to?: Status
+  score?: number
+  capacity?: number
+}
+
+/** what an organizer did, said after their login: "movió de Pendiente a Aceptada" */
+export function describeEntry(entry: Entry) {
+  if (entry.action === 'status' && entry.from && entry.to)
+    return `movió de ${STATUS_LABELS[entry.from]} a ${STATUS_LABELS[entry.to]}`
+  if (entry.action === 'review' && entry.score)
+    return `puntuó ${entry.score} · ${SCORE_LABELS[entry.score] ?? ''}`
+  if (entry.action === 'capacity' && entry.capacity)
+    return `fijó los cupos en ${people(entry.capacity)}`
+  return 'hizo un cambio'
+}

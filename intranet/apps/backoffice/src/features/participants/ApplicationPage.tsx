@@ -1,13 +1,9 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  AlertCircle,
-  ArrowLeft,
-  ChevronDown,
-  ExternalLink,
-  History,
-} from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronDown, History, Mail } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
+import { STATUSES, canMove, type Status } from '@convex/admin/status'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -26,44 +22,48 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   DIET_LABELS,
   GENDER_LABELS,
+  SCORE_LABELS,
   STATUS_LABELS,
+  describeEntry,
+  reviewsLabel,
   santiago,
+  score,
   teamSize,
 } from '../labels'
+import { ACTION_LABELS, DecisionConfirm } from '../decisions/DecisionConfirm'
 import { StatusBadge } from './StatusBadge'
+import { MemberCard } from './MemberCard'
 
 type Application = NonNullable<
   FunctionReturnType<typeof api.admin.applications.get>
 >
-type Member = Application['members'][number]
+type Settings = FunctionReturnType<typeof api.admin.settings.get>
 type Result = {
   status: 'ready' | 'notFound' | 'unconfigured' | 'unavailable'
-  data: Application | null
+  data: (Application & { settings: Settings; acceptedPeople: number }) | null
 }
 
-/** the three questions that say the most about someone, in the form's words */
-const ESSAYS = [
-  ['deep', '¿Qué cosas fuera de lo común hacías mientras crecías?'],
-  ['hardest', '¿Qué es lo más difícil que has logrado?'],
-  ['favorite', 'De las cosas que has creado, ¿cuál es tu favorita?'],
-] as const
-
-/** only http(s) links leave the backoffice; anything else stays as plain text */
-function safeUrl(value: string) {
-  try {
-    const url = new URL(/^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`)
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
-  } catch {
-    return null
-  }
-}
+const EMAIL_STATES = {
+  queued: 'En cola',
+  sent: 'Enviado',
+  skipped: 'No enviado',
+  failed: 'Falló',
+} as const
 
 export function ApplicationPage({ result }: { result: Result }) {
   const application = result.data
+  const [action, setAction] = useState<Status | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const targets = application
+    ? STATUSES.filter((target) => canMove(application.status, target))
+    : []
+  const average = application?.reviews.length
+    ? application.reviews.reduce((sum, review) => sum + review.score, 0) /
+      application.reviews.length
+    : null
   const title = application
     ? application.members.map((member) => member.name).join(', ')
     : 'Inscripción'
@@ -131,11 +131,121 @@ export function ApplicationPage({ result }: { result: Result }) {
             </p>
           </header>
 
+          <section aria-label="Decisión" className="space-y-3">
+            {message && (
+              <p role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
+                {message}
+              </p>
+            )}
+            {action ? (
+              <DecisionConfirm
+                teams={[
+                  {
+                    _id: application._id,
+                    names: application.members.map((member) => member.name),
+                    size: application.size,
+                    status: application.status,
+                  },
+                ]}
+                status={action}
+                capacity={application.settings.capacity}
+                acceptedPeople={application.acceptedPeople}
+                emailsMode={application.settings.decisionEmails}
+                onCancel={() => setAction(null)}
+                onDone={(text) => {
+                  setAction(null)
+                  setMessage(text)
+                }}
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {targets.map((target) => (
+                  <Button
+                    key={target}
+                    size="sm"
+                    variant={target === 'accepted' ? 'default' : 'outline'}
+                    onClick={() => {
+                      setMessage(null)
+                      setAction(target)
+                    }}
+                  >
+                    {ACTION_LABELS[target]}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section aria-label="Integrantes" className="grid min-w-0 gap-4 @min-[56rem]/page:grid-cols-2">
             {application.members.map((member) => (
               <MemberCard key={member._id} member={member} />
             ))}
           </section>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <h2>Revisiones</h2>
+              </CardTitle>
+              <CardDescription>
+                {average === null
+                  ? 'Nadie la ha revisado todavía.'
+                  : `Promedio ${score(average)} · ${reviewsLabel(application.reviews.length)}`}
+              </CardDescription>
+            </CardHeader>
+            {application.reviews.length > 0 && (
+              <CardContent>
+                <ul className="divide-y text-sm">
+                  {application.reviews.map((review) => (
+                    <li key={review._id} className="space-y-1 py-3">
+                      <p className="[overflow-wrap:anywhere]">
+                        <span className="font-medium">{review.reviewer}</span> ·{' '}
+                        <span className="tabular-nums">{review.score}</span>{' '}
+                        {SCORE_LABELS[review.score]}
+                      </p>
+                      {review.note && (
+                        <p className="whitespace-pre-wrap text-muted-foreground [overflow-wrap:anywhere]">
+                          {review.note}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            )}
+          </Card>
+
+          {application.emails.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <h2 className="flex items-center gap-2">
+                    <Mail className="size-4 text-muted-foreground" aria-hidden="true" />
+                    Correos de decisión
+                  </h2>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y text-sm">
+                  {application.emails.map((email) => (
+                    <li key={email._id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                      <span className="[overflow-wrap:anywhere]">
+                        {application.members.find((member) => member._id === email.memberId)?.name ??
+                          'Integrante'}{' '}
+                        · {STATUS_LABELS[email.decision]}
+                      </span>
+                      <span
+                        className="text-muted-foreground"
+                        title={email.error}
+                      >
+                        {EMAIL_STATES[email.state]} · {santiago(email._creationTime)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           <details className="group rounded-xl border bg-card text-card-foreground">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-4 font-medium [&::-webkit-details-marker]:hidden">
@@ -189,10 +299,8 @@ export function ApplicationPage({ result }: { result: Result }) {
                   {application.history.map((entry) => (
                     <li key={entry._id} className="space-y-1 py-3">
                       <p className="[overflow-wrap:anywhere]">
-                        <span className="font-medium">{entry.actor}</span>
-                        {entry.from && entry.to
-                          ? ` la movió de ${STATUS_LABELS[entry.from]} a ${STATUS_LABELS[entry.to]}`
-                          : ' la modificó'}
+                        <span className="font-medium">{entry.actor}</span>{' '}
+                        {describeEntry(entry)}
                       </p>
                       <time
                         dateTime={new Date(entry._creationTime).toISOString()}
@@ -249,69 +357,6 @@ export function ApplicationPage({ result }: { result: Result }) {
         </>
       )}
     </>
-  )
-}
-
-function MemberCard({ member }: { member: Member }) {
-  const links = [
-    member.github && {
-      label: `github.com/${member.github}`,
-      href: safeUrl(`https://github.com/${encodeURIComponent(member.github)}`),
-    },
-    member.linkedin && {
-      label: `linkedin.com/in/${member.linkedin}`,
-      href: safeUrl(`https://www.linkedin.com/in/${encodeURIComponent(member.linkedin)}`),
-    },
-    member.site && { label: member.site, href: safeUrl(member.site) },
-  ].filter((link) => !!link)
-  return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle>
-          <h2 className="[overflow-wrap:anywhere]">{member.name}</h2>
-        </CardTitle>
-        <CardDescription className="[overflow-wrap:anywhere]">
-          {member.role}
-        </CardDescription>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Badge variant={member.coding === 'yes' ? 'secondary' : 'outline'}>
-            {member.coding === 'yes' ? 'Programa' : 'No programa'}
-          </Badge>
-        </div>
-        {links.length > 0 && (
-          <ul className="space-y-1 pt-1 text-sm">
-            {links.map((link) => (
-              <li key={link.label} className="min-w-0">
-                {link.href ? (
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex max-w-full items-center gap-1.5 underline underline-offset-4"
-                  >
-                    <span className="[overflow-wrap:anywhere]">{link.label}</span>
-                    <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-                  </a>
-                ) : (
-                  <span className="[overflow-wrap:anywhere]">{link.label}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {ESSAYS.map(([field, question]) => (
-          <div key={field} className="space-y-1.5">
-            <Separator className="mb-4" />
-            <h3 className="text-sm font-medium text-muted-foreground">{question}</h3>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
-              {member[field]}
-            </p>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
   )
 }
 

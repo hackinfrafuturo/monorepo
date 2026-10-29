@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects.$projectId.index'
+import { Route as ProjectsProjectIdDecisionsRouteImport } from './routes/projects.$projectId.decisions'
+import { Route as ProjectsProjectIdReviewRouteImport } from './routes/projects.$projectId.review'
 import { Route as ProjectsProjectIdStatsRouteImport } from './routes/projects.$projectId.stats'
 import { Route as ProjectsProjectIdParticipantsIndexRouteImport } from './routes/projects.$projectId.participants.index'
 import { Route as ProjectsProjectIdParticipantsApplicationIdRouteImport } from './routes/projects.$projectId.participants.$applicationId'
@@ -37,6 +39,17 @@ const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   path: '/projects/$projectId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdDecisionsRoute =
+  ProjectsProjectIdDecisionsRouteImport.update({
+    id: '/projects/$projectId/decisions',
+    path: '/projects/$projectId/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectsProjectIdReviewRoute = ProjectsProjectIdReviewRouteImport.update({
+  id: '/projects/$projectId/review',
+  path: '/projects/$projectId/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsProjectIdStatsRoute = ProjectsProjectIdStatsRouteImport.update({
   id: '/projects/$projectId/stats',
   path: '/projects/$projectId/stats',
@@ -59,6 +72,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/stats': typeof StatsRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/participants/$applicationId': typeof ProjectsProjectIdParticipantsApplicationIdRoute
@@ -68,6 +83,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/stats': typeof StatsRoute
   '/projects': typeof ProjectsIndexRoute
+  '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/participants/$applicationId': typeof ProjectsProjectIdParticipantsApplicationIdRoute
@@ -78,6 +95,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/stats': typeof StatsRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/participants/$applicationId': typeof ProjectsProjectIdParticipantsApplicationIdRoute
@@ -89,6 +108,8 @@ export interface FileRouteTypes {
     | '/'
     | '/stats'
     | '/projects/'
+    | '/projects/$projectId/decisions'
+    | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId/'
     | '/projects/$projectId/participants/$applicationId'
@@ -98,6 +119,8 @@ export interface FileRouteTypes {
     | '/'
     | '/stats'
     | '/projects'
+    | '/projects/$projectId/decisions'
+    | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId'
     | '/projects/$projectId/participants/$applicationId'
@@ -107,6 +130,8 @@ export interface FileRouteTypes {
     | '/'
     | '/stats'
     | '/projects/'
+    | '/projects/$projectId/decisions'
+    | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId/'
     | '/projects/$projectId/participants/$applicationId'
@@ -117,6 +142,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StatsRoute: typeof StatsRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ProjectsProjectIdDecisionsRoute: typeof ProjectsProjectIdDecisionsRoute
+  ProjectsProjectIdReviewRoute: typeof ProjectsProjectIdReviewRoute
   ProjectsProjectIdStatsRoute: typeof ProjectsProjectIdStatsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdParticipantsApplicationIdRoute: typeof ProjectsProjectIdParticipantsApplicationIdRoute
@@ -153,6 +180,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/decisions': {
+      id: '/projects/$projectId/decisions'
+      path: '/projects/$projectId/decisions'
+      fullPath: '/projects/$projectId/decisions'
+      preLoaderRoute: typeof ProjectsProjectIdDecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/review': {
+      id: '/projects/$projectId/review'
+      path: '/projects/$projectId/review'
+      fullPath: '/projects/$projectId/review'
+      preLoaderRoute: typeof ProjectsProjectIdReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId/stats': {
       id: '/projects/$projectId/stats'
       path: '/projects/$projectId/stats'
@@ -181,6 +222,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StatsRoute: StatsRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ProjectsProjectIdDecisionsRoute: ProjectsProjectIdDecisionsRoute,
+  ProjectsProjectIdReviewRoute: ProjectsProjectIdReviewRoute,
   ProjectsProjectIdStatsRoute: ProjectsProjectIdStatsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   ProjectsProjectIdParticipantsApplicationIdRoute:

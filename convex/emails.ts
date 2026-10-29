@@ -3,6 +3,8 @@
 import { Resend } from 'resend'
 import { v } from 'convex/values'
 import { internalAction } from './_generated/server'
+import { internal } from './_generated/api'
+import { decisionEmail, isTestAddress } from './admin/emailTemplates'
 
 const FROM = 'Infra Futuro <hola@indies.la>'
 const SUBJECT = 'Recibimos tu postulación · Infra Futuro 2026'
@@ -41,6 +43,34 @@ export const sendConfirmation = internalAction({
       { idempotencyKey: `infra-futuro-confirmation/${memberId}` },
     )
     if (error) throw new Error(`Resend could not send confirmation: ${error.message}`)
+    return null
+  },
+})
+
+/**
+ * One decision email (convex/admin/decisions.ts). It only goes out where DECISION_EMAILS=send is set on
+ * the deployment; anywhere else, and for test addresses, it is recorded as skipped. A decision that
+ * changed again before this ran is skipped too, so a team never gets an outdated email.
+ */
+export const sendDecision = internalAction({
+  args: { emailId: v.id('decisionEmails') },
+  returns: v.null(),
+  handler: async (ctx, { emailId }) => {
+    const row = await ctx.runQuery(internal.decisionEmails.load, { emailId })
+    if (!row || row.state !== 'queued') return null
+    const skip = (error: string) => ctx.runMutation(internal.decisionEmails.mark, { emailId, state: 'skipped', error })
+    if (row.current !== row.decision) return void (await skip('The decision changed before sending'))
+    if (process.env.DECISION_EMAILS !== 'send') return void (await skip('Decision emails are off on this deployment'))
+    if (isTestAddress(row.email)) return void (await skip('Test address'))
+    const key = process.env.RESEND_API_KEY
+    if (!key) return void (await ctx.runMutation(internal.decisionEmails.mark, { emailId, state: 'failed', error: 'RESEND_API_KEY is not configured' }))
+
+    const { subject, text, html } = decisionEmail(row.decision, row.name)
+    const { error } = await new Resend(key).emails.send(
+      { from: FROM, to: row.email, subject, text, html },
+      { idempotencyKey: `infra-futuro-decision/${emailId}` },
+    )
+    await ctx.runMutation(internal.decisionEmails.mark, error ? { emailId, state: 'failed', error: error.message } : { emailId, state: 'sent' })
     return null
   },
 })

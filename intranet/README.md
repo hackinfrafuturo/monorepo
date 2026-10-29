@@ -49,6 +49,12 @@ npx convex run seed:run '{"count": 40}'
 npx convex run seed:clear   # removes only the seeded rows
 ```
 
+Organizers score pending teams at `/projects/infra-futuro/review` (1 to 4, one team at a time, without email, gender or anyone else's scores) and decide at `/projects/infra-futuro/decisions`, sorted by average score against the event's capacity in people. Accepting, waitlisting or rejecting queues an email to every member (wording in `convex/admin/emailTemplates.ts`, a draft to review before launch). **Decision emails only go out where `DECISION_EMAILS=send` is set on the Convex deployment**; anywhere else they are recorded as not sent, and `example.com` addresses are never emailed. Turn it on in production only once the wording is approved:
+
+```sh
+npx convex env set DECISION_EMAILS send --prod
+```
+
 Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
 
 ## Access and deployment

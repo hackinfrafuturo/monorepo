@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { query } from '../_generated/server'
-import { statusValidator } from '../schema'
+import { auditFields } from '../schema'
 import { adminArgs, requireAdmin } from './auth'
 
 /** The latest things organizers did, newest first, with the names of the team each one was about. */
@@ -10,11 +10,8 @@ export const recent = query({
     v.object({
       _id: v.id('auditLog'),
       _creationTime: v.number(),
-      actor: v.string(),
-      action: v.literal('status'),
+      ...auditFields,
       applicationId: v.optional(v.id('applications')),
-      from: v.optional(statusValidator),
-      to: v.optional(statusValidator),
       team: v.array(v.string()),
     }),
   ),

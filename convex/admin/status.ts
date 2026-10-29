@@ -7,6 +7,8 @@
  */
 export const STATUSES = ['pending', 'accepted', 'waitlisted', 'rejected', 'withdrawn'] as const
 export type Status = (typeof STATUSES)[number]
+/** the statuses that are decisions, emailed to the team */
+export const STATUS_DECISIONS = ['accepted', 'waitlisted', 'rejected'] as const
 
 /** the moves allowed from each status; correcting a decision is a move like any other, and is logged */
 const NEXT: Record<Status, readonly Status[]> = {

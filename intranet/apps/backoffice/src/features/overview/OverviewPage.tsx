@@ -13,7 +13,7 @@ import {
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
 import { STATUSES } from '@convex/admin/status'
-import { STATUS_LABELS, people, teamSize, teams } from '../labels'
+import { STATUS_LABELS, describeEntry, people, teamSize, teams } from '../labels'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -252,14 +252,11 @@ export function OverviewPage({ result }: { result: Result }) {
                     {data.activity.map((entry) => (
                       <li key={entry._id} className="space-y-1 py-3">
                         <p className="[overflow-wrap:anywhere]">
-                          <span className="font-medium">{entry.actor}</span> movió a{' '}
-                          <span className="font-medium">
-                            {entry.team.join(', ') || 'una inscripción'}
-                          </span>
-                          {entry.from && entry.to && (
+                          <span className="font-medium">{entry.actor}</span>{' '}
+                          {describeEntry(entry)}
+                          {entry.team.length > 0 && (
                             <>
-                              {' '}de {STATUS_LABELS[entry.from]} a{' '}
-                              {STATUS_LABELS[entry.to]}
+                              {' '}· <span className="font-medium">{entry.team.join(', ')}</span>
                             </>
                           )}
                         </p>

@@ -3,6 +3,18 @@ import { v } from 'convex/values'
 import { STATUSES } from './admin/status'
 
 export const statusValidator = v.union(...STATUSES.map((status) => v.literal(status)))
+/** the decisions that are emailed to the team */
+export const decisionValidator = v.union(v.literal('accepted'), v.literal('waitlisted'), v.literal('rejected'))
+export const auditActionValidator = v.union(v.literal('status'), v.literal('review'), v.literal('capacity'))
+/** an audit entry, as stored and as the admin API returns it */
+export const auditFields = {
+  actor: v.string(),
+  action: auditActionValidator,
+  from: v.optional(statusValidator),
+  to: v.optional(statusValidator),
+  score: v.optional(v.number()),
+  capacity: v.optional(v.number()),
+}
 
 export const memberValidator = v.object({
   name: v.string(),
@@ -42,13 +54,35 @@ export default defineSchema({
     .index('by_submittedAt', ['submittedAt'])
     .index('by_status', ['status', 'submittedAt']),
   // What organizers did in the backoffice, and who did it: for attribution, not access (everyone on
-  // the tailnet is an admin). More actions join the union as the backoffice grows.
-  auditLog: defineTable({
+  // the tailnet is an admin). `from`/`to` for a status change, `score` for a review, `capacity` for
+  // the event's places.
+  auditLog: defineTable({ ...auditFields, applicationId: v.optional(v.id('applications')) }).index(
+    'by_application',
+    ['applicationId'],
+  ),
+  // One organizer's score for one team (convex/admin/review.ts); scoring again replaces it.
+  reviews: defineTable({
+    applicationId: v.id('applications'),
+    reviewer: v.string(),
+    score: v.number(),
+    note: v.optional(v.string()),
+  })
+    .index('by_application', ['applicationId'])
+    .index('by_reviewer', ['reviewer', 'applicationId']),
+  // Event-wide settings for the backoffice, a single row.
+  settings: defineTable({
+    /** places for people (not teams) */
+    capacity: v.optional(v.number()),
+  }),
+  // Every decision email, one per member: queued when the decision is made, then sent, skipped (when
+  // this deployment doesn't send decision emails, or for test addresses) or failed.
+  decisionEmails: defineTable({
+    applicationId: v.id('applications'),
+    memberId: v.id('members'),
+    decision: decisionValidator,
     actor: v.string(),
-    action: v.literal('status'),
-    applicationId: v.optional(v.id('applications')),
-    from: v.optional(statusValidator),
-    to: v.optional(statusValidator),
+    state: v.union(v.literal('queued'), v.literal('sent'), v.literal('skipped'), v.literal('failed')),
+    error: v.optional(v.string()),
   }).index('by_application', ['applicationId']),
   members: defineTable({
     applicationId: v.id('applications'),

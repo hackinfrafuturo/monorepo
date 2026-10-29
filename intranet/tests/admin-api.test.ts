@@ -45,3 +45,19 @@ test('the backoffice only talks to a configured HTTPS Convex origin', () => {
   for (const url of ['http://x.convex.cloud', 'https://x.convex.cloud/path', 'https://u:p@x.convex.cloud'])
     assert.throws(() => adminConvex({ ...secret, INFRA_FUTURO_CONVEX_URL: url }))
 })
+
+test('decision emails greet each member, escape their name, and never go to test addresses', async () => {
+  const { decisionEmail, isTestAddress } = await import('../../convex/admin/emailTemplates.ts')
+  for (const decision of ['accepted', 'waitlisted', 'rejected'] as const) {
+    const email = decisionEmail(decision, 'Ana <b>')
+    assert.match(email.subject, /Infra Futuro 2026/)
+    assert.match(email.text, /^hi Ana <b>,/)
+    assert.ok(email.html.includes('hi Ana &lt;b&gt;,'))
+    assert.ok(!email.html.includes('<b>'))
+  }
+  assert.notEqual(decisionEmail('accepted', 'A').subject, decisionEmail('rejected', 'A').subject)
+  assert.ok(isTestAddress('seed+1@example.com'))
+  assert.ok(isTestAddress(' X@Example.ORG '))
+  assert.equal(isTestAddress('ana@gmail.com'), false)
+  assert.equal(isTestAddress('ana@example.com.evil.cl'), false)
+})
