@@ -36,6 +36,21 @@ pnpm dev:intranet
 
 Open `http://127.0.0.1:3100/stats`. Without an API token the page explicitly reports an unconfigured connection, never fake or zero registrations. Without a verified identity it denies access. The local identity override is development-only and is rejected by the production launcher.
 
+## Admin API and test data
+
+Pages beyond the stats read and change data through typed Convex functions in `convex/admin/` (the overview at `/projects/infra-futuro` is the first). The backoffice server calls them with `ConvexHttpClient` and the generated `api` types, adding two things to every call: `INFRA_FUTURO_ADMIN_SECRET`, which must match `ADMIN_API_SECRET` on the deployment, and the organizer's verified Tailscale login, which goes into the `auditLog` table. Everyone on the tailnet is an admin, so there are no roles; the secret only keeps everyone else out of those public functions. Decisions are per application (a team is decided as one); the allowed status changes live in `convex/admin/status.ts`.
+
+To get realistic data on a development deployment (never production), from the repository root:
+
+```sh
+npx convex env set ADMIN_API_SECRET "$(openssl rand -hex 32)"   # copy the same value into .env.local
+npx convex env set ALLOW_SEED true
+npx convex run seed:run '{"count": 40}'
+npx convex run seed:clear   # removes only the seeded rows
+```
+
+Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
+
 ## Access and deployment
 
 For `backoffice.hackinfrafuturo.cl`, use the [private AWS deployment runbook](infra/aws/README.md). It prepares an internal ALB, ACM HTTPS, automatic Tailscale identity verified by the subnet router, a Tailscale subnet router, and a private app group. The setup below remains available for direct Tailscale Serve deployments.

@@ -17,6 +17,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
@@ -125,29 +128,56 @@ function ProjectSidebar({ session }: { session: Session }) {
           <SidebarGroupLabel>Proyectos</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {session.projects.map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(`/projects/${project.id}/`)}
-                    size="lg"
-                  >
-                    <Link
-                      to="/projects/$projectId/stats"
-                      params={{ projectId: project.id }}
-                      onClick={() => setOpenMobile(false)}
+              {session.projects.map((project) => {
+                const base = `/projects/${project.id}`
+                return (
+                  <SidebarMenuItem key={project.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === base || pathname === `${base}/`}
                     >
-                      <ClipboardList />
-                      <span className="grid gap-0.5">
+                      <Link
+                        to="/projects/$projectId"
+                        params={{ projectId: project.id }}
+                        onClick={() => setOpenMobile(false)}
+                      >
+                        <ClipboardList />
                         <span>{project.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Inscripciones
-                        </span>
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      </Link>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname === base || pathname === `${base}/`}
+                        >
+                          <Link
+                            to="/projects/$projectId"
+                            params={{ projectId: project.id }}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            Resumen
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname.startsWith(`${base}/stats`)}
+                        >
+                          <Link
+                            to="/projects/$projectId/stats"
+                            params={{ projectId: project.id }}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            Inscripciones
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

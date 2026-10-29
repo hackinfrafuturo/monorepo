@@ -8,6 +8,11 @@
  * @module
  */
 
+import type * as admin_activity from "../admin/activity.js";
+import type * as admin_auth from "../admin/auth.js";
+import type * as admin_decisions from "../admin/decisions.js";
+import type * as admin_overview from "../admin/overview.js";
+import type * as admin_status from "../admin/status.js";
 import type * as apiData from "../apiData.js";
 import type * as applications from "../applications.js";
 import type * as breakout from "../breakout.js";
@@ -16,6 +21,7 @@ import type * as emails from "../emails.js";
 import type * as github from "../github.js";
 import type * as http from "../http.js";
 import type * as runner from "../runner.js";
+import type * as seed from "../seed.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +30,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/activity": typeof admin_activity;
+  "admin/auth": typeof admin_auth;
+  "admin/decisions": typeof admin_decisions;
+  "admin/overview": typeof admin_overview;
+  "admin/status": typeof admin_status;
   apiData: typeof apiData;
   applications: typeof applications;
   breakout: typeof breakout;
@@ -32,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   github: typeof github;
   http: typeof http;
   runner: typeof runner;
+  seed: typeof seed;
 }>;
 
 /**

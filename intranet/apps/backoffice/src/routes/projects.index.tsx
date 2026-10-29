@@ -30,7 +30,7 @@ function Projects() {
         {projects.map((project) => (
           <Link
             key={project.id}
-            to="/projects/$projectId/stats"
+            to="/projects/$projectId"
             params={{ projectId: project.id }}
             className="group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -45,10 +45,10 @@ function Projects() {
                 <CardDescription>{project.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Badge variant="outline">Inscripciones</Badge>
+                <Badge variant="outline">Resumen e inscripciones</Badge>
               </CardContent>
               <CardFooter className="mt-auto justify-between text-sm">
-                Ver inscripciones{' '}
+                Abrir proyecto{' '}
                 <ArrowUpRight
                   className="size-4 text-muted-foreground"
                   aria-hidden="true"

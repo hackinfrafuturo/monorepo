@@ -1,0 +1,47 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { STATUSES, canMove, statusOf } from '../../convex/admin/status.ts'
+import { requireAdmin } from '../../convex/admin/auth.ts'
+import { adminConvex } from '../apps/backoffice/src/server/convex.ts'
+
+test('applications without a status are pending, and no status moves to itself', () => {
+  assert.equal(statusOf({}), 'pending')
+  assert.equal(statusOf({ status: 'accepted' }), 'accepted')
+  for (const status of STATUSES) assert.equal(canMove(status, status), false)
+})
+
+test('decisions can be made and corrected, a withdrawal only reopens', () => {
+  assert.ok(canMove('pending', 'accepted'))
+  assert.ok(canMove('waitlisted', 'accepted'))
+  assert.ok(canMove('accepted', 'waitlisted'))
+  assert.ok(canMove('rejected', 'pending'))
+  assert.equal(canMove('withdrawn', 'accepted'), false)
+  assert.ok(canMove('withdrawn', 'pending'))
+})
+
+test('the admin gate needs the deployment secret and a single login', () => {
+  const previous = process.env.ADMIN_API_SECRET
+  try {
+    delete process.env.ADMIN_API_SECRET
+    assert.throws(() => requireAdmin({ secret: 'x', actor: 'a@github' }), /not configured/)
+    process.env.ADMIN_API_SECRET = 'right-secret'
+    assert.equal(requireAdmin({ secret: 'right-secret', actor: ' Organizer@GitHub ' }), 'organizer@github')
+    for (const secret of ['wrong-secret', 'right-secre', 'right-secrett', ''])
+      assert.throws(() => requireAdmin({ secret, actor: 'a@github' }), /Unauthorized/)
+    for (const actor of ['', '  ', 'a@github,b@github', 'two words'])
+      assert.throws(() => requireAdmin({ secret: 'right-secret', actor }), /Unauthorized/)
+  } finally {
+    if (previous === undefined) delete process.env.ADMIN_API_SECRET
+    else process.env.ADMIN_API_SECRET = previous
+  }
+})
+
+test('the backoffice only talks to a configured HTTPS Convex origin', () => {
+  assert.equal(adminConvex({}), null)
+  assert.equal(adminConvex({ INFRA_FUTURO_CONVEX_URL: 'https://x.convex.cloud' }), null)
+  const secret = { INFRA_FUTURO_ADMIN_SECRET: 's' }
+  assert.ok(adminConvex({ ...secret, INFRA_FUTURO_CONVEX_URL: 'https://x.convex.cloud' }))
+  assert.ok(adminConvex({ ...secret, INFRA_FUTURO_CONVEX_URL: 'http://127.0.0.1:3210' }))
+  for (const url of ['http://x.convex.cloud', 'https://x.convex.cloud/path', 'https://u:p@x.convex.cloud'])
+    assert.throws(() => adminConvex({ ...secret, INFRA_FUTURO_CONVEX_URL: url }))
+})

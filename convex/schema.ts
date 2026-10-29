@@ -1,5 +1,8 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { STATUSES } from './admin/status'
+
+export const statusValidator = v.union(...STATUSES.map((status) => v.literal(status)))
 
 export const memberValidator = v.object({
   name: v.string(),
@@ -29,9 +32,24 @@ export default defineSchema({
     submittedAt: v.number(),
     size: v.number(),
     ref: v.optional(v.string()),
+    // the team's decision (convex/admin/status.ts); absent means pending
+    status: v.optional(statusValidator),
+    decidedAt: v.optional(v.number()),
+    /** the organizer's Tailscale login */
+    decidedBy: v.optional(v.string()),
   })
     .index('by_ref', ['ref'])
-    .index('by_submittedAt', ['submittedAt']),
+    .index('by_submittedAt', ['submittedAt'])
+    .index('by_status', ['status', 'submittedAt']),
+  // What organizers did in the backoffice, and who did it: for attribution, not access (everyone on
+  // the tailnet is an admin). More actions join the union as the backoffice grows.
+  auditLog: defineTable({
+    actor: v.string(),
+    action: v.literal('status'),
+    applicationId: v.optional(v.id('applications')),
+    from: v.optional(statusValidator),
+    to: v.optional(statusValidator),
+  }).index('by_application', ['applicationId']),
   members: defineTable({
     applicationId: v.id('applications'),
     ...memberValidator.fields,
