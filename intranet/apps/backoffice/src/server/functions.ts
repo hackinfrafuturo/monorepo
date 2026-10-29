@@ -49,15 +49,7 @@ export const getProjectOverview = createServerFn({ method: 'GET' })
     return { projectId: input.projectId }
   })
   .handler(async ({ data }) => {
-    const { login } = await requestAccess(
-      getRequest(),
-      process.env,
-      import.meta.env.DEV,
-      data.projectId,
-    )
-    if (data.projectId !== 'infra-futuro')
-      throw new AccessError(404, 'Overview is not available for this project.')
-    const convex = adminConvex(process.env)
+    const { login, convex } = await adminFor(data.projectId)
     if (!convex) return { status: 'unconfigured' as const, data: null }
     try {
       const [overview, activity] = await Promise.all([
@@ -71,6 +63,63 @@ export const getProjectOverview = createServerFn({ method: 'GET' })
     } catch (error) {
       // Logged here for whoever runs the server; nothing upstream reaches the browser.
       console.error('Overview failed:', error)
+      return { status: 'unavailable' as const, data: null }
+    }
+  })
+
+const projectInput = (input: { projectId: string }) => {
+  if (!input || typeof input.projectId !== 'string')
+    throw new Error('Project is required.')
+  return { projectId: input.projectId }
+}
+
+/** checks the organizer and the project, and returns the organizer's login and the admin API (or null) */
+async function adminFor(projectId: string) {
+  const { login } = await requestAccess(
+    getRequest(),
+    process.env,
+    import.meta.env.DEV,
+    projectId,
+  )
+  if (projectId !== 'infra-futuro')
+    throw new AccessError(404, 'This page is not available for this project.')
+  return { login, convex: adminConvex(process.env) }
+}
+
+export const getApplications = createServerFn({ method: 'GET' })
+  .validator(projectInput)
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { status: 'unconfigured' as const, data: null }
+    try {
+      return {
+        status: 'ready' as const,
+        data: await convex.query(api.admin.applications.list, login, {}),
+      }
+    } catch (error) {
+      console.error('Applications failed:', error)
+      return { status: 'unavailable' as const, data: null }
+    }
+  })
+
+export const getApplication = createServerFn({ method: 'GET' })
+  .validator((input: { projectId: string; applicationId: string }) => {
+    if (!input || typeof input.applicationId !== 'string')
+      throw new Error('Application is required.')
+    return { ...projectInput(input), applicationId: input.applicationId }
+  })
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { status: 'unconfigured' as const, data: null }
+    try {
+      const application = await convex.query(api.admin.applications.get, login, {
+        applicationId: data.applicationId,
+      })
+      return application
+        ? { status: 'ready' as const, data: application }
+        : { status: 'notFound' as const, data: null }
+    } catch (error) {
+      console.error('Application failed:', error)
       return { status: 'unavailable' as const, data: null }
     }
   })

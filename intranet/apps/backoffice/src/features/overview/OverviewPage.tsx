@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
-import type { Status } from '@convex/admin/status'
 import { STATUSES } from '@convex/admin/status'
+import { STATUS_LABELS, people, teamSize, teams } from '../labels'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -40,14 +40,6 @@ type Result = {
   data: { overview: Overview; activity: Activity; checkedAt: string } | null
 }
 
-const STATUS_LABELS: Record<Status, string> = {
-  pending: 'Pendiente',
-  accepted: 'Aceptada',
-  waitlisted: 'En lista de espera',
-  rejected: 'Rechazada',
-  withdrawn: 'Retirada',
-}
-
 const time = (iso: string | number, withDate = false) =>
   new Intl.DateTimeFormat('es-CL', {
     timeZone: 'America/Santiago',
@@ -56,9 +48,6 @@ const time = (iso: string | number, withDate = false) =>
     minute: '2-digit',
     hour12: false,
   }).format(new Date(iso))
-
-const people = (n: number) => `${n} ${n === 1 ? 'persona' : 'personas'}`
-const teams = (n: number) => `${n} ${n === 1 ? 'inscripción' : 'inscripciones'}`
 
 export function OverviewPage({ result }: { result: Result }) {
   const router = useRouter()
@@ -182,7 +171,7 @@ export function OverviewPage({ result }: { result: Result }) {
                   <h2>Por estado</h2>
                 </CardTitle>
                 <CardDescription>
-                  Cada equipo se decide completo.
+                  Cada equipo se decide completo. Abre un estado para ver sus equipos.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -190,17 +179,21 @@ export function OverviewPage({ result }: { result: Result }) {
                   {STATUSES.map((status) => {
                     const counts = data.overview.byStatus[status]
                     return (
-                      <li
-                        key={status}
-                        className="flex items-center justify-between gap-3 py-2.5"
-                      >
-                        <span>{STATUS_LABELS[status]}</span>
-                        <span className="text-right text-muted-foreground tabular-nums">
-                          <strong className="font-medium text-foreground">
-                            {counts.applications}
-                          </strong>{' '}
-                          · {people(counts.people)}
-                        </span>
+                      <li key={status}>
+                        <Link
+                          to="/projects/$projectId/participants"
+                          params={{ projectId: 'infra-futuro' }}
+                          search={{ status }}
+                          className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2.5 outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <span>{STATUS_LABELS[status]}</span>
+                          <span className="text-right text-muted-foreground tabular-nums">
+                            <strong className="font-medium text-foreground">
+                              {counts.applications}
+                            </strong>{' '}
+                            · {people(counts.people)}
+                          </span>
+                        </Link>
                       </li>
                     )
                   })}
@@ -223,7 +216,7 @@ export function OverviewPage({ result }: { result: Result }) {
                         key={size}
                         className="flex items-center justify-between gap-3 py-2.5"
                       >
-                        <span>{size === 1 ? 'Individual' : `Equipo de ${size}`}</span>
+                        <span>{teamSize(size)}</span>
                         <strong className="font-medium tabular-nums">
                           {applications}
                         </strong>

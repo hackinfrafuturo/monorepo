@@ -163,6 +163,20 @@ function ProjectSidebar({ session }: { session: Session }) {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
                           asChild
+                          isActive={pathname.startsWith(`${base}/participants`)}
+                        >
+                          <Link
+                            to="/projects/$projectId/participants"
+                            params={{ projectId: project.id }}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            Participantes
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
                           isActive={pathname.startsWith(`${base}/stats`)}
                         >
                           <Link
