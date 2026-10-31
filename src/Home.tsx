@@ -28,22 +28,50 @@ const ORGS = [
 ] as const satisfies readonly { id: OrgId; name: string; logo: string; size: number }[]
 
 const SPONSOR_SECTIONS = [
-  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397, frame: 'max-h-8 md:max-h-10' },
-  { id: 'croma', name: 'Croma', logo: '/brand/croma.svg', width: 1728, height: 237, frame: 'max-h-8 md:max-h-10' },
-  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90, frame: 'max-h-6 md:max-h-8' },
-  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40, frame: 'max-h-8 md:max-h-10' },
-  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131, frame: 'max-h-6 md:max-h-8' },
+  { id: 'markip', name: 'Markip', logo: '/brand/markip.svg', width: 1311, height: 397 },
+  { id: 'croma', name: 'Croma', logo: '/brand/croma.svg', width: 1728, height: 237 },
+  { id: 'elevenlabs', name: 'ElevenLabs', logo: '/brand/elevenlabs.svg', width: 694, height: 90 },
+  { id: 'firecrawl', name: 'Firecrawl', logo: '/brand/firecrawl.svg', width: 172, height: 40 },
+  { id: 'wispr-flow', name: 'Wispr Flow', logo: '/brand/wispr-flow.svg', width: 807, height: 131 },
 ] as const satisfies readonly {
   id: SponsorId
   name: string
   logo: string
   width: number
   height: number
-  frame: string
 }[]
 
-const SPONSOR_LOGOS = [
-  ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}` })),
+/** Frame per tier: gold is grade 2 (more room), silver is grade 3 (less emphasis). */
+const SPONSOR_TIER_FRAME = {
+  gold: 'max-h-12 md:max-h-16',
+  silver: 'max-h-6 md:max-h-8',
+} as const
+
+type SponsorLogo = {
+  id: string
+  name: string
+  logo: string
+  width: number
+  height: number
+  href: string
+  tier: keyof typeof SPONSOR_TIER_FRAME
+  /** Overrides the tier frame when one logo needs to read bigger or smaller. */
+  frame?: string
+}
+
+const SPONSOR_LOGOS: readonly SponsorLogo[] = [
+  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 850, height: 354, href: 'https://flyra.io', tier: 'gold' },
+  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', tier: 'gold' },
+  {
+    id: 'cchc',
+    name: 'Cámara Chilena de la Construcción',
+    logo: '/brand/cchc.png',
+    width: 824,
+    height: 313,
+    href: 'https://cchc.cl',
+    tier: 'gold',
+  },
+  ...SPONSOR_SECTIONS.map((sponsor) => ({ ...sponsor, href: `#${sponsor.id}`, tier: 'silver' as const })),
   {
     id: 'cenia',
     name: 'Centro Nacional de Inteligencia Artificial',
@@ -51,13 +79,14 @@ const SPONSOR_LOGOS = [
     width: 606,
     height: 184,
     href: 'https://cenia.cl',
-    frame: 'max-h-10 md:max-h-12',
+    tier: 'silver',
   },
-  { id: 'flyra', name: 'Flyra', logo: '/brand/flyra.png', width: 850, height: 354, href: 'https://flyra.io', frame: 'max-h-10 md:max-h-12' },
-  { id: 'payku', name: 'Payku', logo: '/brand/payku.png', width: 640, height: 216, href: 'https://payku.com', frame: 'max-h-8 md:max-h-10' },
-  { id: 'udd', name: 'Universidad del Desarrollo', logo: '/brand/udd.svg', width: 264, height: 45, href: 'https://www.udd.cl', frame: 'max-h-9 md:max-h-11' },
-  { id: 'smart-plus', name: 'Smart Plus Robotics', logo: '/brand/smart-plus.webp', width: 1782, height: 852, href: 'https://smartplusrobotics.com', frame: 'max-h-11 md:max-h-14' },
-] as const
+  { id: 'udd', name: 'Universidad del Desarrollo', logo: '/brand/udd.svg', width: 264, height: 45, href: 'https://www.udd.cl', tier: 'silver' },
+  { id: 'smart-plus', name: 'Smart Plus Robotics', logo: '/brand/smart-plus.webp', width: 1782, height: 852, href: 'https://smartplusrobotics.com', tier: 'silver' },
+]
+
+const GOLD_SPONSORS = SPONSOR_LOGOS.filter((sponsor) => sponsor.tier === 'gold')
+const SILVER_SPONSORS = SPONSOR_LOGOS.filter((sponsor) => sponsor.tier === 'silver')
 
 const RULE = 'border-[#d6d4d0]'
 
@@ -91,6 +120,38 @@ const DOOR_THEME = {
     arrow: 'text-[#f4f2ee]',
   },
 } as const
+
+function SponsorLogoList({
+  sponsors,
+  listClassName,
+  itemClassName,
+}: {
+  sponsors: readonly SponsorLogo[]
+  listClassName: string
+  itemClassName: string
+}) {
+  return (
+    <ul className={`grid items-center ${listClassName}`}>
+      {sponsors.map(({ id, name, logo, width, height, href, tier, frame }) => (
+        <li key={id} className={`flex min-w-0 max-w-full justify-center ${itemClassName}`}>
+          <a
+            href={href}
+            className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
+            <img
+              src={logo}
+              alt={name}
+              width={width}
+              height={height}
+              decoding="async"
+              className={`h-auto w-auto max-w-full object-contain ${frame ?? SPONSOR_TIER_FRAME[tier]}`}
+            />
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function SponsorSection({
   sponsor,
@@ -380,29 +441,19 @@ export default function Home() {
           <h2 id="sponsor-logos-title" className="font-mono text-base leading-7 text-[#5a5956] md:col-span-2 md:text-lg md:leading-8">
             {t.sponsorLogosTitle}
           </h2>
-          {/* Three rows: four logos, then two rows of three. Twelve tracks let 3 and 4 both fill a row. */}
-          <ul className="grid grid-cols-2 items-center gap-x-12 gap-y-10 sm:grid-cols-3 md:col-span-2 md:grid-cols-12 md:gap-y-14">
-            {SPONSOR_LOGOS.map(({ id, name, logo, width, height, href, frame }, i) => (
-              <li
-                key={id}
-                className={`flex min-w-0 max-w-full justify-center ${i < 4 ? 'md:col-span-3' : 'md:col-span-4'}`}
-              >
-                <a
-                  href={href}
-                  className="block outline-none transition-opacity duration-75 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
-                >
-                  <img
-                    src={logo}
-                    alt={name}
-                    width={width}
-                    height={height}
-                    decoding="async"
-                    className={`h-auto w-auto max-w-full object-contain ${frame}`}
-                  />
-                </a>
-              </li>
-            ))}
-          </ul>
+          {/* Two unlabeled tiers: gold at grade 2, then silver at grade 3. */}
+          <div className="flex flex-col gap-12 md:col-span-2 md:gap-16">
+            <SponsorLogoList
+              sponsors={GOLD_SPONSORS}
+              listClassName="grid-cols-3 gap-x-6 gap-y-10 sm:gap-x-12 md:grid-cols-12"
+              itemClassName="md:col-span-4"
+            />
+            <SponsorLogoList
+              sponsors={SILVER_SPONSORS}
+              listClassName="grid-cols-2 gap-x-12 gap-y-10 sm:grid-cols-4 md:grid-cols-12 md:gap-y-14"
+              itemClassName="md:col-span-3"
+            />
+          </div>
         </div>
       </section>
 
