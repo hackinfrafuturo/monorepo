@@ -93,6 +93,8 @@ aws ecr describe-images --repository-name "$repository" --image-ids "imageTag=$s
 
 Set `image_digest` to that exact `sha256:...` value in `production.tfvars`. Review the resulting plan before applying:
 
+For an existing deployment, also set `router_ami_id` to the running router's actual AMI (`aws ec2 describe-instances --instance-ids ROUTER_INSTANCE_ID --query 'Reservations[0].Instances[0].ImageId' --output text`). Pinning the existing image prevents Amazon Linux image releases from replacing the only subnet router during an unrelated app rollout. Any router replacement needs its own enrollment and route-approval plan. An app rollout plan should update only the app launch template and Auto Scaling group.
+
 ```sh
 terraform -chdir=intranet/infra/aws plan -var-file=production.tfvars -out=/tmp/backoffice-app.tfplan
 terraform -chdir=intranet/infra/aws apply /tmp/backoffice-app.tfplan

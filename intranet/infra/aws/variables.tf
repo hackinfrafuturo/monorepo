@@ -68,6 +68,16 @@ variable "image_digest" {
   }
 }
 
+variable "router_ami_id" {
+  type        = string
+  default     = null
+  description = "Pin the running router's AMI before app rollouts; null selects the latest Amazon Linux AMI for initial provisioning. Router upgrades require a separate planned replacement."
+  validation {
+    condition     = var.router_ami_id == null ? true : can(regex("^ami-[a-f0-9]{8,17}$", var.router_ami_id))
+    error_message = "Use the existing router's AMI ID."
+  }
+}
+
 provider "aws" {
   region              = var.aws_region
   allowed_account_ids = [var.aws_account_id]
