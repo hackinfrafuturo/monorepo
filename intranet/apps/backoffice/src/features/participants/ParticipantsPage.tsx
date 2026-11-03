@@ -227,7 +227,7 @@ function Row({ application }: { application: Application }) {
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span>{teamSize(application.size)}</span>
           {noCode && <Badge variant="outline">No programa</Badge>}
-          <span className="@min-[46rem]/page:hidden">· {santiago(application.submittedAt, false)}</span>
+          <span className="@min-[46rem]/page:hidden">· {santiago(application.submittedAt)}</span>
           {average !== null && (
             <span className="@min-[46rem]/page:hidden">· Puntaje {score(average)}</span>
           )}
@@ -235,7 +235,7 @@ function Row({ application }: { application: Application }) {
         <StatusBadge status={application.status} className="mt-1 @min-[46rem]/page:hidden" />
       </td>
       <td className="hidden py-2.5 pr-4 align-top whitespace-nowrap text-muted-foreground @min-[46rem]/page:table-cell">
-        {santiago(application.submittedAt, false)}
+        {santiago(application.submittedAt)}
       </td>
       <td className="hidden max-w-36 truncate py-2.5 pr-4 align-top text-muted-foreground @min-[46rem]/page:table-cell">
         {application.ref ?? '—'}
