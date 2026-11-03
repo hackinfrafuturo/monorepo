@@ -31,7 +31,7 @@ variable "vpc_cidr" {
 }
 variable "runtime_secret_arn" {
   type        = string
-  description = "Existing Secrets Manager JSON secret: INFRA_FUTURO_API_TOKEN. Never put values in Terraform."
+  description = "Existing Secrets Manager JSON secret: INFRA_FUTURO_API_TOKEN and INFRA_FUTURO_ADMIN_SECRET. Never put values in Terraform."
   validation {
     condition     = can(regex("^arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:[A-Za-z0-9/_+=.@-]+$", var.runtime_secret_arn))
     error_message = "Use a Secrets Manager ARN in the selected region and account."

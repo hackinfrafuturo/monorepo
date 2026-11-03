@@ -12,9 +12,10 @@ trap 'rm -f /run/backoffice-secret.json' EXIT
 python3 <<'PY'
 import json,os
 with open('/run/backoffice-secret.json') as f: secret=json.load(f)
-values={key:secret[key] for key in ['INFRA_FUTURO_API_TOKEN']}
+values={key:secret[key] for key in ['INFRA_FUTURO_API_TOKEN', 'INFRA_FUTURO_ADMIN_SECRET']}
 values.update({
  'INFRA_FUTURO_API_URL':'https://polite-spider-810.convex.site',
+ 'INFRA_FUTURO_CONVEX_URL':'https://polite-spider-810.convex.cloud',
  'INTRANET_AUTH_MODE':'tailscale-alb',
  'INTRANET_IDENTITY_URL':'${identity_url}',
  'NODE_ENV':'production','PORT':'3100',

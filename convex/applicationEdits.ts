@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values'
-import { internalMutation, mutation, query, type QueryCtx } from './_generated/server'
+import { internalMutation, mutation, type QueryCtx } from './_generated/server'
 import type { Doc } from './_generated/dataModel'
 import { checkTeam } from '../src/apply/schema'
 import { firstErrorKey } from '../src/apply/model'
@@ -23,7 +23,7 @@ async function memberFor(ctx: QueryCtx, token: string): Promise<Doc<'members'> |
   if (!/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null
   const tokenHash = await hashToken(token)
   const link = await ctx.db.query('editLinks').withIndex('by_hash', (q) => q.eq('tokenHash', tokenHash)).first()
-  if (!link || link.expiresAt < Date.now()) return null
+  if (!link || link.expiresAt <= Date.now()) return null
   return ctx.db.get(link.memberId)
 }
 
@@ -39,7 +39,9 @@ export const createLink = internalMutation({
   },
 })
 
-export const load = query({
+// A query can cache a successful read past expiresAt without any database change.
+// A read-only mutation checks the clock on every request, including repeated opens.
+export const load = mutation({
   args: { token: v.string() },
   returns: v.union(v.null(), memberValidator),
   handler: async (ctx, { token }) => {
