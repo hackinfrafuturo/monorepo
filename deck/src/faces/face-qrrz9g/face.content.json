@@ -5,11 +5,6 @@
       "title": "title",
       "content": "Sponsorship tiers"
     },
-    "description": {
-      "type": "text",
-      "title": "description",
-      "content": "<strong>Higher tiers include all benefits from earlier tiers.</strong> Custom prize tracks and dedicated cloud credits available on request."
-    },
     "plan1": {
       "type": "text",
       "title": "plan1",
@@ -24,6 +19,36 @@
       "type": "text",
       "title": "plan3",
       "content": "Gold"
+    },
+    "tagline1": {
+      "type": "text",
+      "title": "tagline1",
+      "content": "Be seen"
+    },
+    "tagline2": {
+      "type": "text",
+      "title": "tagline2",
+      "content": "Engage the builders"
+    },
+    "tagline3": {
+      "type": "text",
+      "title": "tagline3",
+      "content": "Own a challenge"
+    },
+    "plus1": {
+      "type": "text",
+      "title": "plus1",
+      "content": "Included in every tier:"
+    },
+    "plus2": {
+      "type": "text",
+      "title": "plus2",
+      "content": "Everything in Bronze, plus:"
+    },
+    "plus3": {
+      "type": "text",
+      "title": "plus3",
+      "content": "Everything in Silver, plus:"
     },
     "rows": {
       "type": "table",
@@ -53,42 +78,91 @@
       "rows": [
         {
           "id": "r1",
-          "feature": "Logo on website, stage banner, and materials",
+          "feature": "Your logo and brand on the website and throughout the event",
           "col1": "✓",
-          "col2": "✓",
-          "col3": "✓"
+          "col2": "",
+          "col3": ""
         },
         {
           "id": "r2",
-          "feature": "Direct introductions to teams",
+          "feature": "A mention as a sponsor at the opening and the closing",
           "col1": "✓",
-          "col2": "✓",
-          "col3": "✓"
+          "col2": "",
+          "col3": ""
         },
         {
           "id": "r3",
-          "feature": "Dedicated technical workshop or keynote",
-          "col1": "",
-          "col2": "✓",
-          "col3": "✓"
+          "feature": "Introductions to participants and teams who want to connect with you",
+          "col1": "✓",
+          "col2": "",
+          "col3": ""
         },
         {
           "id": "r4",
-          "feature": "Prize category and judging seat",
-          "col1": "",
-          "col2": "✓",
-          "col3": "✓"
+          "feature": "Inclusion in sponsor communications and the newsletter",
+          "col1": "✓",
+          "col2": "",
+          "col3": ""
         },
         {
           "id": "r5",
-          "feature": "Exclusive track ownership with custom challenge",
+          "feature": "A talk or workshop during the event",
+          "col1": "",
+          "col2": "✓",
+          "col3": ""
+        },
+        {
+          "id": "r6",
+          "feature": "The option to give credits or perks to participants",
+          "col1": "",
+          "col2": "✓",
+          "col3": ""
+        },
+        {
+          "id": "r7",
+          "feature": "A dedicated social media post",
+          "col1": "",
+          "col2": "✓",
+          "col3": ""
+        },
+        {
+          "id": "r8",
+          "feature": "One-on-one meetings with selected teams and builders",
+          "col1": "",
+          "col2": "✓",
+          "col3": ""
+        },
+        {
+          "id": "r9",
+          "feature": "Co-create and co-run a hackathon track, with a challenge built for you. Includes the prize for the track's winners.",
           "col1": "",
           "col2": "",
           "col3": "✓"
         },
         {
-          "id": "r6",
-          "feature": "Direct access to participant directory and project repos",
+          "id": "r10",
+          "feature": "Category exclusivity",
+          "col1": "",
+          "col2": "",
+          "col3": "✓"
+        },
+        {
+          "id": "r11",
+          "feature": "Priority introductions to the best teams and developers",
+          "col1": "",
+          "col2": "",
+          "col3": "✓"
+        },
+        {
+          "id": "r12",
+          "feature": "A private dinner or meetup with founders, builders and some of the judges",
+          "col1": "",
+          "col2": "",
+          "col3": "✓"
+        },
+        {
+          "id": "r13",
+          "feature": "A closing report with the projects built, product usage metrics and participant feedback, where applicable",
           "col1": "",
           "col2": "",
           "col3": "✓"

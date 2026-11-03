@@ -101,17 +101,35 @@ export const es: Record<string, string> = {
     "Auspiciado por <strong>Mistral</strong>, <strong>OpenRouter</strong>, <strong>v0</strong>, <strong>SoftServe</strong>, <strong>Kairos</strong>, <strong>Faces</strong> y <strong>Make.com</strong>.",
 
   "Sponsorship tiers": "Niveles de auspicio",
-  "<strong>Higher tiers include all benefits from earlier tiers.</strong> Custom prize tracks and dedicated cloud credits available on request.":
-    "<strong>Los niveles superiores incluyen todo lo de los anteriores.</strong> Tracks de premios a medida y créditos de nube dedicados, si los pides.",
-  "Logo on website, stage banner, and materials":
-    "Logo en el sitio, el escenario y el material",
-  "Direct introductions to teams": "Presentaciones directas con los equipos",
-  "Dedicated technical workshop or keynote": "Taller técnico o charla exclusiva",
-  "Prize category and judging seat": "Categoría de premio y un asiento en el jurado",
-  "Exclusive track ownership with custom challenge":
-    "Un track propio, con un desafío a medida",
-  "Direct access to participant directory and project repos":
-    "Acceso directo al directorio de participantes y a los repos",
+  "Be seen": "Hazte visible",
+  "Engage the builders": "Llega a los equipos",
+  "Own a challenge": "Ten tu propio desafío",
+  "Included in every tier:": "Incluido en todos los niveles:",
+  "Everything in Bronze, plus:": "Todo lo de Bronze, más:",
+  "Everything in Silver, plus:": "Todo lo de Silver, más:",
+  "Your logo and brand on the website and throughout the event":
+    "Logo y presencia de marca en la web y durante el evento",
+  "A mention as a sponsor at the opening and the closing":
+    "Mención como sponsor en la apertura y el cierre",
+  "Introductions to participants and teams who want to connect with you":
+    "Presentaciones a participantes y equipos interesados en conectar contigo",
+  "Inclusion in sponsor communications and the newsletter":
+    "Inclusión en comunicaciones y newsletter de sponsors",
+  "A talk or workshop during the event": "Charla o workshop durante el evento",
+  "The option to give credits or perks to participants":
+    "Posibilidad de entregar créditos o beneficios a los participantes",
+  "A dedicated social media post": "Publicación dedicada en redes sociales",
+  "One-on-one meetings with selected teams and builders":
+    "Reuniones uno a uno con equipos y builders seleccionados",
+  "Co-create and co-run a hackathon track, with a challenge built for you. Includes the prize for the track's winners.":
+    "Cocrear y coorganizar un track de la hackathon, con un desafío a tu medida. El aporte incluye el premio para los ganadores del track.",
+  "Category exclusivity": "Exclusividad de categoría",
+  "Priority introductions to the best teams and developers":
+    "Presentaciones prioritarias a los mejores equipos y desarrolladores",
+  "A private dinner or meetup with founders, builders and some of the judges":
+    "Cena o encuentro privado con founders, builders y algunos de los jueces",
+  "A closing report with the projects built, product usage metrics and participant feedback, where applicable":
+    "Reporte de cierre con los proyectos construidos, métricas de uso del producto y feedback de los participantes, cuando aplique",
 
   hours: "horas",
   people: "personas",

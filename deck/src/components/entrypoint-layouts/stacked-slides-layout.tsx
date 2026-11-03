@@ -141,18 +141,6 @@ function useStackedHashScroll({
     const syncFromHash = () => {
       const faceId = getFaceIdFromHash(faceIds);
       if (!faceId || faceId === getCurrentStackedFaceId()) return;
-      // The embedded site router restores scroll on replaceState entries
-      // (back/forward or its own bookkeeping). Only honor hashes the deck
-      // itself wrote; anything else is an external nav, not a slide request.
-      if (
-        typeof window.history.state === "object" &&
-        window.history.state !== null &&
-        "deck-face" in window.history.state &&
-        (window.history.state as Record<string, unknown>)["deck-face"] !==
-          faceId
-      ) {
-        return;
-      }
       setCurrentStackedFaceId(faceId);
       scrollStackedFaceIntoView(faceId, "smooth", orientation);
     };
@@ -216,27 +204,31 @@ function useStackedKeyboardNavigation({
   useEffect(() => {
     if (faceIds.length <= 1) return;
 
+    const getStep = (isNext: boolean) => {
+      const current = getCurrentStackedFaceIndex({ faceIds, orientation });
+      const next = isNext
+        ? Math.min(faceIds.length - 1, current + 1)
+        : Math.max(0, current - 1);
+      return { current, next };
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const intent = readKeyboardIntent(e);
       if (!intent) return;
 
-      const current = getCurrentStackedFaceIndex({ faceIds, orientation });
-      const next = intent.isNext
-        ? Math.min(faceIds.length - 1, current + 1)
-        : Math.max(0, current - 1);
+      const { current, next } = getStep(intent.isNext);
       if (next === current) return;
 
       e.preventDefault();
 
-      // Jump instantly: the track is a plain overflow container, so smooth
-      // programmatic scrolls never animate and leave the view behind the
-      // tracked slide. The hash still updates, so deep links keep working.
       setTimeout(() => {
         if (e.cancelBubble) return;
-        const faceId = faceIds[next];
+        // Resolve the step again: a quick press can arrive before the previous
+        // step commits, so the slide read at keydown may be stale.
+        const faceId = faceIds[getStep(intent.isNext).next];
         if (!faceId) return;
         setCurrentStackedFaceId(faceId);
-        scrollStackedFaceIntoView(faceId, "instant", orientation);
+        scrollStackedFaceIntoView(faceId, "smooth", orientation);
       }, 0);
     };
 
