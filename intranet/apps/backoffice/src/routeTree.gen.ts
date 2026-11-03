@@ -14,6 +14,8 @@ import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects.$projectId.index'
 import { Route as ProjectsProjectIdDecisionsRouteImport } from './routes/projects.$projectId.decisions'
+import { Route as ProjectsProjectIdInsightsRouteImport } from './routes/projects.$projectId.insights'
+import { Route as ProjectsProjectIdMessagesRouteImport } from './routes/projects.$projectId.messages'
 import { Route as ProjectsProjectIdReviewRouteImport } from './routes/projects.$projectId.review'
 import { Route as ProjectsProjectIdStatsRouteImport } from './routes/projects.$projectId.stats'
 import { Route as ProjectsProjectIdParticipantsIndexRouteImport } from './routes/projects.$projectId.participants.index'
@@ -45,6 +47,18 @@ const ProjectsProjectIdDecisionsRoute =
     path: '/projects/$projectId/decisions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProjectsProjectIdInsightsRoute =
+  ProjectsProjectIdInsightsRouteImport.update({
+    id: '/projects/$projectId/insights',
+    path: '/projects/$projectId/insights',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectsProjectIdMessagesRoute =
+  ProjectsProjectIdMessagesRouteImport.update({
+    id: '/projects/$projectId/messages',
+    path: '/projects/$projectId/messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProjectsProjectIdReviewRoute = ProjectsProjectIdReviewRouteImport.update({
   id: '/projects/$projectId/review',
   path: '/projects/$projectId/review',
@@ -73,6 +87,8 @@ export interface FileRoutesByFullPath {
   '/stats': typeof StatsRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/insights': typeof ProjectsProjectIdInsightsRoute
+  '/projects/$projectId/messages': typeof ProjectsProjectIdMessagesRoute
   '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
@@ -84,6 +100,8 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/insights': typeof ProjectsProjectIdInsightsRoute
+  '/projects/$projectId/messages': typeof ProjectsProjectIdMessagesRoute
   '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
@@ -96,6 +114,8 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/decisions': typeof ProjectsProjectIdDecisionsRoute
+  '/projects/$projectId/insights': typeof ProjectsProjectIdInsightsRoute
+  '/projects/$projectId/messages': typeof ProjectsProjectIdMessagesRoute
   '/projects/$projectId/review': typeof ProjectsProjectIdReviewRoute
   '/projects/$projectId/stats': typeof ProjectsProjectIdStatsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
@@ -109,6 +129,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/projects/'
     | '/projects/$projectId/decisions'
+    | '/projects/$projectId/insights'
+    | '/projects/$projectId/messages'
     | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId/'
@@ -120,6 +142,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/projects'
     | '/projects/$projectId/decisions'
+    | '/projects/$projectId/insights'
+    | '/projects/$projectId/messages'
     | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId'
@@ -131,6 +155,8 @@ export interface FileRouteTypes {
     | '/stats'
     | '/projects/'
     | '/projects/$projectId/decisions'
+    | '/projects/$projectId/insights'
+    | '/projects/$projectId/messages'
     | '/projects/$projectId/review'
     | '/projects/$projectId/stats'
     | '/projects/$projectId/'
@@ -143,6 +169,8 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ProjectsProjectIdDecisionsRoute: typeof ProjectsProjectIdDecisionsRoute
+  ProjectsProjectIdInsightsRoute: typeof ProjectsProjectIdInsightsRoute
+  ProjectsProjectIdMessagesRoute: typeof ProjectsProjectIdMessagesRoute
   ProjectsProjectIdReviewRoute: typeof ProjectsProjectIdReviewRoute
   ProjectsProjectIdStatsRoute: typeof ProjectsProjectIdStatsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
@@ -187,6 +215,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdDecisionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/insights': {
+      id: '/projects/$projectId/insights'
+      path: '/projects/$projectId/insights'
+      fullPath: '/projects/$projectId/insights'
+      preLoaderRoute: typeof ProjectsProjectIdInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/messages': {
+      id: '/projects/$projectId/messages'
+      path: '/projects/$projectId/messages'
+      fullPath: '/projects/$projectId/messages'
+      preLoaderRoute: typeof ProjectsProjectIdMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId/review': {
       id: '/projects/$projectId/review'
       path: '/projects/$projectId/review'
@@ -223,6 +265,8 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ProjectsProjectIdDecisionsRoute: ProjectsProjectIdDecisionsRoute,
+  ProjectsProjectIdInsightsRoute: ProjectsProjectIdInsightsRoute,
+  ProjectsProjectIdMessagesRoute: ProjectsProjectIdMessagesRoute,
   ProjectsProjectIdReviewRoute: ProjectsProjectIdReviewRoute,
   ProjectsProjectIdStatsRoute: ProjectsProjectIdStatsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,

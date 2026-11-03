@@ -37,14 +37,34 @@ export function escapeHtml(value: string): string {
   )
 }
 
+/** web addresses in already-escaped text become links */
+const linked = (html: string) => html.replace(/https?:\/\/[^\s<]+/g, (url) => `<a href="${url}" style="color:#7c3aec">${url}</a>`)
+
+/** paragraphs to the same page as every other email */
+function page(paragraphs: string[]) {
+  return `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p>${paragraphs.map((p) => `<p style="white-space:pre-wrap">${linked(escapeHtml(p))}</p>`).join('')}</main>`
+}
+
 export function decisionEmail(decision: Decision, name: string) {
   const { subject, paragraphs } = BODY[decision]
   const greeting = `hi ${name},`
   return {
     subject,
     text: [greeting, ...paragraphs].join('\n\n'),
-    html: `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p>${[greeting, ...paragraphs].map((p) => `<p>${escapeHtml(p)}</p>`).join('')}</main>`,
+    html: page([greeting, ...paragraphs]),
   }
+}
+
+/** in a custom email, {nombre} becomes the person's first name and {enlace} their private correction link */
+export const NAME_TAG = '{nombre}'
+export const LINK_TAG = '{enlace}'
+export const EDIT_LINK_DAYS = 14
+
+export function messageEmail(subject: string, body: string, name: string, link: string) {
+  const first = name.trim().split(/\s+/)[0] ?? ''
+  const fill = (text: string) => text.replaceAll(NAME_TAG, first).replaceAll(LINK_TAG, link)
+  const text = fill(body.trim())
+  return { subject: fill(subject.trim()), text, html: page(text.split(/\n{2,}/)) }
 }
 
 /** addresses that are never emailed: the seed's test data */

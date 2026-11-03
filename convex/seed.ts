@@ -96,9 +96,19 @@ export const clear = internalMutation({
     const applications = await ctx.db.query('applications').withIndex('by_ref', (q) => q.eq('ref', REF)).take(200)
     for (const application of applications) {
       const members = await ctx.db.query('members').withIndex('by_application', (q) => q.eq('applicationId', application._id)).take(8)
-      for (const member of members) await ctx.db.delete(member._id)
+      for (const member of members) {
+        const links = await ctx.db.query('editLinks').withIndex('by_member', (q) => q.eq('memberId', member._id)).take(10)
+        for (const link of links) await ctx.db.delete(link._id)
+        await ctx.db.delete(member._id)
+      }
       const entries = await ctx.db.query('auditLog').withIndex('by_application', (q) => q.eq('applicationId', application._id)).take(100)
       for (const entry of entries) await ctx.db.delete(entry._id)
+      const reviews = await ctx.db.query('reviews').withIndex('by_application', (q) => q.eq('applicationId', application._id)).take(50)
+      for (const review of reviews) await ctx.db.delete(review._id)
+      const emails = await ctx.db.query('decisionEmails').withIndex('by_application', (q) => q.eq('applicationId', application._id)).take(50)
+      for (const email of emails) await ctx.db.delete(email._id)
+      const sent = await ctx.db.query('messageRecipients').withIndex('by_application', (q) => q.eq('applicationId', application._id)).take(50)
+      for (const row of sent) await ctx.db.delete(row._id)
       await ctx.db.delete(application._id)
     }
     return applications.length

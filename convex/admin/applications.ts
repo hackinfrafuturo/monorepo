@@ -159,7 +159,7 @@ export const get = query({
         state,
         error,
       })),
-      history: history.map(({ _id, _creationTime, actor, action, from, to, score, capacity }) => ({
+      history: history.map(({ _id, _creationTime, actor, action, from, to, score, capacity, changes, subject, recipients }) => ({
         _id,
         _creationTime,
         actor,
@@ -168,6 +168,9 @@ export const get = query({
         to,
         score,
         capacity,
+        changes,
+        subject,
+        recipients,
       })),
     }
   },

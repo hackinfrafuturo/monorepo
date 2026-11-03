@@ -55,6 +55,17 @@ Organizers score pending teams at `/projects/infra-futuro/review` (1 to 4, one t
 npx convex env set DECISION_EMAILS send --prod
 ```
 
+`/projects/infra-futuro/messages` sends custom emails to one person, a team, or everyone matching a filter, after a confirmation with the count and a preview; the count is rechecked on send, so nobody emails more people than they agreed to. `{nombre}` and `{enlace}` fill in each person's first name and a private correction link. Those links open `/corregir` on the public site: one person's answers only, through the application's own form and rules, valid for 14 days. A new link replaces the old, only the token's hash is stored, and every change lands in the team's history with its old and new value. `/projects/infra-futuro/insights` shows applicants in aggregate.
+
+Custom emails follow the same safety rule, with their own switch, and replies go to `EMAIL_REPLY_TO`:
+
+```sh
+npx convex env set EMAIL_REPLY_TO you@example.org --prod
+npx convex env set MESSAGE_EMAILS send --prod
+```
+
+Deploy Convex before the public site, or `/corregir` links will read as expired.
+
 Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
 
 ## Access and deployment

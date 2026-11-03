@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/card'
 import {
   DIET_LABELS,
+  FIELD_LABELS,
   GENDER_LABELS,
   SCORE_LABELS,
   STATUS_LABELS,
@@ -172,6 +173,16 @@ export function ApplicationPage({ result }: { result: Result }) {
                     {ACTION_LABELS[target]}
                   </Button>
                 ))}
+                <Button asChild size="sm" variant="ghost">
+                  <Link
+                    to="/projects/$projectId/messages"
+                    params={{ projectId: 'infra-futuro' }}
+                    search={{ team: application._id }}
+                  >
+                    <Mail aria-hidden="true" />
+                    Escribir al equipo
+                  </Link>
+                </Button>
               </div>
             )}
           </section>
@@ -264,6 +275,14 @@ export function ApplicationPage({ result }: { result: Result }) {
               {application.members.map((member) => (
                 <div key={member._id} className="min-w-0 space-y-2 text-sm">
                   <h3 className="font-medium [overflow-wrap:anywhere]">{member.name}</h3>
+                  <Link
+                    to="/projects/$projectId/messages"
+                    params={{ projectId: 'infra-futuro' }}
+                    search={{ member: member._id }}
+                    className="text-xs underline underline-offset-4"
+                  >
+                    Escribirle
+                  </Link>
                   <dl className="space-y-2">
                   <Fact label="Email">
                     <a
@@ -302,6 +321,14 @@ export function ApplicationPage({ result }: { result: Result }) {
                         <span className="font-medium">{entry.actor}</span>{' '}
                         {describeEntry(entry)}
                       </p>
+                      {entry.changes?.map((change) => (
+                        <p
+                          key={change.field}
+                          className="text-xs text-muted-foreground [overflow-wrap:anywhere]"
+                        >
+                          {FIELD_LABELS[change.field] ?? change.field}: «{change.from}» → «{change.to}»
+                        </p>
+                      ))}
                       <time
                         dateTime={new Date(entry._creationTime).toISOString()}
                         className="text-xs text-muted-foreground tabular-nums"

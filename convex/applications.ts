@@ -19,7 +19,7 @@ function oneOf<T extends string>(options: readonly T[], value: string): value is
 }
 
 /** `checkTeam` keeps empty choices in the type. Refuse those before insert. */
-function stored(member: Member) {
+export function stored(member: Member) {
   if (
     !oneOf(GENDERS, member.gender) ||
     !oneOf(YES_NO, member.coding) ||

@@ -52,15 +52,36 @@ export const score = (value: number) =>
 export const reviewsLabel = (count: number) =>
   `${count} ${count === 1 ? 'revisión' : 'revisiones'}`
 
+/** the application form's fields, for showing what an applicant corrected */
+export const FIELD_LABELS: Record<string, string> = {
+  name: 'Nombre',
+  gender: 'Género',
+  github: 'GitHub',
+  email: 'Email',
+  coding: 'Programa',
+  linkedin: 'LinkedIn',
+  site: 'Sitio',
+  jobs: 'Ofertas laborales',
+  role: 'Rol',
+  deep: 'Cosas fuera de lo común',
+  hardest: 'Lo más difícil',
+  favorite: 'Su creación favorita',
+  diet: 'Alimentación',
+  allergies: 'Alergias',
+}
+
 type Entry = {
-  action: 'status' | 'review' | 'capacity'
+  action: 'status' | 'review' | 'capacity' | 'edit' | 'message'
   from?: Status
   to?: Status
   score?: number
   capacity?: number
+  changes?: { field: string }[]
+  subject?: string
+  recipients?: number
 }
 
-/** what an organizer did, said after their login: "movió de Pendiente a Aceptada" */
+/** what someone did, said after their name: "movió de Pendiente a Aceptada" */
 export function describeEntry(entry: Entry) {
   if (entry.action === 'status' && entry.from && entry.to)
     return `movió de ${STATUS_LABELS[entry.from]} a ${STATUS_LABELS[entry.to]}`
@@ -68,5 +89,9 @@ export function describeEntry(entry: Entry) {
     return `puntuó ${entry.score} · ${SCORE_LABELS[entry.score] ?? ''}`
   if (entry.action === 'capacity' && entry.capacity)
     return `fijó los cupos en ${people(entry.capacity)}`
+  if (entry.action === 'edit' && entry.changes)
+    return `corrigió ${entry.changes.map((change) => FIELD_LABELS[change.field] ?? change.field).join(', ')}`
+  if (entry.action === 'message' && entry.subject)
+    return `envió «${entry.subject}» a ${people(entry.recipients ?? 0)}`
   return 'hizo un cambio'
 }

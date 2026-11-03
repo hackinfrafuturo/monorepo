@@ -1,10 +1,11 @@
 "use node";
 
+import { createHash, randomBytes } from 'node:crypto'
 import { Resend } from 'resend'
 import { v } from 'convex/values'
 import { internalAction } from './_generated/server'
 import { internal } from './_generated/api'
-import { decisionEmail, isTestAddress } from './admin/emailTemplates'
+import { EDIT_LINK_DAYS, LINK_TAG, decisionEmail, isTestAddress, messageEmail } from './admin/emailTemplates'
 
 const FROM = 'Infra Futuro <hola@indies.la>'
 const SUBJECT = 'Recibimos tu postulación · Infra Futuro 2026'
@@ -67,10 +68,62 @@ export const sendDecision = internalAction({
 
     const { subject, text, html } = decisionEmail(row.decision, row.name)
     const { error } = await new Resend(key).emails.send(
-      { from: FROM, to: row.email, subject, text, html },
+      { from: FROM, to: row.email, ...(process.env.EMAIL_REPLY_TO ? { replyTo: process.env.EMAIL_REPLY_TO } : {}), subject, text, html },
       { idempotencyKey: `infra-futuro-decision/${emailId}` },
     )
     await ctx.runMutation(internal.decisionEmails.mark, error ? { emailId, state: 'failed', error: error.message } : { emailId, state: 'sent' })
+    return null
+  },
+})
+
+const SEND_SPACING_MS = 600
+
+/**
+ * Works through one custom message a person at a time, then hands itself the next, so a big group stays
+ * within Resend's rate and one failure doesn't stop the rest. Only sends where MESSAGE_EMAILS=send; a
+ * message that uses {enlace} gets a fresh private link per person, which exists only in that email.
+ */
+export const sendMessages = internalAction({
+  args: { messageId: v.id('messages') },
+  returns: v.null(),
+  handler: async (ctx, { messageId }) => {
+    const next = await ctx.runQuery(internal.messages.nextRecipient, { messageId })
+    if (!next) return null
+    const { recipientId } = next
+    const replyTo = process.env.EMAIL_REPLY_TO
+    const key = process.env.RESEND_API_KEY
+    let delay = 0
+    if (process.env.MESSAGE_EMAILS !== 'send') {
+      await ctx.runMutation(internal.messages.mark, { recipientId, state: 'skipped', error: 'Custom emails are off on this deployment' })
+    } else if (isTestAddress(next.email)) {
+      await ctx.runMutation(internal.messages.mark, { recipientId, state: 'skipped', error: 'Test address' })
+    } else if (!key || !replyTo) {
+      await ctx.runMutation(internal.messages.mark, { recipientId, state: 'failed', error: 'RESEND_API_KEY or EMAIL_REPLY_TO is not configured' })
+    } else {
+      delay = SEND_SPACING_MS
+      try {
+        let link = ''
+        if (`${next.subject}\n${next.body}`.includes(LINK_TAG)) {
+          const token = randomBytes(32).toString('base64url')
+          await ctx.runMutation(internal.applicationEdits.createLink, {
+            memberId: next.memberId,
+            tokenHash: createHash('sha256').update(token).digest('hex'),
+            expiresAt: Date.now() + EDIT_LINK_DAYS * 86_400_000,
+            createdBy: next.actor,
+          })
+          link = `${process.env.SITE_URL ?? 'https://hackinfrafuturo.cl'}/corregir#${token}`
+        }
+        const { subject, text, html } = messageEmail(next.subject, next.body, next.name, link)
+        const { error } = await new Resend(key).emails.send(
+          { from: FROM, to: next.email, replyTo, subject, text, html },
+          { idempotencyKey: `infra-futuro-message/${recipientId}` },
+        )
+        await ctx.runMutation(internal.messages.mark, error ? { recipientId, state: 'failed', error: error.message } : { recipientId, state: 'sent' })
+      } catch (error) {
+        await ctx.runMutation(internal.messages.mark, { recipientId, state: 'failed', error: String(error) })
+      }
+    }
+    await ctx.scheduler.runAfter(delay, internal.emails.sendMessages, { messageId })
     return null
   },
 })

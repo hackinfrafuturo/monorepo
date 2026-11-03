@@ -61,3 +61,13 @@ test('decision emails greet each member, escape their name, and never go to test
   assert.equal(isTestAddress('ana@gmail.com'), false)
   assert.equal(isTestAddress('ana@example.com.evil.cl'), false)
 })
+
+test('custom emails fill in the name and link, escape the text, and make links clickable', async () => {
+  const { messageEmail } = await import('../../convex/admin/emailTemplates.ts')
+  const link = 'https://hackinfrafuturo.cl/corregir#abc'
+  const email = messageEmail('Hola {nombre}', 'hola {nombre},\n\nrevisa <esto>:\n\n{enlace}', 'Ana María Soto', link)
+  assert.equal(email.subject, 'Hola Ana')
+  assert.equal(email.text, `hola Ana,\n\nrevisa <esto>:\n\n${link}`)
+  assert.ok(email.html.includes('revisa &lt;esto&gt;:'))
+  assert.ok(email.html.includes(`<a href="${link}"`))
+})

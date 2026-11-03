@@ -205,6 +205,34 @@ function ProjectSidebar({ session }: { session: Session }) {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
                           asChild
+                          isActive={pathname.startsWith(`${base}/messages`)}
+                        >
+                          <Link
+                            to="/projects/$projectId/messages"
+                            params={{ projectId: project.id }}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            Correos
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname.startsWith(`${base}/insights`)}
+                        >
+                          <Link
+                            to="/projects/$projectId/insights"
+                            params={{ projectId: project.id }}
+                            onClick={() => setOpenMobile(false)}
+                          >
+                            Estadísticas
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
                           isActive={pathname.startsWith(`${base}/stats`)}
                         >
                           <Link

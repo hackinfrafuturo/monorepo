@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery } from './_generated/server'
-import { decisionValidator } from './schema'
+import { decisionValidator, emailStateValidator } from './schema'
 
 /** What convex/emails.ts needs to send one decision email, read inside a transaction. */
 export const load = internalQuery({
@@ -8,7 +8,7 @@ export const load = internalQuery({
   returns: v.union(
     v.null(),
     v.object({
-      state: v.union(v.literal('queued'), v.literal('sent'), v.literal('skipped'), v.literal('failed')),
+      state: emailStateValidator,
       decision: decisionValidator,
       name: v.string(),
       email: v.string(),

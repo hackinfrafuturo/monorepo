@@ -5,7 +5,20 @@ import { STATUSES } from './admin/status'
 export const statusValidator = v.union(...STATUSES.map((status) => v.literal(status)))
 /** the decisions that are emailed to the team */
 export const decisionValidator = v.union(v.literal('accepted'), v.literal('waitlisted'), v.literal('rejected'))
-export const auditActionValidator = v.union(v.literal('status'), v.literal('review'), v.literal('capacity'))
+export const auditActionValidator = v.union(
+  v.literal('status'),
+  v.literal('review'),
+  v.literal('capacity'),
+  v.literal('edit'),
+  v.literal('message'),
+)
+export const emailStateValidator = v.union(v.literal('queued'), v.literal('sent'), v.literal('skipped'), v.literal('failed'))
+/** who a custom email goes to: one member, a whole team, or everyone matching a filter */
+export const audienceValidator = v.union(
+  v.object({ kind: v.literal('member'), memberId: v.id('members') }),
+  v.object({ kind: v.literal('team'), applicationId: v.id('applications') }),
+  v.object({ kind: v.literal('group'), status: v.optional(statusValidator), ref: v.optional(v.string()) }),
+)
 /** an audit entry, as stored and as the admin API returns it */
 export const auditFields = {
   actor: v.string(),
@@ -14,6 +27,11 @@ export const auditFields = {
   to: v.optional(statusValidator),
   score: v.optional(v.number()),
   capacity: v.optional(v.number()),
+  /** an applicant's correction: which answers changed, from what to what */
+  changes: v.optional(v.array(v.object({ field: v.string(), from: v.string(), to: v.string() }))),
+  /** a custom email: its subject and how many people it went to */
+  subject: v.optional(v.string()),
+  recipients: v.optional(v.number()),
 }
 
 export const memberValidator = v.object({
@@ -81,9 +99,37 @@ export default defineSchema({
     memberId: v.id('members'),
     decision: decisionValidator,
     actor: v.string(),
-    state: v.union(v.literal('queued'), v.literal('sent'), v.literal('skipped'), v.literal('failed')),
+    state: emailStateValidator,
     error: v.optional(v.string()),
   }).index('by_application', ['applicationId']),
+  // A custom email organizers wrote (convex/admin/messages.ts), and one row per person it goes to.
+  // convex/emails.ts works through the queued rows one at a time, so a big group respects Resend's rate.
+  messages: defineTable({
+    actor: v.string(),
+    subject: v.string(),
+    body: v.string(),
+    audience: audienceValidator,
+    recipients: v.number(),
+  }),
+  messageRecipients: defineTable({
+    messageId: v.id('messages'),
+    applicationId: v.id('applications'),
+    memberId: v.id('members'),
+    state: emailStateValidator,
+    error: v.optional(v.string()),
+  })
+    .index('by_message', ['messageId', 'state'])
+    .index('by_application', ['applicationId']),
+  // A private link for one applicant to correct their own answers (convex/applicationEdits.ts). Only the
+  // token's hash is stored, the token itself only ever exists in the email. A new link replaces the old.
+  editLinks: defineTable({
+    memberId: v.id('members'),
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+    createdBy: v.string(),
+  })
+    .index('by_hash', ['tokenHash'])
+    .index('by_member', ['memberId']),
   members: defineTable({
     applicationId: v.id('applications'),
     ...memberValidator.fields,

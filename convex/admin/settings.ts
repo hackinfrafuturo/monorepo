@@ -9,6 +9,10 @@ export const get = query({
     capacity: v.union(v.number(), v.null()),
     /** 'send' only where DECISION_EMAILS=send; anywhere else decision emails are recorded, not sent */
     decisionEmails: v.union(v.literal('send'), v.literal('off')),
+    /** the same for custom emails, MESSAGE_EMAILS=send */
+    messageEmails: v.union(v.literal('send'), v.literal('off')),
+    /** where applicants' replies go */
+    replyTo: v.union(v.string(), v.null()),
   }),
   handler: async (ctx, args) => {
     requireAdmin(args)
@@ -16,6 +20,8 @@ export const get = query({
     return {
       capacity: settings?.capacity ?? null,
       decisionEmails: process.env.DECISION_EMAILS === 'send' ? ('send' as const) : ('off' as const),
+      messageEmails: process.env.MESSAGE_EMAILS === 'send' ? ('send' as const) : ('off' as const),
+      replyTo: process.env.EMAIL_REPLY_TO ?? null,
     }
   },
 })

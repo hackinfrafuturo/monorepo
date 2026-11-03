@@ -255,3 +255,109 @@ export const setCapacity = createServerFn({ method: 'POST' })
       }),
     )
   })
+
+export const getInsights = createServerFn({ method: 'GET' })
+  .validator((input: { projectId: string; status?: Status }) => ({
+    ...projectInput(input),
+    status: STATUSES.find((status) => status === input.status),
+  }))
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { status: 'unconfigured' as const, data: null }
+    try {
+      return {
+        status: 'ready' as const,
+        data: await convex.query(api.admin.stats.get, login, { status: data.status }),
+      }
+    } catch (error) {
+      console.error('Insights failed:', error)
+      return { status: 'unavailable' as const, data: null }
+    }
+  })
+
+export type AudienceInput =
+  | { kind: 'member'; memberId: string }
+  | { kind: 'team'; applicationId: string }
+  | { kind: 'group'; status?: Status; ref?: string }
+
+/** an audience from the browser, checked before it reaches Convex */
+function parseAudience(input: AudienceInput) {
+  if (input?.kind === 'member' && isId(input.memberId))
+    return { kind: 'member' as const, memberId: input.memberId as Id<'members'> }
+  if (input?.kind === 'team' && isId(input.applicationId))
+    return { kind: 'team' as const, applicationId: input.applicationId as Id<'applications'> }
+  if (input?.kind === 'group')
+    return {
+      kind: 'group' as const,
+      ...(STATUSES.includes(input.status as Status) ? { status: input.status } : {}),
+      ...(typeof input.ref === 'string' && input.ref ? { ref: input.ref } : {}),
+    }
+  throw new Error('Choose who this goes to.')
+}
+
+export const getMessages = createServerFn({ method: 'GET' })
+  .validator(projectInput)
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { status: 'unconfigured' as const, data: null }
+    try {
+      const [messages, settings, stats] = await Promise.all([
+        convex.query(api.admin.messages.list, login, {}),
+        convex.query(api.admin.settings.get, login, {}),
+        convex.query(api.admin.stats.get, login, {}),
+      ])
+      return {
+        status: 'ready' as const,
+        data: {
+          messages,
+          settings,
+          refs: stats.refs.map((ref) => ref.key).filter(Boolean),
+        },
+      }
+    } catch (error) {
+      console.error('Messages failed:', error)
+      return { status: 'unavailable' as const, data: null }
+    }
+  })
+
+export const getAudience = createServerFn({ method: 'POST' })
+  .validator((input: { projectId: string; audience: AudienceInput }) => ({
+    ...projectInput(input),
+    audience: parseAudience(input.audience),
+  }))
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { ok: false as const, message: 'Falta conectar el proyecto.' }
+    return change(() =>
+      convex.query(api.admin.messages.audience, login, { audience: data.audience }),
+    )
+  })
+
+export const sendMessage = createServerFn({ method: 'POST' })
+  .validator(
+    (input: {
+      projectId: string
+      audience: AudienceInput
+      subject: string
+      body: string
+      expected: number
+    }) => ({
+      ...projectInput(input),
+      audience: parseAudience(input.audience),
+      subject: String(input.subject ?? ''),
+      body: String(input.body ?? ''),
+      expected: Number(input.expected),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { login, convex } = await adminFor(data.projectId)
+    if (!convex) return { ok: false as const, message: 'Falta conectar el proyecto.' }
+    return change(() =>
+      convex.mutation(api.admin.messages.send, login, {
+        audience: data.audience,
+        subject: data.subject,
+        body: data.body,
+        expected: data.expected,
+      }),
+    )
+  })

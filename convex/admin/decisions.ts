@@ -7,6 +7,7 @@ import { STATUS_DECISIONS, canMove, statusOf } from './status'
 
 /** teams per decision, to keep one confirmation readable and one transaction small */
 const BATCH = 100
+const EMAIL_SPACING_MS = 600
 
 /**
  * Moves one or more teams to a status and logs who did it. Accepting, waitlisting or rejecting queues
@@ -50,7 +51,8 @@ export const decide = mutation({
           actor,
           state: 'queued',
         })
-        await ctx.scheduler.runAfter(0, internal.emails.sendDecision, { emailId })
+        // spaced out: Resend refuses more than a few a second, and a big batch would mostly fail
+        await ctx.scheduler.runAfter(emails * EMAIL_SPACING_MS, internal.emails.sendDecision, { emailId })
         emails++
       }
     }
