@@ -54,13 +54,27 @@ export const getProjectOverview = createServerFn({ method: 'GET' })
     const { login, convex } = await adminFor(data.projectId)
     if (!convex) return { status: 'unconfigured' as const, data: null }
     try {
-      const [overview, activity] = await Promise.all([
+      const [overview, activity, queue, list, settings] = await Promise.all([
         convex.query(api.admin.overview.get, login, {}),
         convex.query(api.admin.activity.recent, login, { limit: 10 }),
+        convex.query(api.admin.review.next, login, {}),
+        convex.query(api.admin.applications.list, login, {}),
+        convex.query(api.admin.settings.get, login, {}),
       ])
       return {
         status: 'ready' as const,
-        data: { overview, activity, checkedAt: new Date().toISOString() },
+        data: {
+          overview,
+          activity,
+          settings,
+          checkedAt: new Date().toISOString(),
+          /** pending teams this organizer hasn't scored yet */
+          toReview: queue.pending - queue.reviewedByMe,
+          /** pending teams with at least one score, ready to decide */
+          toDecide: list.applications.filter(
+            (application) => application.status === 'pending' && application.reviews.count > 0,
+          ).length,
+        },
       }
     } catch (error) {
       // Logged here for whoever runs the server; nothing upstream reaches the browser.

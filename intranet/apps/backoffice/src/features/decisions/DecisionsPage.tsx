@@ -1,32 +1,15 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
-import { AlertCircle, MailX } from 'lucide-react'
+import { MailX } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
 import { STATUSES, canMove, type Status } from '@convex/admin/status'
+import { DataNotice, DotMeter, PageHeader, RefreshButton, Tabs } from '@/components/page'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { setCapacity } from '../../server/functions'
-import {
-  STATUS_LABELS,
-  people,
-  reviewsLabel,
-  santiago,
-  score,
-  teamSize,
-  teams,
-} from '../labels'
+import { STATUS_LABELS, people, reviewsLabel, santiago, score, teamSize, teams } from '../labels'
 import { ACTION_LABELS, DecisionConfirm } from './DecisionConfirm'
 
 type List = FunctionReturnType<typeof api.admin.applications.list>
@@ -55,81 +38,70 @@ export function DecisionsPage({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [action, setAction] = useState<Status | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const lastClicked = useRef<number | null>(null)
   const data = result.data
   const all = data?.applications ?? []
   const shown = all.filter((a) => a.status === status).sort(byScore)
   const chosen = shown.filter((a) => selected.has(a._id))
+  const chosenPeople = chosen.reduce((sum, a) => sum + a.size, 0)
   const acceptedPeople = all
     .filter((a) => a.status === 'accepted')
     .reduce((sum, a) => sum + a.size, 0)
+  const capacity = data?.settings.capacity ?? null
+  const free = capacity === null ? null : capacity - acceptedPeople
   // only moves every selected team can make
   const targets = STATUSES.filter(
     (target) => chosen.length > 0 && chosen.every((a) => canMove(a.status, target)),
   )
   const allChosen = shown.length > 0 && chosen.length === shown.length
+  const scored = shown.some((a) => a.reviews.average !== null)
 
-  const toggle = (id: string) =>
+  /** a click toggles one row; with shift, every row from the last click */
+  function toggle(index: number, event: MouseEvent) {
+    const id = shown[index]._id
     setSelected((current) => {
       const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const on = !next.has(id)
+      const from = event.shiftKey && lastClicked.current !== null ? lastClicked.current : index
+      for (let i = Math.min(from, index); i <= Math.max(from, index); i++) {
+        if (on) next.add(shown[i]._id)
+        else next.delete(shown[i]._id)
+      }
       return next
     })
+    lastClicked.current = index
+  }
+
+  /** the best-scored teams that still fit, skipping any too big for what's left */
+  function fillPlaces() {
+    let room = free ?? 0
+    const next = new Set<string>()
+    for (const application of shown) {
+      if (application.reviews.average === null || application.size > room) continue
+      next.add(application._id)
+      room -= application.size
+    }
+    setSelected(next)
+    lastClicked.current = null
+  }
+
   const switchTab = (next: Status) => {
     setSelected(new Set())
     setAction(null)
+    lastClicked.current = null
     onStatus(next)
   }
 
   return (
     <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects">Proyectos</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects/$projectId" params={{ projectId: 'infra-futuro' }}>
-                Infra Futuro
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Decisiones</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Decisiones</h1>
-        <p className="text-sm text-muted-foreground">
-          Equipos ordenados por puntaje. Elige varios y decide: cada equipo se
-          decide completo y cada integrante recibe su correo.
-        </p>
-      </header>
+      <PageHeader
+        title="Decisiones"
+        description="Equipos ordenados por puntaje. Cada equipo se decide completo y cada integrante recibe su correo."
+        actions={<RefreshButton label="Actualizar decisiones" />}
+      />
 
       {!data ? (
-        <Alert role="status">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>
-            <h2>
-              {result.status === 'unconfigured'
-                ? 'Falta conectar el proyecto'
-                : 'No pudimos cargar las decisiones'}
-            </h2>
-          </AlertTitle>
-          <AlertDescription>
-            {result.status === 'unconfigured'
-              ? 'Configura la conexión a Convex de Infra Futuro en el servidor de la intranet.'
-              : 'El servicio de Infra Futuro no está disponible. Intenta en un momento.'}
-          </AlertDescription>
-        </Alert>
+        <DataNotice status={result.status} what="las decisiones" />
       ) : (
         <>
           {data.settings.decisionEmails === 'off' && (
@@ -139,109 +111,127 @@ export function DecisionsPage({
                 <h2>Correos de decisión desactivados</h2>
               </AlertTitle>
               <AlertDescription>
-                En este entorno las decisiones se guardan y los correos quedan
-                registrados, pero no se envían. Se activan en producción con DECISION_EMAILS=send.
+                En este entorno las decisiones se guardan y los correos quedan registrados, pero
+                no se envían. Se activan en producción con DECISION_EMAILS=send.
               </AlertDescription>
             </Alert>
           )}
 
-          <CapacityCard capacity={data.settings.capacity} accepted={acceptedPeople} />
+          <Capacity capacity={capacity} accepted={acceptedPeople} />
 
-          <div role="group" aria-label="Estado" className="flex flex-wrap gap-2">
-            {STATUSES.map((s) => {
-              const count = all.filter((a) => a.status === s).length
-              return (
-                <Button
-                  key={s}
-                  type="button"
-                  size="sm"
-                  variant={status === s ? 'secondary' : 'outline'}
-                  aria-pressed={status === s}
-                  onClick={() => switchTab(s)}
-                  className={status === s ? 'border border-ring' : undefined}
-                >
-                  {STATUS_LABELS[s]}
-                  <span className="text-muted-foreground tabular-nums">{count}</span>
-                </Button>
-              )
-            })}
-          </div>
+          <Tabs
+            label="Estado"
+            value={status}
+            onChange={switchTab}
+            tabs={STATUSES.map((s) => ({
+              value: s,
+              label: STATUS_LABELS[s],
+              count: all.filter((a) => a.status === s).length,
+            }))}
+          />
 
           {message && (
-            <p role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
+            <p role="status" className="border-l-2 border-primary bg-muted/60 px-4 py-2.5 text-sm">
               {message}
             </p>
           )}
 
           {shown.length ? (
-            <Card className="gap-0 py-0">
-              <label className="flex items-center gap-3 border-b px-4 py-3 text-sm sm:px-6">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-primary"
-                  checked={allChosen}
-                  onChange={() =>
-                    setSelected(allChosen ? new Set() : new Set(shown.map((a) => a._id)))
-                  }
-                />
-                <span className="text-muted-foreground">
+            <div className="space-y-2">
+              <div className="flex min-h-8 flex-wrap items-center justify-between gap-2 text-sm">
+                <label className="flex items-center gap-2 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4"
+                    checked={allChosen}
+                    onChange={() => {
+                      setSelected(allChosen ? new Set() : new Set(shown.map((a) => a._id)))
+                      lastClicked.current = null
+                    }}
+                  />
                   {chosen.length
-                    ? `${teams(chosen.length)} · ${people(chosen.reduce((sum, a) => sum + a.size, 0))} elegidas`
+                    ? `${teams(chosen.length)} · ${people(chosenPeople)} elegidas`
                     : `Elegir las ${teams(shown.length)}`}
-                </span>
-              </label>
-              <ul className="divide-y" aria-label="Equipos">
-                {shown.map((application) => (
-                  <li key={application._id} className="flex items-center gap-3 px-4 py-3 sm:px-6">
-                    <input
-                      type="checkbox"
-                      className="size-4 shrink-0 accent-primary"
-                      checked={selected.has(application._id)}
-                      onChange={() => toggle(application._id)}
-                      aria-label={`Elegir a ${application.members.map((m) => m.name).join(', ')}`}
-                    />
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <Link
-                        to="/projects/$projectId/participants/$applicationId"
-                        params={{ projectId: 'infra-futuro', applicationId: application._id }}
-                        className="text-sm font-medium underline-offset-4 [overflow-wrap:anywhere] hover:underline"
+                </label>
+                {(status === 'pending' || status === 'waitlisted') && free !== null && free > 0 && scored && (
+                  <Button variant="ghost" size="sm" onClick={fillPlaces}>
+                    Elegir las mejores hasta llenar {free} {free === 1 ? 'cupo' : 'cupos'}
+                  </Button>
+                )}
+              </div>
+              <table className="w-full border-t border-foreground text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b text-left">
+                    <th className="w-8 py-2 font-normal">
+                      <span className="sr-only">Elegir</span>
+                    </th>
+                    <th className="w-24 py-2 pr-3 font-normal">Puntaje</th>
+                    <th className="py-2 pr-3 font-normal">Equipo</th>
+                    <th className="hidden py-2 pr-3 font-normal @min-[40rem]/page:table-cell">Revisiones</th>
+                    <th className="hidden py-2 font-normal @min-[40rem]/page:table-cell">Enviada</th>
+                  </tr>
+                </thead>
+                <tbody aria-label="Equipos">
+                  {shown.map((application, index) => {
+                    const names = application.members.map((m) => m.name).join(', ')
+                    return (
+                      <tr
+                        key={application._id}
+                        className={`border-b transition-colors duration-75 ${selected.has(application._id) ? 'bg-accent' : 'hover:bg-accent/60'}`}
                       >
-                        {application.members.map((m) => m.name).join(', ')}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {teamSize(application.size)} · {santiago(application.submittedAt, false)}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      {application.reviews.average === null ? (
-                        <span className="text-xs text-muted-foreground">Sin revisar</span>
-                      ) : (
-                        <>
-                          <p className="text-base font-semibold tabular-nums">
-                            {score(application.reviews.average)}
-                          </p>
+                        <td className="py-2.5 align-top">
+                          <input
+                            type="checkbox"
+                            className="size-4 align-middle"
+                            checked={selected.has(application._id)}
+                            onChange={() => {}}
+                            onClick={(event) => toggle(index, event)}
+                            aria-label={`Elegir a ${names}`}
+                          />
+                        </td>
+                        <td className="py-2 pr-3 align-top">
+                          {application.reviews.average === null ? (
+                            <span className="text-xs whitespace-nowrap text-muted-foreground">Sin revisar</span>
+                          ) : (
+                            <span className="font-pixel text-xl leading-tight tabular-nums">
+                              {score(application.reviews.average)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 pr-3 align-top">
+                          <Link
+                            to="/projects/$projectId/participants/$applicationId"
+                            params={{ projectId: 'infra-futuro', applicationId: application._id }}
+                            className="underline decoration-transparent underline-offset-4 [overflow-wrap:anywhere] hover:decoration-current"
+                          >
+                            {names}
+                          </Link>
                           <p className="text-xs text-muted-foreground">
-                            {reviewsLabel(application.reviews.count)}
+                            {teamSize(application.size)}
                           </p>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+                        </td>
+                        <td className="hidden py-2.5 pr-3 align-top whitespace-nowrap text-muted-foreground @min-[40rem]/page:table-cell">
+                          {application.reviews.count ? reviewsLabel(application.reviews.count) : '—'}
+                        </td>
+                        <td className="hidden py-2.5 align-top whitespace-nowrap text-muted-foreground @min-[40rem]/page:table-cell">
+                          {santiago(application.submittedAt, false)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <Card>
-              <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                No hay equipos en {STATUS_LABELS[status]}.
-              </CardContent>
-            </Card>
+            <p className="border-t border-foreground py-8 text-center text-sm text-muted-foreground">
+              No hay equipos en {STATUS_LABELS[status]}.
+            </p>
           )}
 
-          {chosen.length > 0 && !action && (
-            <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-background p-3 shadow-lg">
+          {chosen.length > 0 && (
+            <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-2 border-t border-foreground bg-background px-4 py-2.5 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               <span className="mr-auto text-sm">
-                {teams(chosen.length)} · {people(chosen.reduce((sum, a) => sum + a.size, 0))}
+                {teams(chosen.length)} · {people(chosenPeople)}
               </span>
               {targets.map((target) => (
                 <Button
@@ -260,26 +250,25 @@ export function DecisionsPage({
           )}
 
           {action && (
-            <div className="sticky bottom-0 z-10">
-              <DecisionConfirm
-                teams={chosen.map((a) => ({
-                  _id: a._id,
-                  names: a.members.map((m) => m.name),
-                  size: a.size,
-                  status: a.status,
-                }))}
-                status={action}
-                capacity={data.settings.capacity}
-                acceptedPeople={acceptedPeople}
-                emailsMode={data.settings.decisionEmails}
-                onCancel={() => setAction(null)}
-                onDone={(text) => {
-                  setAction(null)
-                  setSelected(new Set())
-                  setMessage(text)
-                }}
-              />
-            </div>
+            <DecisionConfirm
+              teams={chosen.map((a) => ({
+                _id: a._id,
+                names: a.members.map((m) => m.name),
+                size: a.size,
+                status: a.status,
+                reviews: a.reviews.count,
+              }))}
+              status={action}
+              capacity={capacity}
+              acceptedPeople={acceptedPeople}
+              emailsMode={data.settings.decisionEmails}
+              onCancel={() => setAction(null)}
+              onDone={(text) => {
+                setAction(null)
+                setSelected(new Set())
+                setMessage(text)
+              }}
+            />
           )}
         </>
       )}
@@ -287,13 +276,12 @@ export function DecisionsPage({
   )
 }
 
-function CapacityCard({ capacity, accepted }: { capacity: number | null; accepted: number }) {
+function Capacity({ capacity, accepted }: { capacity: number | null; accepted: number }) {
   const router = useRouter()
   const [editing, setEditing] = useState(capacity === null)
   const [value, setValue] = useState(capacity ? String(capacity) : '')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const share = capacity ? Math.min(100, Math.round((accepted / capacity) * 100)) : 0
 
   async function save(event: FormEvent) {
     event.preventDefault()
@@ -309,37 +297,21 @@ function CapacityCard({ capacity, accepted }: { capacity: number | null; accepte
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>Cupos</h2>
-        </CardTitle>
-        <CardDescription>
-          {capacity === null
-            ? 'Define cuántas personas caben en el evento.'
-            : `${people(accepted)} aceptadas de ${capacity} · ${
-                capacity - accepted >= 0
-                  ? `quedan ${capacity - accepted}`
-                  : `${accepted - capacity} sobre el cupo`
-              }`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {capacity !== null && (
-          <div
-            role="progressbar"
-            aria-label="Cupos usados"
-            aria-valuenow={accepted}
-            aria-valuemin={0}
-            aria-valuemax={capacity}
-            className="h-2 w-full overflow-hidden rounded-full bg-secondary"
-          >
-            <div
-              className={accepted > capacity ? 'h-full bg-destructive' : 'h-full bg-primary'}
-              style={{ width: `${share}%` }}
-            />
-          </div>
-        )}
+    <section aria-label="Cupos" className="space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <p className="min-w-0">
+          <span className="font-pixel text-2xl leading-none tabular-nums">
+            {capacity === null ? 'Sin cupos definidos' : `${accepted} / ${capacity}`}
+          </span>{' '}
+          {capacity !== null && (
+            <span className="text-sm text-muted-foreground">
+              personas aceptadas ·{' '}
+              {capacity - accepted >= 0
+                ? `quedan ${capacity - accepted}`
+                : `${accepted - capacity} sobre el cupo`}
+            </span>
+          )}
+        </p>
         {editing ? (
           <form onSubmit={save} className="flex flex-wrap items-center gap-2">
             <Input
@@ -348,13 +320,13 @@ function CapacityCard({ capacity, accepted }: { capacity: number | null; accepte
               max={10000}
               step={1}
               required
+              autoFocus={capacity !== null}
               inputMode="numeric"
               aria-label="Cupos en personas"
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              className="w-28"
+              className="h-8 w-24"
             />
-            <span className="text-sm text-muted-foreground">personas</span>
             <Button type="submit" size="sm" disabled={saving} aria-busy={saving}>
               {saving ? 'Guardando…' : 'Guardar'}
             </Button>
@@ -365,16 +337,17 @@ function CapacityCard({ capacity, accepted }: { capacity: number | null; accepte
             )}
           </form>
         ) : (
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
             Cambiar cupos
           </Button>
         )}
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      {capacity !== null && <DotMeter value={accepted} max={capacity} label="Cupos usados" size={8} />}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </section>
   )
 }

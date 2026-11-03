@@ -404,9 +404,10 @@ try {
   await page.getByRole('heading', { name: 'Resumen', exact: true }).waitFor()
   await page.getByRole('button', { name: 'Abrir o cerrar navegación' }).click()
   await mobileNavigation
-    .getByRole('link', { name: 'Inscripciones', exact: true })
+    .getByRole('link', { name: 'Estadísticas', exact: true })
     .click()
   await mobileNavigation.waitFor({ state: 'hidden' })
+  await page.getByRole('link', { name: 'Lista de inscripciones' }).click()
   await page.getByText('QA Ana', { exact: true }).waitFor()
   assert.deepEqual(errors, [])
   assert.ok(

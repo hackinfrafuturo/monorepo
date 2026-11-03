@@ -1,23 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
-import { AlertCircle, CircleCheck, SkipForward } from 'lucide-react'
+import { CircleCheck, NotebookPen, SkipForward } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+import { DataNotice, DotMeter, Kbd, PageHeader, textareaClass } from '@/components/page'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { saveReview } from '../../server/functions'
-import { SCORES, SCORE_LABELS, santiago, teamSize } from '../labels'
+import { SCORES, santiago, teamSize } from '../labels'
 import { MemberCard } from '../participants/MemberCard'
+import { ScorePicker } from './ScorePicker'
 
 type Queue = FunctionReturnType<typeof api.admin.review.next>
 type Result = {
@@ -39,146 +30,80 @@ export function ReviewPage({
   const queue = result.data
   const application = queue?.application ?? null
   return (
-    <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects">Proyectos</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects/$projectId" params={{ projectId: 'infra-futuro' }}>
-                Infra Futuro
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Revisar</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Revisar
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Un equipo pendiente a la vez. Puntúa lo que hicieron, no quiénes
-          son: el email, el género y los puntajes de los demás no aparecen aquí.
-        </p>
-        {queue && (
-          <Progress done={queue.reviewedByMe} total={queue.pending} />
-        )}
-      </header>
+    // as tall as the screen, so the score bar sits in the same place for every team
+    <div className="flex min-h-[calc(100svh-6.5rem)] flex-col gap-6">
+      <PageHeader
+        title="Revisar"
+        description="Un equipo a la vez. Sin email, género ni puntajes de los demás, para juzgar solo lo que hicieron."
+        actions={
+          queue ? (
+            <div className="w-44 space-y-1 text-right">
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {queue.reviewedByMe} de {queue.pending} revisadas
+              </p>
+              <DotMeter value={queue.reviewedByMe} max={queue.pending} label="Equipos pendientes revisados" />
+            </div>
+          ) : undefined
+        }
+      />
 
       {!queue ? (
-        <Alert role="status">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>
-            <h2>
-              {result.status === 'unconfigured'
-                ? 'Falta conectar el proyecto'
-                : 'No pudimos cargar la revisión'}
-            </h2>
-          </AlertTitle>
-          <AlertDescription>
-            {result.status === 'unconfigured'
-              ? 'Configura la conexión a Convex de Infra Futuro en el servidor de la intranet.'
-              : 'El servicio de Infra Futuro no está disponible. Intenta en un momento.'}
-          </AlertDescription>
-        </Alert>
+        <DataNotice status={result.status} what="la revisión" />
       ) : application ? (
         <>
           <section aria-labelledby="team-title" className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="team-title" className="text-lg font-semibold tracking-tight">
-                {teamSize(application.size)}
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                · inscrita el {santiago(application.submittedAt, false)}
-              </span>
-            </div>
-            <div className="grid min-w-0 gap-4 @min-[56rem]/page:grid-cols-2">
+            <p id="team-title" className="text-sm text-muted-foreground">
+              {teamSize(application.size)} · inscrita el {santiago(application.submittedAt, false)}
+            </p>
+            <div
+              className={`grid min-w-0 gap-x-10 gap-y-8 ${application.members.length > 1 ? '@min-[58rem]/page:grid-cols-2' : ''}`}
+            >
               {application.members.map((member) => (
                 <MemberCard key={member._id} member={member} />
               ))}
             </div>
           </section>
-          <ScorePanel
+          <ScoreBar
             key={application._id}
             applicationId={application._id}
             onSkip={() => onSkip(application._id)}
           />
         </>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-start gap-4 py-2">
-            <p className="flex items-center gap-2 font-medium">
-              <CircleCheck className="size-5" aria-hidden="true" />
-              {skipped
-                ? 'Solo quedan los equipos que saltaste.'
-                : 'Revisaste todos los equipos pendientes.'}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {skipped > 0 && (
-                <Button variant="outline" onClick={onResetSkips}>
-                  Volver a los que salté
-                </Button>
-              )}
-              <Button asChild>
-                <Link
-                  to="/projects/$projectId/decisions"
-                  params={{ projectId: 'infra-futuro' }}
-                >
-                  Ir a decisiones
-                </Link>
+        <div className="space-y-4 border-t border-foreground pt-4">
+          <p className="flex items-center gap-2 font-pixel text-2xl leading-tight">
+            <CircleCheck className="size-5 shrink-0" aria-hidden="true" />
+            {skipped ? 'Solo quedan las que saltaste' : 'Revisaste todas las pendientes'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {skipped > 0 && (
+              <Button variant="outline" onClick={onResetSkips}>
+                Volver a las que salté
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+            <Button asChild>
+              <Link to="/projects/$projectId/decisions" params={{ projectId: 'infra-futuro' }}>
+                Ir a decisiones
+              </Link>
+            </Button>
+          </div>
+        </div>
       )}
-    </>
-  )
-}
-
-function Progress({ done, total }: { done: number; total: number }) {
-  const share = total ? Math.round((done / total) * 100) : 100
-  return (
-    <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground tabular-nums">
-        Revisaste {done} de {total} pendientes
-      </p>
-      <div
-        role="progressbar"
-        aria-label="Equipos pendientes revisados"
-        aria-valuenow={done}
-        aria-valuemin={0}
-        aria-valuemax={total}
-        className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-secondary"
-      >
-        <div className="h-full bg-primary" style={{ width: `${share}%` }} />
-      </div>
     </div>
   )
 }
 
-function ScorePanel({
-  applicationId,
-  onSkip,
-}: {
-  applicationId: string
-  onSkip: () => void
-}) {
+/** Stays at the bottom of the screen while the answers scroll, and works from the keyboard. */
+function ScoreBar({ applicationId, onSkip }: { applicationId: string; onSkip: () => void }) {
   const router = useRouter()
   const [score, setScore] = useState<number | null>(null)
   const [note, setNote] = useState('')
+  const [noteOpen, setNoteOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const noteField = useRef<HTMLTextAreaElement>(null)
+  // the keyboard handler is set once; this keeps it reading the latest save and skip
+  const actions = useRef({ save: () => {}, skip: onSkip })
 
   async function save() {
     if (!score || saving) return
@@ -192,73 +117,80 @@ function ScorePanel({
     setSaving(false)
   }
 
-  // 1–4 picks a score from the keyboard, outside the note
+  useEffect(() => {
+    actions.current = { save: () => void save(), skip: onSkip }
+  })
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLInputElement) return
+      const target = event.target
+      if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement || target instanceof HTMLSelectElement) return
+      if (event.key === 'Enter' && target instanceof HTMLElement && target.closest('a, button')) return
       const value = Number(event.key)
       if (SCORES.some((s) => s === value)) setScore(value)
+      else if (event.key === 'Enter') actions.current.save()
+      else if (event.key === 's') actions.current.skip()
+      else if (event.key === 'n') {
+        event.preventDefault()
+        setNoteOpen(true)
+        requestAnimationFrame(() => noteField.current?.focus())
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   return (
-    <Card className="sticky bottom-0 z-10 shadow-lg">
-      <CardHeader>
-        <CardTitle>
-          <h2>¿Lo invitarías?</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div
-          role="radiogroup"
-          aria-label="Puntaje"
-          className="grid grid-cols-2 gap-2 @min-[40rem]/page:grid-cols-4"
-        >
-          {SCORES.map((value) => (
+    <section
+      aria-label="Puntuar este equipo"
+      className="sticky bottom-0 z-10 -mx-4 -mb-6 mt-auto space-y-2 border-t border-foreground bg-background px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+    >
+      {noteOpen && (
+        <textarea
+          ref={noteField}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') (event.target as HTMLElement).blur()
+          }}
+          maxLength={2000}
+          rows={2}
+          aria-label="Nota para el equipo organizador"
+          placeholder="Lo que viste y quieres que el resto sepa"
+          className={textareaClass}
+        />
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <ScorePicker value={score} onChange={setScore} className="min-w-0 flex-1 basis-96" />
+        <div className="ml-auto flex items-center gap-1">
+          {!noteOpen && (
             <Button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={score === value}
-              aria-label={`${value} · ${SCORE_LABELS[value]}`}
-              variant={score === value ? 'default' : 'outline'}
-              onClick={() => setScore(value)}
-              className="justify-start"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setNoteOpen(true)
+                requestAnimationFrame(() => noteField.current?.focus())
+              }}
             >
-              <span className="tabular-nums">{value}</span>
-              <span>{SCORE_LABELS[value]}</span>
+              <NotebookPen aria-hidden="true" />
+              Nota <Kbd>N</Kbd>
             </Button>
-          ))}
-        </div>
-        <label className="block space-y-1.5 text-sm">
-          <span className="text-muted-foreground">Nota (opcional)</span>
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            maxLength={2000}
-            rows={2}
-            placeholder="Lo que viste y quieres que el resto sepa"
-            className="w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-          />
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button variant="ghost" onClick={onSkip} disabled={saving}>
+          )}
+          <Button variant="ghost" size="sm" onClick={onSkip} disabled={saving}>
             <SkipForward aria-hidden="true" />
-            Saltar
+            Saltar <Kbd>S</Kbd>
           </Button>
-          <Button onClick={save} disabled={!score || saving} aria-busy={saving}>
-            {saving ? 'Guardando…' : 'Guardar y siguiente'}
+          <Button size="sm" onClick={save} disabled={!score || saving} aria-busy={saving}>
+            {saving ? 'Guardando…' : 'Guardar y seguir'} <Kbd>↵</Kbd>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }
