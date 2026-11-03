@@ -7,3 +7,5 @@ tailscale_auth_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secre
 tailscale_expected_tailnet = "TnAZzXkpd211CNTRL"
 # Foundation first. Set to CodeBuild's published sha256 digest for app deployment.
 image_digest = null
+# After initial provisioning, pin the router's actual AMI before subsequent app rollouts.
+# router_ami_id = "ami-0123456789abcdef0"

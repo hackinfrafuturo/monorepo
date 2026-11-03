@@ -86,7 +86,7 @@ resource "aws_iam_instance_profile" "app" {
   role        = aws_iam_role.app.name
 }
 resource "aws_instance" "router" {
-  ami                         = data.aws_ami.linux.id
+  ami                         = coalesce(var.router_ami_id, data.aws_ami.linux.id)
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public[0].id
   private_ip                  = local.router_ip

@@ -71,6 +71,11 @@ run "immutable_private_app" {
   command = plan
   variables {
     image_digest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    router_ami_id = "ami-0fedcba9876543210"
+  }
+  assert {
+    condition     = aws_instance.router.ami == "ami-0fedcba9876543210" && aws_launch_template.app[0].image_id == "ami-0123456789abcdef0"
+    error_message = "App AMI updates must preserve the pinned router image."
   }
   assert {
     condition     = tobool(aws_launch_template.app[0].network_interfaces[0].associate_public_ip_address) == false
