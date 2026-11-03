@@ -12,7 +12,7 @@ function client() {
 
 /** The answers a private link opens, or null when the link is wrong, replaced or expired. */
 export function loadCorrection(token: string): Promise<Member | null> {
-  return client().query(anyApi.applicationEdits.load, { token })
+  return client().mutation(anyApi.applicationEdits.load, { token })
 }
 
 export function saveCorrection(token: string, member: Member): Promise<{ changed: number }> {

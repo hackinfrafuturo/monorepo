@@ -3,7 +3,10 @@ RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY intranet/ intranet/
-RUN pnpm install --frozen-lockfile --filter @intranet/backoffice...
+COPY convex/ convex/
+COPY src/apply/ src/apply/
+COPY src/i18n/locale.ts src/i18n/locale.ts
+RUN pnpm install --frozen-lockfile --filter . --filter @intranet/workspace --filter @intranet/backoffice...
 RUN pnpm --filter @intranet/workspace test && pnpm --filter @intranet/backoffice build
 
 FROM node:24-bookworm-slim AS runtime

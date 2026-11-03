@@ -11,7 +11,9 @@ def package(destination):
     if destination.is_relative_to(repo):
         raise ValueError('Write the deployment archive outside the repository.')
     files = [repo / name for name in ('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml')]
-    files += [p for p in (repo/'intranet').rglob('*') if p.is_file() and not p.is_symlink() and not any(part in SKIP for part in p.relative_to(repo).parts)
+    files += [repo / 'src/i18n/locale.ts']
+    # The typed admin API imports Convex modules, whose types also use the public form's validators.
+    files += [p for root in ('intranet', 'convex', 'src/apply') for p in (repo/root).rglob('*') if p.is_file() and not p.is_symlink() and not any(part in SKIP for part in p.relative_to(repo).parts)
               and not p.name.startswith('.env') and not any(suffix in p.name for suffix in ('.tfstate', '.tfplan'))
               and not p.name.endswith(('.tfvars', '.backend.hcl', '.zip', '.tsbuildinfo'))]
     with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:

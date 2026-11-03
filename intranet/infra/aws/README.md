@@ -33,13 +33,16 @@ The registrar and Vercel authoritative DNS stay unchanged. DNS changes are the `
 
    ```json
    {
-     "INFRA_FUTURO_API_TOKEN": "the-existing-production-CONVEX_HTTP_API_TOKEN"
+     "INFRA_FUTURO_API_TOKEN": "the-existing-production-CONVEX_HTTP_API_TOKEN",
+     "INFRA_FUTURO_ADMIN_SECRET": "the-production-ADMIN_API_SECRET"
    }
    ```
 
    Do not paste those values into a tfvars file or commit them. The production API URL is configured by the launch template. For customer-managed secret encryption, supply the KMS key ARNs and grant the instance roles access in the key policies too.
 5. Prepare an encrypted S3 Terraform backend with access restricted to deployment operators, versioning, and state locking. Copy `backend.hcl.example` to an ignored `production.backend.hcl` and fill it in. `backend.tf` deliberately supplies no account-wide defaults.
 6. Copy `production.tfvars.example` to ignored `production.tfvars`; replace every placeholder, including secret ARNs and the exact tailnet ID. Start with `image_digest = null`.
+
+Deploy the matching Convex functions to `polite-spider-810` before merging public-site changes. The bootstrap sets `INFRA_FUTURO_CONVEX_URL` to that deployment and reads its admin secret from the runtime secret above. Keep `DECISION_EMAILS` off until the decision wording is approved; enable `MESSAGE_EMAILS` only after configuring and checking `EMAIL_REPLY_TO`. Never enable `ALLOW_SEED` on production.
 
 The initial running footprint is an ALB, NAT gateway, router EC2, one app EC2, public IPv4 allocations, ECR/S3/Secrets Manager/log storage, and build usage. Review regional costs before approving the first apply. One router and one NAT gateway are intentionally the initial availability limit; the app group replaces unhealthy nodes and uses rolling image updates, but the network path is not fully redundant.
 
