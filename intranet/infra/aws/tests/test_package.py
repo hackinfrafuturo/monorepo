@@ -19,6 +19,11 @@ class PackageTests(unittest.TestCase):
                 'pnpm-lock.yaml':'lockfileVersion: 9.0\n',
                 'pnpm-workspace.yaml':'packages: [intranet]\n',
                 'intranet/apps/backoffice/src/index.ts':'export {}',
+                'convex/_generated/api.js':'export {}',
+                'convex/admin/status.ts':'export {}',
+                'src/apply/schema.ts':'export {}',
+                'src/i18n/locale.ts':'export {}',
+                'convex/.env.local':'SECRET_CANARY',
                 'intranet/apps/backoffice/.env.local':'SECRET_CANARY',
                 'intranet/apps/backoffice/node_modules/private.txt':'SECRET_CANARY',
                 'intranet/apps/backoffice/.output/private.txt':'SECRET_CANARY',
@@ -37,6 +42,10 @@ class PackageTests(unittest.TestCase):
                 self.assertEqual(module.package(first),module.package(second))
                 with zipfile.ZipFile(first) as archive:
                     self.assertIn('intranet/apps/backoffice/src/index.ts',archive.namelist())
+                    self.assertIn('convex/_generated/api.js',archive.namelist())
+                    self.assertIn('convex/admin/status.ts',archive.namelist())
+                    self.assertIn('src/apply/schema.ts',archive.namelist())
+                    self.assertIn('src/i18n/locale.ts',archive.namelist())
                     content=b'\n'.join(archive.read(name) for name in archive.namelist())
                     self.assertNotIn(b'SECRET_CANARY',content)
                     self.assertNotIn(b'LOCAL_TOOL_CANARY',content)

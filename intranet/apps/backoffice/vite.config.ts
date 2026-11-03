@@ -12,7 +12,11 @@ export default defineConfig(({ mode }) => {
   return {
     resolve: {
       dedupe: ['react', 'react-dom'],
-      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        // the hackathon's Convex functions, for their generated types
+        '@convex': fileURLToPath(new URL('../../../convex', import.meta.url)),
+      },
     },
     plugins: [
       tailwindcss(),

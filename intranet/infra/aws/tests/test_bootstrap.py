@@ -27,7 +27,8 @@ class BootstrapTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             prefix=str(Path(directory)/'backoffice')
             Path(prefix+'-secret.json').write_text(json.dumps({
-                'INFRA_FUTURO_API_TOKEN':'qa-only-token', 'INFRA_FUTURO_READERS':'organizer@example.com',
+                'INFRA_FUTURO_API_TOKEN':'qa-only-token', 'INFRA_FUTURO_ADMIN_SECRET':'qa-only-admin-secret',
+                'INFRA_FUTURO_READERS':'organizer@example.com',
                 'INTRANET_DEV_USER':'must-not-be-forwarded',
             }))
             exec(compile(PYTHON.replace('/run/backoffice',prefix),'<bootstrap>','exec'),{})
@@ -35,13 +36,15 @@ class BootstrapTests(unittest.TestCase):
             values=dict(line.split('=',1) for line in output.read_text().splitlines())
             self.assertEqual(values['INTRANET_AUTH_MODE'],'tailscale-alb')
             self.assertEqual(values['INFRA_FUTURO_API_TOKEN'],'qa-only-token')
+            self.assertEqual(values['INFRA_FUTURO_ADMIN_SECRET'],'qa-only-admin-secret')
+            self.assertEqual(values['INFRA_FUTURO_CONVEX_URL'],'https://polite-spider-810.convex.cloud')
             self.assertNotIn('INTRANET_DEV_USER',values)
             self.assertNotIn('INFRA_FUTURO_READERS',values)
             self.assertEqual(output.stat().st_mode & 0o777,0o600)
     def test_newlines_cannot_inject_runtime_settings(self):
         with tempfile.TemporaryDirectory() as directory:
             prefix=str(Path(directory)/'backoffice')
-            Path(prefix+'-secret.json').write_text(json.dumps({'INFRA_FUTURO_API_TOKEN':'bad\nINTRANET_AUTH_MODE=tailscale','INFRA_FUTURO_READERS':'organizer@example.com'}))
+            Path(prefix+'-secret.json').write_text(json.dumps({'INFRA_FUTURO_API_TOKEN':'bad\nINTRANET_AUTH_MODE=tailscale','INFRA_FUTURO_ADMIN_SECRET':'qa-only-admin-secret'}))
             with self.assertRaises(ValueError):exec(compile(PYTHON.replace('/run/backoffice',prefix),'<bootstrap>','exec'),{})
             self.assertFalse(Path(prefix+'.env').exists())
 

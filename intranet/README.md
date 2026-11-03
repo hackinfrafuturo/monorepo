@@ -36,6 +36,38 @@ pnpm dev:intranet
 
 Open `http://127.0.0.1:3100/stats`. Without an API token the page explicitly reports an unconfigured connection, never fake or zero registrations. Without a verified identity it denies access. The local identity override is development-only and is rejected by the production launcher.
 
+## Admin API and test data
+
+Pages beyond the stats read and change data through typed Convex functions in `convex/admin/` (the overview at `/projects/infra-futuro` is the first). The backoffice server calls them with `ConvexHttpClient` and the generated `api` types, adding two things to every call: `INFRA_FUTURO_ADMIN_SECRET`, which must match `ADMIN_API_SECRET` on the deployment, and the organizer's verified Tailscale login, which goes into the `auditLog` table. Everyone on the tailnet is an admin, so there are no roles; the secret only keeps everyone else out of those public functions. Decisions are per application (a team is decided as one); the allowed status changes live in `convex/admin/status.ts`.
+
+To get realistic data on a development deployment (never production), from the repository root:
+
+```sh
+npx convex env set ADMIN_API_SECRET "$(openssl rand -hex 32)"   # copy the same value into .env.local
+npx convex env set ALLOW_SEED true
+npx convex run seed:run '{"count": 40}'
+npx convex run seed:clear   # removes only the seeded rows
+```
+
+Organizers score pending teams at `/projects/infra-futuro/review` (1 to 4, one team at a time, without email, gender or anyone else's scores) and decide at `/projects/infra-futuro/decisions`, sorted by average score against the event's capacity in people. Accepting, waitlisting or rejecting queues an email to every member (wording in `convex/admin/emailTemplates.ts`, a draft to review before launch). **Decision emails only go out where `DECISION_EMAILS=send` is set on the Convex deployment**; anywhere else they are recorded as not sent, and `example.com` addresses are never emailed. Turn it on in production only once the wording is approved:
+
+```sh
+npx convex env set DECISION_EMAILS send --prod
+```
+
+`/projects/infra-futuro/messages` sends custom emails to one person, a team, or everyone matching a filter, after a confirmation with the count and a preview; the count is rechecked on send, so nobody emails more people than they agreed to. `{nombre}` and `{enlace}` fill in each person's first name and a private correction link. Those links open `/corregir` on the public site: one person's answers only, through the application's own form and rules, valid for 14 days. A new link replaces the old, only the token's hash is stored, and every change lands in the team's history with its old and new value. `/projects/infra-futuro/insights` shows applicants in aggregate.
+
+Custom emails follow the same safety rule, with their own switch, and replies go to `EMAIL_REPLY_TO`:
+
+```sh
+npx convex env set EMAIL_REPLY_TO you@example.org --prod
+npx convex env set MESSAGE_EMAILS send --prod
+```
+
+Deploy Convex before the public site, or `/corregir` links will read as expired.
+
+Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
+
 ## Access and deployment
 
 For `backoffice.hackinfrafuturo.cl`, use the [private AWS deployment runbook](infra/aws/README.md). It prepares an internal ALB, ACM HTTPS, automatic Tailscale identity verified by the subnet router, a Tailscale subnet router, and a private app group. The setup below remains available for direct Tailscale Serve deployments.

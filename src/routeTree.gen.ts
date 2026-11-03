@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as ApplyRouteImport } from './routes/apply'
+import { Route as CorregirRouteImport } from './routes/corregir'
 import { Route as DeckRouteImport } from './routes/deck'
 import { Route as FlagRouteImport } from './routes/flag'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
@@ -30,6 +31,11 @@ const SplatRoute = SplatRouteImport.update({
 const ApplyRoute = ApplyRouteImport.update({
   id: '/apply',
   path: '/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorregirRoute = CorregirRouteImport.update({
+  id: '/corregir',
+  path: '/corregir',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeckRoute = DeckRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
+  '/corregir': typeof CorregirRoute
   '/deck': typeof DeckRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
+  '/corregir': typeof CorregirRoute
   '/deck': typeof DeckRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/apply': typeof ApplyRoute
+  '/corregir': typeof CorregirRoute
   '/deck': typeof DeckRoute
   '/flag': typeof FlagRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -84,14 +93,30 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/$' | '/apply' | '/deck' | '/flag' | '/leaderboard' | '/sponsor'
+    | '/'
+    | '/$'
+    | '/apply'
+    | '/corregir'
+    | '/deck'
+    | '/flag'
+    | '/leaderboard'
+    | '/sponsor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/apply' | '/deck' | '/flag' | '/leaderboard' | '/sponsor'
+  to:
+    | '/'
+    | '/$'
+    | '/apply'
+    | '/corregir'
+    | '/deck'
+    | '/flag'
+    | '/leaderboard'
+    | '/sponsor'
   id:
     | '__root__'
     | '/'
     | '/$'
     | '/apply'
+    | '/corregir'
     | '/deck'
     | '/flag'
     | '/leaderboard'
@@ -102,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   ApplyRoute: typeof ApplyRoute
+  CorregirRoute: typeof CorregirRoute
   DeckRoute: typeof DeckRoute
   FlagRoute: typeof FlagRoute
   LeaderboardRoute: typeof LeaderboardRoute
@@ -129,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/apply'
       fullPath: '/apply'
       preLoaderRoute: typeof ApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corregir': {
+      id: '/corregir'
+      path: '/corregir'
+      fullPath: '/corregir'
+      preLoaderRoute: typeof CorregirRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deck': {
@@ -166,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   ApplyRoute: ApplyRoute,
+  CorregirRoute: CorregirRoute,
   DeckRoute: DeckRoute,
   FlagRoute: FlagRoute,
   LeaderboardRoute: LeaderboardRoute,

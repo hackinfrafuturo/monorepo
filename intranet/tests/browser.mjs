@@ -400,7 +400,13 @@ try {
     .click()
   await mobileNavigation.waitFor({ state: 'hidden' })
   await page.getByRole('heading', { name: 'Proyectos', exact: true }).waitFor()
-  await page.getByRole('link', { name: /Ver inscripciones/ }).click()
+  await page.getByRole('link', { name: /Abrir proyecto/ }).click()
+  await page.getByRole('heading', { name: 'Resumen', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Abrir o cerrar navegación' }).click()
+  await mobileNavigation
+    .getByRole('link', { name: 'Inscripciones', exact: true })
+    .click()
+  await mobileNavigation.waitFor({ state: 'hidden' })
   await page.getByText('QA Ana', { exact: true }).waitFor()
   assert.deepEqual(errors, [])
   assert.ok(
