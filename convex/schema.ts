@@ -40,7 +40,8 @@ export const auditFields = {
   recipients: v.optional(v.number()),
 }
 
-export const memberValidator = v.object({
+/** The public contract used by signup and correction tabs opened before identity collection. */
+export const legacyMemberValidator = v.object({
   name: v.string(),
   gender: v.union(
     v.literal('woman'),
@@ -61,11 +62,23 @@ export const memberValidator = v.object({
   favorite: v.string(),
   diet: v.union(v.literal('vegan'), v.literal('veggie'), v.literal('omnivore')),
   allergies: v.string(),
+})
+
+const identityFields = {
+  idType: v.union(v.literal('rut'), v.literal('passport')),
+  idNumber: v.string(),
+  parking: v.union(v.literal('yes'), v.literal('no')),
+}
+
+export const identityMemberValidator = v.object({ ...legacyMemberValidator.fields, ...identityFields })
+
+export const memberValidator = v.object({
+  ...legacyMemberValidator.fields,
   // Required on the form since the venue's security asked for them; applications from before don't
-  // have them, so they stay optional here. The ID only ever leaves Convex for the backoffice.
-  idType: v.optional(v.union(v.literal('rut'), v.literal('passport'))),
-  idNumber: v.optional(v.string()),
-  parking: v.optional(v.union(v.literal('yes'), v.literal('no'))),
+  // have them, so they stay optional here. Only the owner and private backoffice receive the ID.
+  idType: v.optional(identityFields.idType),
+  idNumber: v.optional(identityFields.idNumber),
+  parking: v.optional(identityFields.parking),
 })
 
 export default defineSchema({

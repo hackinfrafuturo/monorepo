@@ -18,5 +18,5 @@ export async function loadCorrection(token: string): Promise<Member | null> {
 }
 
 export function saveCorrection(token: string, member: Member): Promise<{ changed: number }> {
-  return client().mutation(anyApi.applicationEdits.save, { token, member })
+  return client().mutation(anyApi.applicationEdits.saveWithIdentity, { token, member })
 }

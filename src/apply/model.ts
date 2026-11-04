@@ -117,7 +117,7 @@ export function rutCheckDigit(body: string): string {
 export function cleanIdNumber(idType: IdType | '', value: string): string {
   if (idType === 'passport') return value.replace(/[\s-]/g, '').toUpperCase()
   const raw = value.replace(/[.\s-]/g, '').toUpperCase()
-  return raw.length < 2 ? raw : `${raw.slice(0, -1)}-${raw.slice(-1)}`
+  return raw.length < 2 ? raw : `${raw.slice(0, -1).replace(/^0+/, '')}-${raw.slice(-1)}`
 }
 
 export function validRut(value: string): boolean {

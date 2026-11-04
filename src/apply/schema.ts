@@ -192,13 +192,13 @@ function cleanMember(member: Member): Member {
 /** The answers other questions depend on. */
 type Context = Pick<Member, 'coding' | 'idType'>
 
-function memberSchema(others: readonly Member[], { coding, idType }: Context) {
+function memberSchema(others: readonly Member[], { coding, idType }: Context, requireIdentity = true) {
   // Unanswered still asks for GitHub. LinkedIn becomes required only when they don't code.
   const githubRequired = coding !== 'no'
   return z.object({
-    name: requiredText().regex(REAL_NAME, { error: 'realName' }),
-    idType: oneOf(ID_TYPES),
-    idNumber: idNumberSchema(idType, others),
+    name: requireIdentity ? requiredText().regex(REAL_NAME, { error: 'realName' }) : requiredText(),
+    idType: requireIdentity ? oneOf(ID_TYPES) : z.literal(''),
+    idNumber: requireIdentity ? idNumberSchema(idType, others) : z.literal(''),
     gender: oneOf(GENDERS),
     github: githubSchema(others.map((member) => member.github), githubRequired),
     email: emailSchema(others.map((member) => member.email)),
@@ -212,7 +212,7 @@ function memberSchema(others: readonly Member[], { coding, idType }: Context) {
     favorite: answerText(),
     diet: oneOf(DIETS),
     allergies: z.string().trim(),
-    parking: oneOf(YES_NO),
+    parking: requireIdentity ? oneOf(YES_NO) : z.literal(''),
   })
 }
 
@@ -220,8 +220,8 @@ function errorKey(message: string | undefined): ErrorKey | undefined {
   return ERROR_KEYS.find((key) => key === message)
 }
 
-function errorsFor(member: Member, others: readonly Member[]): MemberErrors {
-  const parsed = memberSchema(others, member).safeParse(member)
+function errorsFor(member: Member, others: readonly Member[], requireIdentity: boolean): MemberErrors {
+  const parsed = memberSchema(others, member, requireIdentity).safeParse(member)
   if (parsed.success) return {}
   const errors: MemberErrors = {}
   for (const issue of parsed.error.issues) {
@@ -236,13 +236,14 @@ function errorsFor(member: Member, others: readonly Member[]): MemberErrors {
 }
 
 /** Clean every person, then check them against each other. */
-export function checkTeam(members: readonly Member[], size: number) {
+export function checkTeam(members: readonly Member[], size: number, { requireIdentity = true } = {}) {
   const normalized = members.slice(0, size).map(cleanMember)
   return normalized.map((member, index) => ({
     member,
     errors: errorsFor(
       member,
       normalized.filter((_, other) => other !== index),
+      requireIdentity,
     ),
   }))
 }

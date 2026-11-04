@@ -1,10 +1,10 @@
-import { ConvexError, v } from 'convex/values'
-import { internalMutation, mutation, type QueryCtx } from './_generated/server'
+import { ConvexError, v, type Infer } from 'convex/values'
+import { internalMutation, mutation, type MutationCtx, type QueryCtx } from './_generated/server'
 import type { Doc } from './_generated/dataModel'
 import { checkTeam } from '../src/apply/schema'
 import { firstErrorKey } from '../src/apply/model'
-import { stored, withIdentity } from './applications'
-import { memberValidator } from './schema'
+import { hasIdentity, requireUniqueId, stored, withIdentity } from './applications'
+import { identityMemberValidator, memberValidator } from './schema'
 
 /**
  * Applicants correcting their own answers from a private link an organizer emailed them. These are the
@@ -70,41 +70,53 @@ export const load = mutation({
 })
 
 /** Saves the corrected answers under the same rules as the form, and logs what changed. */
+async function saveMember(
+  ctx: MutationCtx,
+  { token, member }: { token: string; member: Infer<typeof memberValidator> },
+  requireIdentity: boolean,
+) {
+  const current = await memberFor(ctx, token)
+  if (!current) throw new ConvexError('This link is no longer valid')
+  const [checked] = checkTeam([withIdentity(member)], 1, { requireIdentity })
+  if (firstErrorKey(checked.errors) != null) throw new ConvexError('Invalid application')
+  const next = stored(checked.member, requireIdentity)
+
+  const sameEmail = await ctx.db.query('members').withIndex('by_email', (q) => q.eq('email', next.email)).first()
+  if (sameEmail && sameEmail._id !== current._id) throw new ConvexError('Email already registered')
+  if (next.github) {
+    const sameGithub = await ctx.db.query('members').withIndex('by_github', (q) => q.eq('github', next.github)).first()
+    if (sameGithub && sameGithub._id !== current._id) throw new ConvexError('GitHub already registered')
+  }
+  await requireUniqueId(ctx, next, current._id)
+
+  const changes = (Object.keys(next) as (keyof typeof next)[])
+    .filter((field) => next[field] !== current[field])
+    .map((field) =>
+      // the history records that the ID changed, never the ID itself
+      field === 'idNumber'
+        ? { field, from: current.idNumber ? '•••' : '', to: '•••' }
+        : { field, from: (current[field] ?? '').slice(0, 300), to: (next[field] ?? '').slice(0, 300) },
+    )
+  if (!changes.length) return { changed: 0 }
+  await ctx.db.patch(current._id, next)
+  await ctx.db.insert('auditLog', {
+    actor: next.name,
+    action: 'edit',
+    applicationId: current.applicationId,
+    changes,
+  })
+  return { changed: changes.length }
+}
+
+/** Older correction forms keep their contract and never overwrite identity fields. */
 export const save = mutation({
   args: { token: v.string(), member: memberValidator },
   returns: v.object({ changed: v.number() }),
-  handler: async (ctx, { token, member }) => {
-    const current = await memberFor(ctx, token)
-    if (!current) throw new ConvexError('This link is no longer valid')
-    const [checked] = checkTeam([withIdentity(member)], 1)
-    if (firstErrorKey(checked.errors) != null) throw new ConvexError('Invalid application')
-    const next = stored(checked.member)
+  handler: (ctx, args) => saveMember(ctx, args, hasIdentity(args.member)),
+})
 
-    const sameEmail = await ctx.db.query('members').withIndex('by_email', (q) => q.eq('email', next.email)).first()
-    if (sameEmail && sameEmail._id !== current._id) throw new ConvexError('Email already registered')
-    if (next.github) {
-      const sameGithub = await ctx.db.query('members').withIndex('by_github', (q) => q.eq('github', next.github)).first()
-      if (sameGithub && sameGithub._id !== current._id) throw new ConvexError('GitHub already registered')
-    }
-    const sameId = await ctx.db.query('members').withIndex('by_idNumber', (q) => q.eq('idNumber', next.idNumber)).first()
-    if (sameId && sameId._id !== current._id) throw new ConvexError('ID already registered')
-
-    const changes = (Object.keys(next) as (keyof typeof next)[])
-      .filter((field) => next[field] !== current[field])
-      .map((field) =>
-        // the history records that the ID changed, never the ID itself
-        field === 'idNumber'
-          ? { field, from: current.idNumber ? '•••' : '', to: '•••' }
-          : { field, from: (current[field] ?? '').slice(0, 300), to: next[field].slice(0, 300) },
-      )
-    if (!changes.length) return { changed: 0 }
-    await ctx.db.patch(current._id, next)
-    await ctx.db.insert('auditLog', {
-      actor: next.name,
-      action: 'edit',
-      applicationId: current.applicationId,
-      changes,
-    })
-    return { changed: changes.length }
-  },
+export const saveWithIdentity = mutation({
+  args: { token: v.string(), member: identityMemberValidator },
+  returns: v.object({ changed: v.number() }),
+  handler: (ctx, args) => saveMember(ctx, args, true),
 })

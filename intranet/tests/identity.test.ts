@@ -7,6 +7,8 @@ import { api, internal } from '../../convex/_generated/api.js'
 import { checkTeam } from '../../src/apply/schema.ts'
 import { cleanIdNumber, emptyMember, validRut, type Member } from '../../src/apply/model.ts'
 import { loadDraft, saveDraft, emptyDraft } from '../../src/apply/draft.ts'
+import { internalAction } from '../../convex/_generated/server.js'
+import { v } from 'convex/values'
 
 const modules = {
   '../../convex/_generated/server.ts': () => import('../../convex/_generated/server.js'),
@@ -15,6 +17,14 @@ const modules = {
   '../../convex/apiData.ts': () => import('../../convex/apiData.ts'),
   '../../convex/admin/stats.ts': () => import('../../convex/admin/stats.ts'),
   '../../convex/admin/messages.ts': () => import('../../convex/admin/messages.ts'),
+  // Keep scheduled confirmations inside the fixture; never load the real email transport.
+  '../../convex/emails.ts': async () => ({
+    sendConfirmation: internalAction({
+      args: { memberId: v.id('members'), name: v.string(), email: v.string() },
+      returns: v.null(),
+      handler: async () => null,
+    }),
+  }),
 }
 const answer = 'A detailed answer describing a real project and what I learned from building it.'
 const valid: Member = {
@@ -96,12 +106,12 @@ async function applicantLink(t: ReturnType<typeof convexTest>, memberId: never) 
 test('Convex refuses an application without a real name, ID or parking answer', async () => {
   const t = convexTest(schema, modules)
   for (const member of [legacy, { ...complete, idNumber: '12345678-6' }, { ...complete, name: 'Ana' }])
-    await assert.rejects(t.mutation(api.applications.submit, { members: [member] }), /Invalid application/)
+    await assert.rejects(t.mutation(api.applications.submitWithIdentity, { members: [member] }), /Invalid application|idType|idNumber|parking/)
 })
 
 test('a valid application is stored cleaned, and the same ID cannot apply twice', async () => {
   const t = convexTest(schema, modules)
-  await t.mutation(api.applications.submit, {
+  await t.mutation(api.applications.submitWithIdentity, {
     members: [{ ...complete, idNumber: '12.345.678-5', name: '  Ana   Soto ' }],
   })
   await t.run(async (ctx) => {
@@ -112,7 +122,7 @@ test('a valid application is stored cleaned, and the same ID cannot apply twice'
     assert.equal(member.parking, 'yes')
   })
   await assert.rejects(
-    t.mutation(api.applications.submit, {
+    t.mutation(api.applications.submitWithIdentity, {
       members: [{ ...complete, email: 'other@example.com', github: 'other', idNumber: '123456785' }],
     }),
     /ID already registered/,
@@ -133,12 +143,12 @@ test('an older application can add its ID from a private link, and the history h
   })
   const token = await applicantLink(t, memberId as never)
   assert.equal((await t.mutation(api.applicationEdits.load, { token }))?.idNumber, undefined)
-  await assert.rejects(t.mutation(api.applicationEdits.save, { token, member: legacy }), /Invalid application/)
+  await assert.rejects(t.mutation(api.applicationEdits.saveWithIdentity, { token, member: legacy }), /Invalid application|idType|idNumber|parking/)
   await assert.rejects(
-    t.mutation(api.applicationEdits.save, { token, member: { ...complete, idNumber: '11111111-1' } }),
+    t.mutation(api.applicationEdits.saveWithIdentity, { token, member: { ...complete, idNumber: '11111111-1' } }),
     /ID already registered/,
   )
-  await t.mutation(api.applicationEdits.save, { token, member: complete })
+  await t.mutation(api.applicationEdits.saveWithIdentity, { token, member: complete })
   await t.run(async (ctx) => {
     assert.equal((await ctx.db.get(memberId))?.idNumber, '12345678-5')
     assert.equal((await ctx.db.get(other))?.idNumber, '11111111-1')
@@ -179,4 +189,77 @@ test('a group email can target only the people still missing an ID', async () =>
   const stats = await t.query(api.admin.stats.get, admin)
   assert.equal(stats.missingId, 1)
   assert.deepEqual(stats.parking, [{ key: 'yes', count: 1 }])
+})
+
+test('already-open signup tabs retain their old validation and are flagged for ID follow-up', async () => {
+  const t = convexTest(schema, modules)
+  await t.mutation(api.applications.submit, { members: [{ ...legacy, name: 'Ana' }] })
+  const [saved] = await t.run((ctx) => ctx.db.query('members').collect())
+  assert.equal(saved.name, 'Ana')
+  assert.equal(saved.idNumber, undefined)
+  assert.equal(saved.parking, undefined)
+  await assert.rejects(t.mutation(api.applications.submit, { members: [{ ...legacy, deep: 'short' }] }), /Invalid application/)
+  const previous = process.env.ADMIN_API_SECRET
+  process.env.ADMIN_API_SECRET = 'qa-only'
+  try {
+    const audience = await t.query(api.admin.messages.audience, {
+      secret: 'qa-only', actor: 'qa@github', audience: { kind: 'group', missingId: true },
+    })
+    assert.equal(audience.count, 1)
+  } finally {
+    if (previous === undefined) delete process.env.ADMIN_API_SECRET
+    else process.env.ADMIN_API_SECRET = previous
+  }
+})
+
+test('an old correction tab preserves identity collected by a newer tab', async () => {
+  const t = convexTest(schema, modules)
+  const memberId = await t.run(async (ctx) => {
+    const applicationId = await ctx.db.insert('applications', { submittedAt: Date.now(), size: 1 })
+    return ctx.db.insert('members', { applicationId, ...complete })
+  })
+  const token = await applicantLink(t, memberId as never)
+  await t.mutation(api.applicationEdits.save, { token, member: { ...legacy, role: 'Researcher' } })
+  const saved = await t.run((ctx) => ctx.db.get(memberId))
+  assert.equal(saved?.role, 'Researcher')
+  assert.equal(saved?.idNumber, complete.idNumber)
+  assert.equal(saved?.idType, complete.idType)
+  assert.equal(saved?.parking, complete.parking)
+  const history = await t.run((ctx) => ctx.db.query('auditLog').collect())
+  assert.deepEqual(history[0].changes, [{ field: 'role', from: 'Engineer', to: 'Researcher' }])
+})
+
+test('leading-zero RUT spellings cannot duplicate an ID in a team, signup or correction', async () => {
+  const rut = { ...complete, idNumber: '1234567-4' }
+  assert.equal(cleanIdNumber('rut', '01.234.567-4'), rut.idNumber)
+  const team = checkTeam([rut, { ...rut, email: 'b@example.com', github: 'b', idNumber: '01234567-4' }], 2)
+  assert.equal(team[0].errors.idNumber, 'dupId')
+  assert.equal(team[1].errors.idNumber, 'dupId')
+  for (const existingNumber of ['1234567-4', '01234567-4']) {
+    const t = convexTest(schema, modules)
+    const memberId = await t.run(async (ctx) => {
+      const applicationId = await ctx.db.insert('applications', { submittedAt: Date.now(), size: 2 })
+      await ctx.db.insert('members', { applicationId, ...rut, idNumber: existingNumber })
+      return ctx.db.insert('members', { applicationId, ...legacy, email: 'b@example.com', github: 'b' })
+    })
+    const duplicate = { ...rut, email: 'b@example.com', github: 'b', idNumber: '01234567-4' }
+    const token = await applicantLink(t, memberId as never)
+    await assert.rejects(t.mutation(api.applicationEdits.saveWithIdentity, { token, member: duplicate }), /ID already registered/)
+    await assert.rejects(t.mutation(api.applications.submitWithIdentity, {
+      members: [{ ...duplicate, email: 'c@example.com', github: 'c' }],
+    }), /ID already registered/)
+    assert.equal((await t.run((ctx) => ctx.db.get(memberId)))?.idNumber, undefined)
+  }
+})
+
+test('unversioned preview callers still work, but supplied identity fields must be complete and valid', async () => {
+  const t = convexTest(schema, modules)
+  await t.mutation(api.applications.submit, { members: [complete] })
+  const [saved] = await t.run((ctx) => ctx.db.query('members').collect())
+  assert.equal(saved.idNumber, complete.idNumber)
+  const token = await applicantLink(t, saved._id as never)
+  await t.mutation(api.applicationEdits.save, { token, member: { ...complete, role: 'Researcher' } })
+  assert.equal((await t.run((ctx) => ctx.db.get(saved._id)))?.role, 'Researcher')
+  await assert.rejects(t.mutation(api.applications.submit, { members: [{ ...legacy, idNumber: '12345678-5' }] }), /Invalid application/)
+  await assert.rejects(t.mutation(api.applicationEdits.save, { token, member: { ...legacy, idNumber: 'bad' } }), /Invalid application/)
 })

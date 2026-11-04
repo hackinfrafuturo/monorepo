@@ -56,9 +56,14 @@ try {
       const body = request.postDataJSON()
       body.args = body.args[0]
       calls.push(body)
+      if (body.path === 'applications:submitWithIdentity') {
+        assert.equal(body.args.members[0].idNumber, '1234567-4')
+        assert.equal(body.args.members[0].parking, 'no')
+        return route.fulfill({ json: { status: 'success', value: null }, headers: { 'access-control-allow-origin': '*' } })
+      }
       assert.equal(body.args.token, token)
-      assert.ok(['applicationEdits:load', 'applicationEdits:save'].includes(body.path))
-      if (body.path === 'applicationEdits:save') assert.equal(body.args.member.role, 'Researcher')
+      assert.ok(['applicationEdits:load', 'applicationEdits:saveWithIdentity'].includes(body.path))
+      if (body.path === 'applicationEdits:saveWithIdentity') assert.equal(body.args.member.role, 'Researcher')
       await route.fulfill({
         json: { status: 'success', value: body.path === 'applicationEdits:load' ? (valid ? member : null) : { changed: 1 } },
         headers: { 'access-control-allow-origin': '*' },
@@ -71,15 +76,28 @@ try {
     await page.locator('#m0-role').fill('Researcher')
     await page.getByRole('button', { name: /Guardar cambios|Save changes/ }).click()
     await page.getByRole('heading', { name: /Listo, gracias|Done, thank you/ }).waitFor()
-    assert.equal(calls.filter((call) => call.path === 'applicationEdits:save').length, 1)
+    assert.equal(calls.filter((call) => call.path === 'applicationEdits:saveWithIdentity').length, 1)
     valid = false
     await page.reload()
     await page.getByRole('heading', { name: /Este enlace ya no sirve|This link no longer works/ }).waitFor()
     assert.equal(await page.locator('#m0-email').count(), 0)
+    // Resume an otherwise complete draft, then enter the ID (which is never persisted).
+    await page.evaluate((member) => {
+      localStorage.setItem('infra-hack:apply:v1', JSON.stringify({
+        size: 1, members: [{ ...member, idNumber: '' }], step: 0, ref: '', consentAccepted: true,
+      }))
+    }, member)
+    await page.goto(`${origin}/apply`)
+    await page.locator('#m0-idNumber').fill('01234567-4')
+    await page.getByRole('button', { name: /^(Next|Siguiente)$/ }).click()
+    assert.equal(await page.evaluate(() => localStorage.getItem('infra-hack:apply:v1').includes('1234567')), false)
+    await page.getByRole('button', { name: /^(Register team|Inscribir equipo)$/ }).click()
+    await page.getByRole('heading', { name: /^(Team registered|Equipo inscrito)$/ }).waitFor()
+    assert.equal(calls.filter((call) => call.path === 'applications:submitWithIdentity').length, 1)
     assert.deepEqual(errors, [])
     await context.close()
   }
-  console.log('Correction browser checks passed: own form, mutation load/save, token isolation, invalid link, desktop/mobile, no page errors. Synthetic backend; no hosted data changed.')
+  console.log('Public form browser checks passed: identity signup/correction endpoints, canonical RUT, private draft, token isolation, invalid link, desktop/mobile, no page errors. Synthetic backend; no hosted data or emails.')
 } finally {
   await browser?.close()
   if (child.exitCode === null) { child.kill('SIGTERM'); await once(child, 'exit') }
