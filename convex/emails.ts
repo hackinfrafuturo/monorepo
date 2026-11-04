@@ -7,7 +7,12 @@ import { internalAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { EDIT_LINK_DAYS, LINK_TAG, decisionEmail, isTestAddress, messageEmail } from './admin/emailTemplates'
 
-const FROM = 'Infra Futuro <hola@indies.la>'
+/**
+ * Who emails come from, and where replies go. Resend refuses any sender on a domain it hasn't verified,
+ * so the sender is a deployment setting: verify the domain first, then set EMAIL_FROM.
+ */
+const from = () => process.env.EMAIL_FROM ?? 'Infra Futuro <hola@indies.la>'
+const replyTo = () => (process.env.EMAIL_REPLY_TO ? { replyTo: process.env.EMAIL_REPLY_TO } : {})
 const SUBJECT = 'Recibimos tu postulación · Infra Futuro 2026'
 
 function escapeHtml(value: string): string {
@@ -35,8 +40,9 @@ export const sendConfirmation = internalAction({
 
     const { error } = await new Resend(key).emails.send(
       {
-        from: FROM,
+        from: from(),
         to: email,
+        ...replyTo(),
         subject: SUBJECT,
         html: `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p><p>hi ${escapeHtml(name)},</p><p>we received your application for infra futuro 2026.</p><p>nos comunicaremos a la brevedad.</p><p>nos vemos el 5 y 6 de diciembre, santiago.</p></main>`,
         text: `hi ${name},\n\nwe received your application for infra futuro 2026.\n\nnos comunicaremos a la brevedad.\n\nnos vemos el 5 y 6 de diciembre, santiago.`,
@@ -68,7 +74,7 @@ export const sendDecision = internalAction({
 
     const { subject, text, html } = decisionEmail(row.decision, row.name)
     const { error } = await new Resend(key).emails.send(
-      { from: FROM, to: row.email, ...(process.env.EMAIL_REPLY_TO ? { replyTo: process.env.EMAIL_REPLY_TO } : {}), subject, text, html },
+      { from: from(), to: row.email, ...replyTo(), subject, text, html },
       { idempotencyKey: `infra-futuro-decision/${emailId}` },
     )
     await ctx.runMutation(internal.decisionEmails.mark, error ? { emailId, state: 'failed', error: error.message } : { emailId, state: 'sent' })
@@ -90,14 +96,13 @@ export const sendMessages = internalAction({
     const next = await ctx.runQuery(internal.messages.nextRecipient, { messageId })
     if (!next) return null
     const { recipientId } = next
-    const replyTo = process.env.EMAIL_REPLY_TO
     const key = process.env.RESEND_API_KEY
     let delay = 0
     if (process.env.MESSAGE_EMAILS !== 'send') {
       await ctx.runMutation(internal.messages.mark, { recipientId, state: 'skipped', error: 'Custom emails are off on this deployment' })
     } else if (isTestAddress(next.email)) {
       await ctx.runMutation(internal.messages.mark, { recipientId, state: 'skipped', error: 'Test address' })
-    } else if (!key || !replyTo) {
+    } else if (!key || !process.env.EMAIL_REPLY_TO) {
       await ctx.runMutation(internal.messages.mark, { recipientId, state: 'failed', error: 'RESEND_API_KEY or EMAIL_REPLY_TO is not configured' })
     } else {
       delay = SEND_SPACING_MS
@@ -115,7 +120,7 @@ export const sendMessages = internalAction({
         }
         const { subject, text, html } = messageEmail(next.subject, next.body, next.name, link)
         const { error } = await new Resend(key).emails.send(
-          { from: FROM, to: next.email, replyTo, subject, text, html },
+          { from: from(), to: next.email, ...replyTo(), subject, text, html },
           { idempotencyKey: `infra-futuro-message/${recipientId}` },
         )
         await ctx.runMutation(internal.messages.mark, error ? { recipientId, state: 'failed', error: error.message } : { recipientId, state: 'sent' })
