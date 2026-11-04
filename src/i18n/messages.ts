@@ -179,8 +179,19 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         description: 'Firecrawl is a web data API for AI.',
         useCase: 'Search the web and turn websites into structured data for your agents.',
         benefits: {
-          status: 'pending',
-          message: 'Sponsorship details to be announced.',
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'All participants',
+              benefit: '5,000 Firecrawl credits',
+              details: 'API credits for scraping, crawling, and web search.',
+            },
+            {
+              audience: 'Winners',
+              benefit: '1 month of a Firecrawl plan, free',
+              details: 'Plan details to be announced.',
+            },
+          ],
         },
       },
       markip: {
@@ -211,8 +222,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         description: 'Wispr Flow is voice dictation built for developers.',
         useCase: 'Dictate code, prompts, and commits in your editor, 4 times faster than typing.',
         benefits: {
-          status: 'pending',
-          message: 'Sponsorship details yet to be revealed.',
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'All participants',
+              benefit: '3 months of Pro, free',
+              details: 'Unlimited dictation. Normally USD 15/month.',
+            },
+          ],
         },
       },
       croma: {
@@ -371,8 +388,19 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         description: 'Firecrawl es una API de datos web para IA.',
         useCase: 'Busca en la web y convierte sitios en datos estructurados para tus agentes.',
         benefits: {
-          status: 'pending',
-          message: 'Detalles del auspicio por anunciar.',
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'Todos los participantes',
+              benefit: '5.000 créditos de Firecrawl',
+              details: 'Créditos de API para extraer, rastrear y buscar en la web.',
+            },
+            {
+              audience: 'Ganadores',
+              benefit: '1 mes gratis de un plan de Firecrawl',
+              details: 'Detalles del plan por anunciar.',
+            },
+          ],
         },
       },
       markip: {
@@ -403,8 +431,14 @@ export const homeMessages: Record<Locale, HomeMessages> = {
         description: 'Wispr Flow es una app de dictado por voz hecha para programar.',
         useCase: 'Dicta código, prompts y commits en tu editor, 4 veces más rápido que teclear.',
         benefits: {
-          status: 'pending',
-          message: 'Detalles del auspicio por revelar.',
+          status: 'confirmed',
+          offers: [
+            {
+              audience: 'Todos los participantes',
+              benefit: '3 meses de Pro gratis',
+              details: 'Dictado ilimitado. Precio habitual: USD 15/mes.',
+            },
+          ],
         },
       },
       croma: {
