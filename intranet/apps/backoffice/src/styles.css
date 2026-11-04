@@ -1,5 +1,16 @@
+@import '@fontsource/ia-writer-quattro/400.css';
+@import '@fontsource/ia-writer-quattro/700.css';
 @import 'tailwindcss' source('.');
 @import 'tw-animate-css';
+
+/* Geist Pixel Circle — OFL-1.1, The Geist Project Authors */
+@font-face {
+  font-family: 'Geist Pixel Circle';
+  src: url('./fonts/GeistPixel-Circle.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -30,83 +41,128 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --color-brand: var(--brand);
+  --color-primary-hover: var(--primary-hover);
+  --font-sans: 'iA Writer Quattro', ui-monospace, monospace;
+  --font-pixel: 'Geist Pixel Circle', ui-monospace, monospace;
 }
 
+/*
+ * The event's look (brand-kit/, and the public site's pages): paper, ink and one purple. Squares, hairline
+ * rules and no shadows. Geist Pixel for headlines and big numbers, iA Writer Quattro for everything else.
+ * Hover fills the rectangle behind the text. Red is only for errors; status never relies on color alone.
+ */
 :root {
   color-scheme: light;
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #f4f2ee;
+  --foreground: #181818;
+  --card: #f4f2ee;
+  --card-foreground: #181818;
+  --popover: #fbfaf7;
+  --popover-foreground: #181818;
+  --primary: #7c3aec;
+  --primary-hover: #8444ee;
+  --primary-foreground: #f4f2ee;
+  --secondary: #e8e5df;
+  --secondary-foreground: #181818;
+  --muted: #e8e5df;
+  --muted-foreground: #5a5956;
+  --accent: #e8e5df;
+  --accent-foreground: #181818;
+  --destructive: #b42318;
+  --border: #d6d4d0;
+  --input: #8a8780;
+  --ring: #7c3aec;
+  --brand: #7c3aec;
+  --sidebar: #f4f2ee;
+  --sidebar-foreground: #181818;
+  --sidebar-primary: #7c3aec;
+  --sidebar-primary-foreground: #f4f2ee;
+  --sidebar-accent: #e8e5df;
+  --sidebar-accent-foreground: #181818;
+  --sidebar-border: #d6d4d0;
+  --sidebar-ring: #7c3aec;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.922 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #181818;
+  --foreground: #d6d4d0;
+  --card: #181818;
+  --card-foreground: #d6d4d0;
+  --popover: #202020;
+  --popover-foreground: #d6d4d0;
+  --primary: #7c3aec;
+  --primary-hover: #8444ee;
+  --primary-foreground: #f4f2ee;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #d6d4d0;
+  --muted: #2a2a2a;
+  --muted-foreground: #9a9890;
+  --accent: #2a2a2a;
+  --accent-foreground: #d6d4d0;
+  --destructive: #f97066;
+  --border: #3a3a3a;
+  --input: #5a5956;
+  --ring: #a98bff;
+  /* the same purple, lifted so small text reads on the dark ground */
+  --brand: #a98bff;
+  --sidebar: #181818;
+  --sidebar-foreground: #d6d4d0;
+  --sidebar-primary: #7c3aec;
+  --sidebar-primary-foreground: #f4f2ee;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #d6d4d0;
+  --sidebar-border: #3a3a3a;
+  --sidebar-ring: #a98bff;
+}
+
+@utility font-pixel {
+  font-family: var(--font-pixel);
+  font-weight: 500;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* The brand's dotted band: a row of dots, in --dot-color. Used as a rule and for every meter and bar. */
+@utility dots {
+  background-image: radial-gradient(circle at center, var(--dot-color, var(--primary)) 40%, transparent 42%);
+  background-size: var(--dot, 6px) var(--dot, 6px);
+  background-repeat: repeat-x;
+  background-position: left center;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    /* Squares: the brand has no rounded corners, including the ones the UI kit ships with. */
+    border-radius: 0 !important;
+  }
+  html {
+    font-size: 15px;
   }
   body {
     @apply m-0 bg-background font-sans text-foreground antialiased;
+    font-synthesis: none;
+    line-height: 1.5;
+  }
+  ::selection {
+    background: var(--foreground);
+    color: var(--background);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  input[type='checkbox'] {
+    accent-color: var(--primary);
   }
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
+  }
+  kbd {
+    font-family: inherit;
   }
 }

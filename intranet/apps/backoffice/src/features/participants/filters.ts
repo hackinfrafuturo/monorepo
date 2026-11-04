@@ -1,7 +1,14 @@
 import { STATUSES, type Status } from '@convex/admin/status'
 
 /** the list's filters, kept in the URL so a filtered view can be shared or linked to */
-export type Filters = { q?: string; status?: Status; size?: number; ref?: string }
+export type Filters = {
+  q?: string
+  status?: Status
+  size?: number
+  ref?: string
+  /** best score first; newest first otherwise */
+  sort?: 'score'
+}
 
 export function parseFilters(search: Record<string, unknown>): Filters {
   const size = Number(search.size)
@@ -10,5 +17,6 @@ export function parseFilters(search: Record<string, unknown>): Filters {
     status: STATUSES.find((status) => status === search.status),
     size: Number.isInteger(size) && size >= 1 && size <= 4 ? size : undefined,
     ref: typeof search.ref === 'string' && search.ref ? search.ref : undefined,
+    sort: search.sort === 'score' ? 'score' : undefined,
   }
 }

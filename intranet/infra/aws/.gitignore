@@ -6,3 +6,4 @@
 crash.log
 
 *.backend.hcl
+__pycache__/

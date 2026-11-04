@@ -6,13 +6,13 @@ import { STATUS_DECISIONS } from '@convex/admin/status'
 import { decisionEmail } from '@convex/admin/emailTemplates'
 import { Button } from '@/components/ui/button'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { decide } from '../../server/functions'
 import { STATUS_LABELS, people, teams as teamsLabel } from '../labels'
 
@@ -29,11 +29,15 @@ export type Team = {
   names: string[]
   size: number
   status: Status
+  /** how many organizers scored it, when the page knows */
+  reviews?: number
+  /** how many members still lack the ID the venue requires */
+  missingIds?: number
 }
 
 /**
- * The last step before a decision: who it applies to, what it does to the places left, and the exact
- * email each member gets. Nothing changes until it's confirmed.
+ * The last step before a decision, in a side panel so the list stays where it was: who it applies to,
+ * what it does to the places left, and the exact email each member gets. Nothing changes until confirmed.
  */
 export function DecisionConfirm({
   teams,
@@ -57,14 +61,15 @@ export function DecisionConfirm({
   const [error, setError] = useState<string | null>(null)
   const moving = teams.filter((team) => team.status !== status)
   const peopleCount = moving.reduce((sum, team) => sum + team.size, 0)
+  const unreviewed = moving.filter((team) => team.reviews === 0).length
+  const missingIds = moving.reduce((sum, team) => sum + (team.missingIds ?? 0), 0)
   const decision = STATUS_DECISIONS.find((d) => d === status)
   const preview = decision && decisionEmail(decision, moving[0]?.names[0] ?? 'nombre')
   // places: accepting adds people, moving accepted teams elsewhere frees theirs
   const freed = moving
     .filter((team) => team.status === 'accepted')
     .reduce((sum, team) => sum + team.size, 0)
-  const after =
-    acceptedPeople - freed + (status === 'accepted' ? peopleCount : 0)
+  const after = acceptedPeople - freed + (status === 'accepted' ? peopleCount : 0)
   const left = capacity === null ? null : capacity - after
 
   async function confirm() {
@@ -96,95 +101,104 @@ export function DecisionConfirm({
   }
 
   return (
-    <Card
-      role="dialog"
-      aria-labelledby="confirm-title"
-      className="border-ring shadow-lg"
-    >
-      <CardHeader>
-        <CardTitle>
-          <h2 id="confirm-title">
-            {ACTION_LABELS[status]}: {teamsLabel(moving.length)} ·{' '}
-            {people(peopleCount)}
-          </h2>
-        </CardTitle>
-        <CardDescription>
-          Pasan a {STATUS_LABELS[status]}. Queda registrado con tu nombre.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-3">
-          {moving.map((team) => (
-            <li key={team._id} className="[overflow-wrap:anywhere]">
-              {team.names.join(', ')}{' '}
-              <span className="text-muted-foreground">
-                · {STATUS_LABELS[team.status]}
-              </span>
-            </li>
-          ))}
-        </ul>
+    <Sheet open onOpenChange={(open) => !open && !saving && onCancel()}>
+      <SheetContent className="w-full gap-0 sm:max-w-md">
+        <SheetHeader className="border-b pr-10">
+          <SheetTitle className="font-pixel text-2xl leading-tight font-medium">
+            {ACTION_LABELS[status]}
+          </SheetTitle>
+          <SheetDescription>
+            {teamsLabel(moving.length)} · {people(peopleCount)}. Queda registrado con tu nombre.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 text-sm">
+          <ul className="max-h-48 divide-y overflow-y-auto border-y">
+            {moving.map((team) => (
+              <li key={team._id} className="py-1.5 [overflow-wrap:anywhere]">
+                {team.names.join(', ')}{' '}
+                <span className="text-xs text-muted-foreground">· {STATUS_LABELS[team.status]}</span>
+              </li>
+            ))}
+          </ul>
 
-        {left !== null && (status === 'accepted' || freed > 0) && (
-          <p
-            className={
-              left < 0
-                ? 'flex items-center gap-2 font-medium text-destructive'
-                : 'text-muted-foreground'
-            }
-          >
-            {left < 0 && <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />}
-            {left < 0
-              ? `Superarías los cupos por ${people(-left)}.`
-              : `Quedarían ${people(left)} de cupo libre.`}
-          </p>
-        )}
-
-        {preview ? (
-          <div className="space-y-2">
-            <p className="flex items-center gap-2 font-medium">
-              {emailsMode === 'send' ? (
-                <Mail className="size-4" aria-hidden="true" />
-              ) : (
-                <MailX className="size-4" aria-hidden="true" />
-              )}
-              {emailsMode === 'send'
-                ? `Se enviará un correo a cada integrante (${people(peopleCount)}).`
-                : 'En este entorno los correos no se envían: quedan registrados como no enviados.'}
+          {status === 'accepted' && unreviewed > 0 && (
+            <p className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {unreviewed === 1
+                ? 'Una de estas inscripciones no tiene revisiones.'
+                : `${unreviewed} de estas inscripciones no tienen revisiones.`}
             </p>
-            <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground">
-                Asunto: <span className="text-foreground">{preview.subject}</span>
-              </p>
-              <p className="text-xs whitespace-pre-wrap">{preview.text}</p>
-            </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">Este cambio no envía correos.</p>
-        )}
+          )}
 
-        {error && (
-          <p role="alert" className="text-destructive">
-            {error}
-          </p>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button
-          onClick={confirm}
-          disabled={saving || !moving.length}
-          aria-busy={saving}
-          variant={status === 'rejected' ? 'destructive' : 'default'}
-        >
-          {saving
-            ? 'Guardando…'
-            : decision && emailsMode === 'send'
-              ? `Confirmar y enviar ${peopleCount} ${peopleCount === 1 ? 'correo' : 'correos'}`
-              : 'Confirmar'}
-        </Button>
-      </CardFooter>
-    </Card>
+          {status === 'accepted' && missingIds > 0 && (
+            <p className="flex items-start gap-2 text-destructive">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {missingIds === 1
+                ? 'A una persona le falta el RUT, y la seguridad del recinto lo exige.'
+                : `A ${missingIds} personas les falta el RUT, y la seguridad del recinto lo exige.`}
+            </p>
+          )}
+
+          {left !== null && (status === 'accepted' || freed > 0) && (
+            <p
+              className={
+                left < 0 ? 'flex items-start gap-2 text-destructive' : 'text-muted-foreground'
+              }
+            >
+              {left < 0 && <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
+              {left < 0
+                ? `Superarías los cupos por ${people(-left)}.`
+                : `Quedarían ${people(left)} de cupo libre.`}
+            </p>
+          )}
+
+          {preview ? (
+            <div className="space-y-2">
+              <p className="flex items-start gap-2">
+                {emailsMode === 'send' ? (
+                  <Mail className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                ) : (
+                  <MailX className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                )}
+                {emailsMode === 'send'
+                  ? `Se enviará un correo a cada integrante (${people(peopleCount)}).`
+                  : 'En este entorno los correos no se envían: quedan registrados como no enviados.'}
+              </p>
+              <div className="space-y-2 bg-muted/60 p-3 text-xs">
+                <p className="text-muted-foreground">
+                  Asunto: <span className="text-foreground">{preview.subject}</span>
+                </p>
+                <p className="whitespace-pre-wrap">{preview.text}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Este cambio no envía correos.</p>
+          )}
+
+          {error && (
+            <p role="alert" className="text-destructive">
+              {error}
+            </p>
+          )}
+        </div>
+        <SheetFooter className="mt-0 flex-row justify-end border-t">
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={confirm}
+            disabled={saving || !moving.length}
+            aria-busy={saving}
+            variant={status === 'rejected' ? 'destructive' : 'default'}
+          >
+            {saving
+              ? 'Guardando…'
+              : decision && emailsMode === 'send'
+                ? `Confirmar y enviar ${peopleCount} ${peopleCount === 1 ? 'correo' : 'correos'}`
+                : 'Confirmar'}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

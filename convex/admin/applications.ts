@@ -33,6 +33,7 @@ export const list = query({
             email: v.string(),
             github: v.string(),
             coding: v.union(v.literal('yes'), v.literal('no')),
+            hasId: v.boolean(),
           }),
         ),
       }),
@@ -62,7 +63,13 @@ export const list = query({
             count: reviews.length,
             average: reviews.length ? reviews.reduce((sum, review) => sum + review.score, 0) / reviews.length : null,
           },
-          members: members.map(({ name, email, github, coding }) => ({ name, email, github, coding })),
+          members: members.map(({ name, email, github, coding, idNumber }) => ({
+            name,
+            email,
+            github,
+            coding,
+            hasId: !!idNumber,
+          })),
         }
       }),
     )
@@ -149,6 +156,9 @@ export const get = query({
         favorite: m.favorite,
         diet: m.diet,
         allergies: m.allergies,
+        idType: m.idType,
+        idNumber: m.idNumber,
+        parking: m.parking,
       })),
       reviews: reviews.map(({ _id, _creationTime, reviewer, score, note }) => ({ _id, _creationTime, reviewer, score, note })),
       emails: emails.map(({ _id, _creationTime, memberId, decision, state, error }) => ({

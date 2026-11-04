@@ -24,7 +24,8 @@ export const participantsPage = internalQuery({
       .paginate(paginationOpts)
 
     return {
-      page: result.page,
+      // This feed goes out over a shared token: IDs stay out of it.
+      page: result.page.map((member) => ({ ...member, idNumber: undefined })),
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     }

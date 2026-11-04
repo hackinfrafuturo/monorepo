@@ -55,6 +55,9 @@ export const reviewsLabel = (count: number) =>
 /** the application form's fields, for showing what an applicant corrected */
 export const FIELD_LABELS: Record<string, string> = {
   name: 'Nombre',
+  idType: 'Tipo de documento',
+  idNumber: 'Documento',
+  parking: 'Estacionamiento',
   gender: 'Género',
   github: 'GitHub',
   email: 'Email',

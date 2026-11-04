@@ -1,30 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
-import { AlertCircle, Mail, MailX, Send } from 'lucide-react'
+import { MailX, Send } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
 import { STATUSES, type Status } from '@convex/admin/status'
 import { EDIT_LINK_DAYS, LINK_TAG, NAME_TAG, messageEmail } from '@convex/admin/emailTemplates'
+import { DataNotice, PageHeader, Select, textareaClass } from '@/components/page'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { getAudience, sendMessage, type AudienceInput } from '../../server/functions'
 import { STATUS_LABELS, people, santiago } from '../labels'
 
@@ -48,66 +40,94 @@ const TEMPLATES = [
   },
 ]
 
+const TEMPLATES_MISSING_ID = {
+  label: 'Pedir RUT y nombre real',
+  subject: 'Necesitamos tu RUT · Infra Futuro 2026',
+  body: `hola ${NAME_TAG},\n\nla seguridad del recinto nos pide el nombre real y el RUT de cada persona, así que no podemos aceptar postulaciones sin ellos.\n\ncompleta los tuyos en este enlace privado, válido por ${EDIT_LINK_DAYS} días. no lo compartas, abre solo tus respuestas:\n\n${LINK_TAG}\n\nlos manejamos de forma privada y el RUT solo se usa para el acceso al evento.`,
+}
+
 const STATE_LABELS = { sent: 'enviados', queued: 'en cola', skipped: 'no enviados', failed: 'fallaron' } as const
 
 export function MessagesPage({
   result,
   fixedAudience,
+  initialStatus,
+  initialRef,
 }: {
   result: Result
   /** set when arriving from a team's page: this one person or team */
   fixedAudience?: AudienceInput
+  /** set when arriving from a filtered list */
+  initialStatus?: Status
+  initialRef?: string
 }) {
   const router = useRouter()
   const data = result.data
-  const [status, setStatus] = useState<Status | ''>('')
-  const [ref, setRef] = useState('')
+  const [status, setStatus] = useState<Status | ''>(initialStatus ?? '')
+  const [ref, setRef] = useState(initialRef ?? '')
+  const [missingId, setMissingId] = useState(false)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
-  const [review, setReview] = useState<{ count: number; sample: string[] } | null>(null)
+  const [reach, setReach] = useState<{ count: number; sample: string[] } | null>(null)
+  const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  const bodyField = useRef<HTMLTextAreaElement>(null)
   const audience: AudienceInput = fixedAudience ?? {
     kind: 'group',
     ...(status ? { status } : {}),
     ...(ref ? { ref } : {}),
+    ...(missingId ? { missingId } : {}),
   }
+  const audienceKey = JSON.stringify(audience)
   const sending = data?.settings.messageEmails === 'send' && !!data.settings.replyTo
-  const preview = review && messageEmail(subject, body, review.sample[0] ?? 'Nombre', 'https://hackinfrafuturo.cl/corregir#enlace-privado')
+  const hasDraft = Boolean(subject.trim() && body.trim())
+  const preview = messageEmail(
+    subject,
+    body,
+    reach?.sample[0] ?? 'Nombre',
+    'https://hackinfrafuturo.cl/corregir#enlace-privado',
+  )
 
-  async function check() {
-    setBusy(true)
-    setError(null)
-    setDone(null)
-    const result = await getAudience({ data: { projectId: 'infra-futuro', audience } }).catch(() => ({
-      ok: false as const,
-      message: 'No pudimos revisar a quién llega.',
-    }))
-    setBusy(false)
-    if (!result.ok) return setError(result.message)
-    if (!result.result.count) return setError('Nadie coincide con estos filtros.')
-    setReview(result.result)
+  // who this reaches, always in view while writing
+  useEffect(() => {
+    let live = true
+    setReach(null)
+    getAudience({ data: { projectId: 'infra-futuro', audience: JSON.parse(audienceKey) as AudienceInput } })
+      .then((result) => live && setReach(result.ok ? result.result : null))
+      .catch(() => live && setReach(null))
+    return () => {
+      live = false
+    }
+  }, [audienceKey])
+
+  /** adds {nombre} or {enlace} where the cursor is */
+  function insert(tag: string) {
+    const field = bodyField.current
+    const at = field?.selectionStart ?? body.length
+    setBody(body.slice(0, at) + tag + body.slice(field?.selectionEnd ?? at))
+    requestAnimationFrame(() => {
+      field?.focus()
+      field?.setSelectionRange(at + tag.length, at + tag.length)
+    })
   }
 
   async function send() {
-    if (!review) return
+    if (!reach) return
     setBusy(true)
     setError(null)
     const result = await sendMessage({
-      data: { projectId: 'infra-futuro', audience, subject, body, expected: review.count },
+      data: { projectId: 'infra-futuro', audience, subject, body, expected: reach.count },
     }).catch(() => ({ ok: false as const, message: 'No pudimos enviar el correo. Intenta de nuevo.' }))
     setBusy(false)
-    if (!result.ok) {
-      setReview(null)
-      return setError(result.message)
-    }
+    setConfirming(false)
+    if (!result.ok) return setError(result.message)
     setDone(
       sending
         ? `Listo: va en camino a ${people(result.result.recipients)}.`
         : `Registrado para ${people(result.result.recipients)}, sin enviar: los correos están desactivados aquí.`,
     )
-    setReview(null)
     setSubject('')
     setBody('')
     await router.invalidate()
@@ -115,53 +135,13 @@ export function MessagesPage({
 
   return (
     <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects">Proyectos</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects/$projectId" params={{ projectId: 'infra-futuro' }}>
-                Infra Futuro
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Correos</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Correos</h1>
-        <p className="text-sm text-muted-foreground">
-          Escríbele a una persona, a un equipo o a un grupo: para pedir más
-          información o para que corrija su postulación.
-        </p>
-      </header>
+      <PageHeader
+        title="Correos"
+        description="Escríbele a una persona, a un equipo o a un grupo: para pedir más información o para que corrija su postulación."
+      />
 
       {!data ? (
-        <Alert role="status">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>
-            <h2>
-              {result.status === 'unconfigured'
-                ? 'Falta conectar el proyecto'
-                : 'No pudimos cargar los correos'}
-            </h2>
-          </AlertTitle>
-          <AlertDescription>
-            {result.status === 'unconfigured'
-              ? 'Configura la conexión a Convex de Infra Futuro en el servidor de la intranet.'
-              : 'El servicio de Infra Futuro no está disponible. Intenta en un momento.'}
-          </AlertDescription>
-        </Alert>
+        <DataNotice status={result.status} what="los correos" />
       ) : (
         <>
           {!sending && (
@@ -171,53 +151,41 @@ export function MessagesPage({
                 <h2>Correos desactivados</h2>
               </AlertTitle>
               <AlertDescription>
-                En este entorno quedan registrados, pero no se envían. Se activan
-                con MESSAGE_EMAILS=send y EMAIL_REPLY_TO en Convex.
+                En este entorno quedan registrados, pero no se envían. Se activan con
+                MESSAGE_EMAILS=send y EMAIL_REPLY_TO en Convex.
               </AlertDescription>
             </Alert>
           )}
 
           {done && (
-            <p role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
+            <p role="status" className="border-l-2 border-primary bg-muted/60 px-4 py-2.5 text-sm">
               {done}
             </p>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <h2>Nuevo correo</h2>
-              </CardTitle>
-              <CardDescription>
-                {data.settings.replyTo
-                  ? `Las respuestas llegan a ${data.settings.replyTo}.`
-                  : 'Falta definir a dónde llegan las respuestas (EMAIL_REPLY_TO).'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {fixedAudience ? (
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="text-muted-foreground">Para:</span>
-                  {fixedAudience.kind === 'member' ? 'una persona' : 'todo el equipo'}
-                  <Link
-                    to="/projects/$projectId/messages"
-                    params={{ projectId: 'infra-futuro' }}
-                    className="underline underline-offset-4"
-                  >
-                    Elegir un grupo
-                  </Link>
-                </p>
-              ) : (
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground">Estado</span>
-                    <select
+          <div className="grid min-w-0 gap-x-10 gap-y-6 @min-[58rem]/page:grid-cols-2">
+            <section aria-label="Nuevo correo" className="min-w-0 space-y-4 border-t border-foreground pt-3 text-sm">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {fixedAudience ? (
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">Para</span>
+                    <span className="[overflow-wrap:anywhere]">
+                      {reach ? reach.sample.join(', ') : '…'}
+                    </span>
+                    <Link
+                      to="/projects/$projectId/messages"
+                      params={{ projectId: 'infra-futuro' }}
+                      className="text-xs underline decoration-input underline-offset-4 hover:bg-foreground hover:text-background"
+                    >
+                      Elegir un grupo
+                    </Link>
+                  </p>
+                ) : (
+                  <>
+                    <Select
+                      label="Estado"
                       value={status}
-                      onChange={(event) => {
-                        setStatus(event.target.value as Status | '')
-                        setReview(null)
-                      }}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm dark:bg-input/30"
+                      onChange={(value) => setStatus(value as Status | '')}
                     >
                       <option value="">Todos</option>
                       {STATUSES.map((s) => (
@@ -225,33 +193,33 @@ export function MessagesPage({
                           {STATUS_LABELS[s]}
                         </option>
                       ))}
-                    </select>
-                  </label>
-                  {data.refs.length > 0 && (
-                    <label className="flex flex-wrap items-center gap-2">
-                      <span className="text-muted-foreground">Referido</span>
-                      <select
-                        value={ref}
-                        onChange={(event) => {
-                          setRef(event.target.value)
-                          setReview(null)
-                        }}
-                        className="h-8 max-w-full rounded-md border border-input bg-background px-2 text-sm dark:bg-input/30"
-                      >
+                    </Select>
+                    {data.refs.length > 0 && (
+                      <Select label="Referido" value={ref} onChange={setRef}>
                         <option value="">Todos</option>
                         {data.refs.map((r) => (
                           <option key={r} value={r}>
                             {r}
                           </option>
                         ))}
-                      </select>
+                      </Select>
+                    )}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="size-4"
+                        checked={missingId}
+                        onChange={(event) => setMissingId(event.target.checked)}
+                      />
+                      Solo quienes no tienen RUT
                     </label>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
 
-              <div className="flex flex-wrap gap-2">
-                {TEMPLATES.map((template) => (
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="mr-1 text-xs text-muted-foreground">Plantillas</span>
+                {[...TEMPLATES, TEMPLATES_MISSING_ID].map((template) => (
                   <Button
                     key={template.label}
                     type="button"
@@ -260,7 +228,7 @@ export function MessagesPage({
                     onClick={() => {
                       setSubject(template.subject)
                       setBody(template.body)
-                      setReview(null)
+                      setDone(null)
                     }}
                   >
                     {template.label}
@@ -268,117 +236,151 @@ export function MessagesPage({
                 ))}
               </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-muted-foreground">Asunto</span>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Asunto</span>
                 <Input
                   value={subject}
                   maxLength={200}
-                  onChange={(event) => {
-                    setSubject(event.target.value)
-                    setReview(null)
-                  }}
+                  onChange={(event) => setSubject(event.target.value)}
                 />
               </label>
-              <label className="block space-y-1.5">
-                <span className="text-muted-foreground">Mensaje</span>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted-foreground">Mensaje</span>
                 <textarea
+                  ref={bodyField}
                   value={body}
                   maxLength={5000}
-                  rows={10}
-                  onChange={(event) => {
-                    setBody(event.target.value)
-                    setReview(null)
-                  }}
-                  className="w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                  rows={12}
+                  onChange={(event) => setBody(event.target.value)}
+                  className={textareaClass}
                 />
               </label>
-              <p className="text-xs text-muted-foreground">
-                {NAME_TAG} se reemplaza por su nombre. {LINK_TAG} se reemplaza por
-                un enlace privado para corregir su postulación, único para cada
-                persona y válido por {EDIT_LINK_DAYS} días.
-              </p>
+              <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                <span className="mr-1">Insertar</span>
+                <Button type="button" size="xs" variant="outline" onClick={() => insert(NAME_TAG)}>
+                  Su nombre
+                </Button>
+                <Button type="button" size="xs" variant="outline" onClick={() => insert(LINK_TAG)}>
+                  Enlace para corregir
+                </Button>
+              </div>
               {error && (
                 <p role="alert" className="text-destructive">
                   {error}
                 </p>
               )}
-            </CardContent>
-            {!review && (
-              <CardFooter className="justify-end">
-                <Button onClick={check} disabled={busy || !subject.trim() || !body.trim()} aria-busy={busy}>
-                  Revisar antes de enviar
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
+            </section>
 
-          {review && preview && (
-            <Card role="dialog" aria-labelledby="send-title" className="border-ring shadow-lg">
-              <CardHeader>
-                <CardTitle>
-                  <h2 id="send-title" className="flex items-center gap-2">
-                    <Mail className="size-4" aria-hidden="true" />
-                    Llega a {people(review.count)}
-                  </h2>
-                </CardTitle>
-                <CardDescription className="[overflow-wrap:anywhere]">
-                  {review.sample.join(', ')}
-                  {review.count > review.sample.length ? ' y más' : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-                  <p className="text-xs text-muted-foreground">
-                    Asunto: <span className="text-foreground">{preview.subject}</span>
-                  </p>
-                  <p className="text-xs whitespace-pre-wrap [overflow-wrap:anywhere]">{preview.text}</p>
-                </div>
-                {!sending && (
+            <aside aria-label="Vista previa" className="min-w-0 space-y-3 border-t border-foreground pt-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p aria-live="polite">
+                  {reach ? (
+                    <>
+                      Llega a <span className="font-pixel text-xl leading-none">{people(reach.count)}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Calculando a quién llega…</span>
+                  )}
+                </p>
+                <Button
+                  size="sm"
+                  disabled={!hasDraft || !reach?.count}
+                  onClick={() => {
+                    setError(null)
+                    setConfirming(true)
+                  }}
+                >
+                  <Send aria-hidden="true" />
+                  {sending ? 'Enviar' : 'Registrar'}
+                </Button>
+              </div>
+              <div className="space-y-2 bg-muted/60 p-4">
+                {hasDraft ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Asunto: <span className="text-foreground">{preview.subject}</span>
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{preview.text}</p>
+                  </>
+                ) : (
                   <p className="text-muted-foreground">
-                    En este entorno quedará registrado, pero no se envía.
+                    Elige una plantilla o escribe tu mensaje. Aquí ves cómo le llega a{' '}
+                    {reach?.sample[0] ?? 'cada persona'}.
                   </p>
                 )}
-              </CardContent>
-              <CardFooter className="flex flex-wrap justify-end gap-2">
-                <Button variant="ghost" onClick={() => setReview(null)} disabled={busy}>
-                  Cancelar
-                </Button>
-                <Button onClick={send} disabled={busy} aria-busy={busy}>
-                  <Send aria-hidden="true" />
-                  {busy ? 'Enviando…' : sending ? `Enviar a ${people(review.count)}` : 'Registrar'}
-                </Button>
-              </CardFooter>
-            </Card>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {data.settings.replyTo
+                  ? `Las respuestas llegan a ${data.settings.replyTo}.`
+                  : 'Falta definir a dónde llegan las respuestas (EMAIL_REPLY_TO).'}{' '}
+                El enlace es único para cada persona y dura {EDIT_LINK_DAYS} días.
+              </p>
+            </aside>
+          </div>
+
+          {confirming && reach && (
+            <Sheet open onOpenChange={(open) => !open && !busy && setConfirming(false)}>
+              <SheetContent className="w-full gap-0 sm:max-w-md">
+                <SheetHeader className="border-b pr-10">
+                  <SheetTitle className="font-pixel text-2xl leading-tight font-medium">
+                    Enviar a {people(reach.count)}
+                  </SheetTitle>
+                  <SheetDescription className="[overflow-wrap:anywhere]">
+                    {reach.sample.join(', ')}
+                    {reach.count > reach.sample.length ? ' y más' : ''}
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
+                  <div className="space-y-2 bg-muted/60 p-3 text-xs">
+                    <p className="text-muted-foreground">
+                      Asunto: <span className="text-foreground">{preview.subject}</span>
+                    </p>
+                    <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{preview.text}</p>
+                  </div>
+                  {!sending && (
+                    <p className="text-sm text-muted-foreground">
+                      En este entorno quedará registrado, pero no se envía.
+                    </p>
+                  )}
+                </div>
+                <SheetFooter className="mt-0 flex-row justify-end border-t">
+                  <Button variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={send} disabled={busy} aria-busy={busy}>
+                    {busy ? 'Enviando…' : sending ? `Enviar a ${people(reach.count)}` : 'Registrar'}
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           )}
 
-          <section aria-labelledby="sent-title" className="space-y-3">
-            <h2 id="sent-title" className="text-lg font-semibold tracking-tight">
+          <section aria-labelledby="sent-title" className="space-y-2">
+            <h2 id="sent-title" className="border-t border-foreground pt-3 text-sm">
               Enviados
             </h2>
-            <Card>
-              <CardContent>
-                {data.messages.length ? (
-                  <ul className="divide-y text-sm">
-                    {data.messages.map((message) => (
-                      <li key={message._id} className="space-y-1 py-3">
-                        <p className="font-medium [overflow-wrap:anywhere]">{message.subject}</p>
-                        <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                          {message.actor} · {santiago(message._creationTime)} ·{' '}
-                          {people(message.recipients)} ·{' '}
-                          {message.states
-                            .map(({ state, count }) => `${count} ${STATE_LABELS[state]}`)
-                            .join(', ')}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="py-3 text-center text-sm text-muted-foreground">
-                    Todavía no se ha enviado ningún correo.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {data.messages.length ? (
+              <ul className="divide-y text-sm">
+                {data.messages.map((message) => (
+                  <li
+                    key={message._id}
+                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2"
+                  >
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{message.subject}</span>
+                    <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                      {message.actor} · {santiago(message._creationTime)} ·{' '}
+                      {message.states
+                        .map(({ state, count }) => `${count} ${STATE_LABELS[state]}`)
+                        .join(', ')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-3 text-sm text-muted-foreground">
+                Todavía no se ha enviado ningún correo.
+              </p>
+            )}
           </section>
         </>
       )}

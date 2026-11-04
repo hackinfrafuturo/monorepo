@@ -33,6 +33,9 @@ export const get = query({
     jobs: count,
     diet: count,
     allergies: v.number(),
+    parking: count,
+    /** people whose application predates the ID and still lacks one */
+    missingId: v.number(),
     refs: v.array(v.object({ key: v.string(), applications: v.number(), people: v.number() })),
     truncated: v.boolean(),
   }),
@@ -64,6 +67,8 @@ export const get = query({
       jobs: tally(members.map((member) => member.jobs)),
       diet: tally(members.map((member) => member.diet)),
       allergies: members.filter((member) => member.allergies.trim()).length,
+      parking: tally(members.flatMap((member) => (member.parking ? [member.parking] : []))),
+      missingId: members.filter((member) => !member.idNumber).length,
       refs: [...refs].map(([key, counts]) => ({ key, ...counts })).sort((a, b) => b.applications - a.applications),
       truncated: rows.length > APPLICATIONS || allMembers.length > MEMBERS,
     }

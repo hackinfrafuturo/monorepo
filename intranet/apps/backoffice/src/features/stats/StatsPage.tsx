@@ -1,26 +1,10 @@
 import { useState } from 'react'
-import { Link, useRouter } from '@tanstack/react-router'
-import {
-  AlertCircle,
-  ClipboardList,
-  Clock3,
-  RefreshCw,
-  Search,
-  UsersRound,
-} from 'lucide-react'
+import { AlertCircle, ClipboardList, Search, UsersRound } from 'lucide-react'
 import type { RegistrationStats } from '@intranet/integrations/infra-futuro'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
+import { PageHeader, RefreshButton } from '@/components/page'
 import {
   Card,
   CardContent,
@@ -37,8 +21,6 @@ type Result = {
 }
 
 export function StatsPage({ result }: { result: Result }) {
-  const router = useRouter()
-  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const stats = result.stats
   const groups =
@@ -50,76 +32,17 @@ export function StatsPage({ result }: { result: Result }) {
       ),
     ) ?? []
 
-  async function refresh() {
-    setRefreshing(true)
-    try {
-      await router.invalidate()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
   return (
     <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects" aria-label="Volver a proyectos">
-                Proyectos
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Infra Futuro</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Inscripciones
-          </h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={refreshing}
-            aria-busy={refreshing}
-            aria-label="Actualizar inscripciones"
-            className="size-9 shrink-0 p-0 sm:w-auto sm:px-3"
-          >
-            <RefreshCw
-              className={refreshing ? 'animate-spin' : undefined}
-              aria-hidden="true"
-            />
-            <span className="hidden sm:inline">
-              {refreshing ? 'Actualizando…' : 'Actualizar'}
-            </span>
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Postulantes y equipos inscritos en la hackathon.
-        </p>
-        {stats && (
-          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-            <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
-            Actualizado
-            <time dateTime={stats.checkedAt} className="tabular-nums">
-              {new Intl.DateTimeFormat('es-CL', {
-                timeZone: 'America/Santiago',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-              }).format(new Date(stats.checkedAt))}
-            </time>
-            <span>· Hora de Santiago</span>
-          </p>
-        )}
-      </header>
+      <PageHeader
+        title="Inscripciones"
+        description={
+          stats
+            ? `Postulantes y equipos inscritos. Actualizado a las ${new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(stats.checkedAt))}, hora de Santiago.`
+            : 'Postulantes y equipos inscritos en la hackathon.'
+        }
+        actions={<RefreshButton label="Actualizar inscripciones" />}
+      />
 
       {stats ? (
         <>
@@ -262,8 +185,8 @@ function Metric({
   icon: React.ReactNode
 }) {
   return (
-    <Card className="min-w-0 gap-3 py-5">
-      <CardHeader className="flex min-h-10 flex-row items-start justify-between gap-2 px-5 sm:min-h-5">
+    <Card className="min-w-0 gap-2">
+      <CardHeader className="flex min-h-10 flex-row items-start justify-between gap-2 sm:min-h-5">
         <CardDescription className="min-w-0 text-xs sm:text-sm">
           {label}
         </CardDescription>
@@ -274,8 +197,8 @@ function Metric({
           {icon}
         </span>
       </CardHeader>
-      <CardContent className="space-y-2 px-5">
-        <strong className="block text-4xl font-semibold tabular-nums tracking-tight">
+      <CardContent className="space-y-1">
+        <strong className="block font-pixel text-[40px] leading-none font-medium tabular-nums">
           {value}
         </strong>
         <p className="text-xs text-muted-foreground">{detail}</p>

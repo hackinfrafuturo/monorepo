@@ -66,6 +66,8 @@ npx convex env set MESSAGE_EMAILS send --prod
 
 Deploy Convex before the public site, or `/corregir` links will read as expired.
 
+The form requires a real first and last name, a RUT or passport, and whether the person needs parking, because the venue's security asks for them. Applications from before that have no ID: the team page and Participantes flag them, Decisiones warns before accepting them, and Correos can write to just those people with a private link, whose form asks for what's missing. The ID stays out of the `/api/participants` feed, the audit history and the browser's saved draft. Deploy the additive Convex API first, then publish the new form. New forms call `applications.submitWithIdentity` and `applicationEdits.saveWithIdentity`, which require the identity fields. Existing tabs keep using `submit` and `save` with their original validation; their new applications are flagged for ID follow-up, and old correction tabs preserve any ID/parking already collected. Keep these compatibility endpoints while older tabs may still be open; retiring them is a separate rollout. This avoids a signup outage without weakening the new form's contract.
+
 Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
 
 ## Access and deployment
@@ -110,6 +112,9 @@ Business rules and data stay with the owning project. The intranet owns access, 
 pnpm test:intranet
 pnpm build:intranet
 pnpm --filter @intranet/workspace test:browser
+pnpm --filter @intranet/workspace test:decisions
 ```
 
 The browser check launches a production build and a local synthetic backend. It verifies denied requests never read data, pagination and group display, search, refresh, empty/error states, mobile navigation, saved/system theme choices, both themes at widths from 320 to 1440 pixels, long-name wrapping, aligned totals, and top-bar visibility while scrolling. It also checks that credentials/private fields are absent from browser responses. It makes no requests to production Convex and does not configure or deploy Tailscale.
+
+The decision browser suite uses a synthetic admin API to check Shift ranges, refreshed anchors, the 100-team selection limit, and a single confirmed batch. It changes no hosted applications and sends no emails.

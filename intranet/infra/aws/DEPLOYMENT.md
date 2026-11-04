@@ -1,5 +1,31 @@
 # Production deployment receipt
 
+## Reviewed UI and identity release — 2026-11-03 (America/Santiago)
+
+AWS account `052777341990`, region `us-east-1`. PRs #14 and #17 are merged, with the compatible production Convex deployment applied before the public form was published.
+
+- URL: https://backoffice.hackinfrafuturo.cl/projects/infra-futuro
+- Source commit: `2e03d9cb306652a498029329fa96f7379f2334fa` (the receipt is recorded afterward).
+- source_sha256: `fa27bcd7975d9bf3b063947641a640de2e26fa75f749fdb840d1f29acb6dd3cb`
+- source_version: `kKVSbDAkPFYkFfdYHUtN.YTLZiy3fvrd`
+- build_id: `hif-backoffice:4ef84c9c-b828-4d2d-9666-4f9817634c45`
+- image_digest: `sha256:eefa84853076e6e92ebd7a0b2fc97db171c004e8a33b003960e74cdb9eb04ba5`
+- App instance: `i-085d1570cd988ff04`.
+- Rolling refresh: `c76cece3-ee80-4282-9b44-66dc4fb88148`, successful at 100 percent with only the new healthy instance remaining.
+- Existing router `i-058f96cba34de4d4a` retained with AMI `ami-04b938437b69a2c9c`. No subnet routes, security groups or public DNS changed.
+
+The new form uses the identity-aware submission and correction endpoints. Older tabs retain their original contracts and remain flagged for ID follow-up; old corrections preserve collected identity fields. RUTs are canonicalized before duplicate checks. All decision selection controls share the API's 100-team limit, and confirmation sends one atomic batch.
+
+Validation:
+
+- CodeBuild passed all 35 backend/access tests, the production build and TypeScript checks. Local browser regressions covered range selection, refreshed anchors, selection limits, signup, corrections and draft privacy.
+- The live Vercel site passed at 390px and 1440px, including the new identity form, canonical RUT, private draft and new submission endpoint. Valid submission delivery was intercepted; invalid-link rejection used the real production backend. No test application or confirmation email was created.
+- SSM checks on the deployed app used the live router WhoIs service and passed all seven pages, private/no-store responses and credential isolation. Anonymous, forged, non-tailnet and tagged-router identities were denied; forged login headers and earlier forwarded addresses could not replace the verified organizer.
+- The operator Mac remained on the separate CENIA tailnet. These SSM checks do not claim a fresh member-device-to-ALB browser login.
+- Terraform's post-deployment plan reports no changes. `DECISION_EMAILS=off` and `MESSAGE_EMAILS=off`; `ALLOW_SEED` remains absent. Deployment checks wrote no applications or decisions and sent no emails.
+
+Rollback the app, if required, to `sha256:990ef0cbef834f6c484f5c3c92fd9b80b2586885f2376c2d4f913deb79440bc4`, keeping the router AMI pin. Retain the additive Convex endpoints while the new public form is published; reverting those endpoints would break the new clients.
+
 ## Event backoffice release — 2026-11-03 (America/Santiago)
 
 AWS account `052777341990`, region `us-east-1`.

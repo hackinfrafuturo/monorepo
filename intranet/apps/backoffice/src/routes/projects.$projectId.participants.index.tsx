@@ -22,7 +22,7 @@ function ParticipantsRoutePage() {
       result={Route.useLoaderData()}
       filters={Route.useSearch()}
       // filtering never reloads the list, and typing doesn't fill the back button
-      onFilters={(search) => navigate({ search, replace: true })}
+      onFilters={(search) => navigate({ search, replace: true, resetScroll: false })}
     />
   )
 }
