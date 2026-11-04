@@ -40,6 +40,12 @@ const TEMPLATES = [
   },
 ]
 
+const TEMPLATES_MISSING_ID = {
+  label: 'Pedir RUT y nombre real',
+  subject: 'Necesitamos tu RUT · Infra Futuro 2026',
+  body: `hola ${NAME_TAG},\n\nla seguridad del recinto nos pide el nombre real y el RUT de cada persona, así que no podemos aceptar postulaciones sin ellos.\n\ncompleta los tuyos en este enlace privado, válido por ${EDIT_LINK_DAYS} días. no lo compartas, abre solo tus respuestas:\n\n${LINK_TAG}\n\nlos manejamos de forma privada y el RUT solo se usa para el acceso al evento.`,
+}
+
 const STATE_LABELS = { sent: 'enviados', queued: 'en cola', skipped: 'no enviados', failed: 'fallaron' } as const
 
 export function MessagesPage({
@@ -59,6 +65,7 @@ export function MessagesPage({
   const data = result.data
   const [status, setStatus] = useState<Status | ''>(initialStatus ?? '')
   const [ref, setRef] = useState(initialRef ?? '')
+  const [missingId, setMissingId] = useState(false)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [reach, setReach] = useState<{ count: number; sample: string[] } | null>(null)
@@ -71,6 +78,7 @@ export function MessagesPage({
     kind: 'group',
     ...(status ? { status } : {}),
     ...(ref ? { ref } : {}),
+    ...(missingId ? { missingId } : {}),
   }
   const audienceKey = JSON.stringify(audience)
   const sending = data?.settings.messageEmails === 'send' && !!data.settings.replyTo
@@ -196,13 +204,22 @@ export function MessagesPage({
                         ))}
                       </Select>
                     )}
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="size-4"
+                        checked={missingId}
+                        onChange={(event) => setMissingId(event.target.checked)}
+                      />
+                      Solo quienes no tienen RUT
+                    </label>
                   </>
                 )}
               </div>
 
               <div className="flex flex-wrap items-center gap-1">
                 <span className="mr-1 text-xs text-muted-foreground">Plantillas</span>
-                {TEMPLATES.map((template) => (
+                {[...TEMPLATES, TEMPLATES_MISSING_ID].map((template) => (
                   <Button
                     key={template.label}
                     type="button"

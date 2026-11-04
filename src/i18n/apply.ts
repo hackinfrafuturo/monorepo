@@ -1,6 +1,6 @@
 import type { Locale } from './locale'
 import { MIN_ANSWER } from '../apply/model'
-import type { Diet, ErrorKey, Gender, YesNo } from '../apply/model'
+import type { Diet, ErrorKey, Gender, IdType, YesNo } from '../apply/model'
 
 export type ApplyMessages = {
   home: string
@@ -30,6 +30,8 @@ export type ApplyMessages = {
     title: (n: number, total: number) => string
     hintFirst: string
     hintNext: string
+    /** why we need real names and IDs, and what happens to them */
+    identity: string
     fallback: (n: number) => string
   }
   review: {
@@ -42,7 +44,9 @@ export type ApplyMessages = {
   done: { title: string; body: string; sentTo: string; home: string }
   fields: {
     ref: { label: string; placeholder: string }
-    name: { label: string }
+    name: { label: string; hint: string }
+    idType: { label: string; options: Record<IdType, string> }
+    idNumber: { label: Record<IdType, string>; placeholder: Record<IdType, string> }
     gender: { label: string; placeholder: string; options: Record<Gender, string> }
     github: { label: string; prefix: string; placeholder: string }
     email: { label: string; placeholder: string }
@@ -56,6 +60,7 @@ export type ApplyMessages = {
     favorite: { label: string; hint: string }
     diet: { label: string; options: Record<Diet, string> }
     allergies: { label: string; hint: string }
+    parking: { label: string; options: Record<YesNo, string> }
   }
   errors: Record<ErrorKey, string>
 }
@@ -95,6 +100,8 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
       title: (n, total) => `Person ${n} of ${total}`,
       hintFirst: 'Start with your details.',
       hintNext: 'Now the next person on the team.',
+      identity:
+        "Please use each person's real name and RUT. The venue's security asks us for them, so we can't accept applications with nicknames or made-up details. We keep them private, and the RUT is only used for getting into the event.",
       fallback: (n) => `Person ${n}`,
     },
     review: {
@@ -115,7 +122,12 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
         label: 'Do you have a referral code?',
         placeholder: "If you don't have one, skip this question",
       },
-      name: { label: 'Name or nickname' },
+      name: { label: 'First and last name', hint: 'As it appears on your ID.' },
+      idType: { label: 'ID', options: { rut: 'RUT', passport: 'Passport' } },
+      idNumber: {
+        label: { rut: 'RUT', passport: 'Passport number' },
+        placeholder: { rut: '12.345.678-5', passport: 'AB1234567' },
+      },
       gender: {
         label: 'Gender',
         placeholder: 'Choose',
@@ -171,6 +183,10 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
         label: 'Any food allergies?',
         hint: "Leave it blank if you don't have any.",
       },
+      parking: {
+        label: 'Will you need parking?',
+        options: { yes: 'Yes', no: 'No' },
+      },
     },
     errors: {
       required: 'This one is required.',
@@ -181,6 +197,10 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
       site: 'Check the link.',
       dupEmail: 'This email is already on the team.',
       dupGithub: 'This username is already on the team.',
+      realName: 'Please write your real first and last name.',
+      rut: 'Check the RUT, including the last digit.',
+      passport: 'Check the passport number.',
+      dupId: 'This ID is already on the team.',
     },
   },
   es: {
@@ -217,6 +237,8 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
       title: (n, total) => `Persona ${n} de ${total}`,
       hintFirst: 'Empieza con tus datos.',
       hintNext: 'Ahora, la siguiente persona del equipo.',
+      identity:
+        'Usa el nombre real y el RUT de cada persona. La seguridad del recinto nos los pide, así que no podemos aceptar postulaciones con apodos o datos falsos. Los manejamos de forma privada y el RUT solo se usa para el acceso al evento.',
       fallback: (n) => `Persona ${n}`,
     },
     review: {
@@ -237,7 +259,12 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
         label: '¿Tienes un código de referidos?',
         placeholder: 'Si no tienes, sáltate esta pregunta',
       },
-      name: { label: 'Nombre o apodo' },
+      name: { label: 'Nombre y apellido', hint: 'Como aparece en tu carnet.' },
+      idType: { label: 'Documento', options: { rut: 'RUT', passport: 'Pasaporte' } },
+      idNumber: {
+        label: { rut: 'RUT', passport: 'Número de pasaporte' },
+        placeholder: { rut: '12.345.678-5', passport: 'AB1234567' },
+      },
       gender: {
         label: 'Género',
         placeholder: 'Elige',
@@ -293,6 +320,10 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
         label: '¿Alguna alergia alimentaria?',
         hint: 'Si no tienes, déjalo en blanco.',
       },
+      parking: {
+        label: '¿Vas a necesitar estacionamiento?',
+        options: { yes: 'Sí', no: 'No' },
+      },
     },
     errors: {
       required: 'Falta este dato.',
@@ -303,6 +334,10 @@ export const applyMessages: Record<Locale, ApplyMessages> = {
       site: 'Revisa el link.',
       dupEmail: 'Este email ya está en el equipo.',
       dupGithub: 'Este usuario ya está en el equipo.',
+      realName: 'Escribe tu nombre y apellido reales.',
+      rut: 'Revisa el RUT, incluido el dígito verificador.',
+      passport: 'Revisa el número de pasaporte.',
+      dupId: 'Este documento ya está en el equipo.',
     },
   },
 }

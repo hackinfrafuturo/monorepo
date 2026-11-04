@@ -11,7 +11,7 @@ export async function submitTeam(team: Team): Promise<void> {
     throw new Error('VITE_CONVEX_URL is required to save submissions')
   }
   const convex = new ConvexHttpClient(url)
-  await convex.mutation(anyApi.applications.submit, {
+  await convex.mutation(anyApi.applications.submitWithIdentity, {
     members: team.members,
     ...(team.ref ? { ref: team.ref } : {}),
   })

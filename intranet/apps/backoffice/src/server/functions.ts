@@ -292,7 +292,7 @@ export const getInsights = createServerFn({ method: 'GET' })
 export type AudienceInput =
   | { kind: 'member'; memberId: string }
   | { kind: 'team'; applicationId: string }
-  | { kind: 'group'; status?: Status; ref?: string }
+  | { kind: 'group'; status?: Status; ref?: string; missingId?: boolean }
 
 /** an audience from the browser, checked before it reaches Convex */
 function parseAudience(input: AudienceInput) {
@@ -305,6 +305,7 @@ function parseAudience(input: AudienceInput) {
       kind: 'group' as const,
       ...(STATUSES.includes(input.status as Status) ? { status: input.status } : {}),
       ...(typeof input.ref === 'string' && input.ref ? { ref: input.ref } : {}),
+      ...(input.missingId === true ? { missingId: true } : {}),
     }
   throw new Error('Choose who this goes to.')
 }

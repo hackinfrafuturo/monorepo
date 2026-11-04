@@ -12,11 +12,17 @@ export type YesNo = (typeof YES_NO)[number]
 export const DIETS = ['vegan', 'veggie', 'omnivore'] as const
 export type Diet = (typeof DIETS)[number]
 
+/** The venue's security needs an ID for everyone. A passport covers people without a RUT. */
+export const ID_TYPES = ['rut', 'passport'] as const
+export type IdType = (typeof ID_TYPES)[number]
+
 /** Shortest accepted answer for the written questions. Stops "Nada", "Ninguna" and similar. */
 export const MIN_ANSWER = 40
 
 export type Member = {
   name: string
+  idType: IdType | ''
+  idNumber: string
   gender: Gender | ''
   github: string
   email: string
@@ -31,6 +37,7 @@ export type Member = {
   favorite: string
   diet: Diet | ''
   allergies: string
+  parking: YesNo | ''
 }
 
 export type FieldKey = keyof Member
@@ -44,12 +51,18 @@ export type ErrorKey =
   | 'site'
   | 'dupEmail'
   | 'dupGithub'
+  | 'realName'
+  | 'rut'
+  | 'passport'
+  | 'dupId'
 
 export type MemberErrors = Partial<Record<FieldKey, ErrorKey>>
 
 /** Order the fields appear on screen. Also the order errors get focus. */
 export const FIELD_ORDER = [
   'name',
+  'idType',
+  'idNumber',
   'email',
   'coding',
   'gender',
@@ -63,11 +76,14 @@ export const FIELD_ORDER = [
   'site',
   'diet',
   'allergies',
+  'parking',
 ] as const satisfies readonly FieldKey[]
 
 export function emptyMember(): Member {
   return {
     name: '',
+    idType: 'rut',
+    idNumber: '',
     gender: '',
     github: '',
     email: '',
@@ -81,7 +97,32 @@ export function emptyMember(): Member {
     favorite: '',
     diet: '',
     allergies: '',
+    parking: '',
   }
+}
+
+/** A RUT's check digit: modulo 11 over the number, right to left, with weights 2 to 7. */
+export function rutCheckDigit(body: string): string {
+  let sum = 0
+  let weight = 2
+  for (const digit of [...body].reverse()) {
+    sum += Number(digit) * weight
+    weight = weight === 7 ? 2 : weight + 1
+  }
+  const rest = 11 - (sum % 11)
+  return rest === 11 ? '0' : rest === 10 ? 'K' : String(rest)
+}
+
+/** `12.345.678-5`, `12345678-5` and `123456785` all become `12345678-5`; passports lose spaces and dashes. */
+export function cleanIdNumber(idType: IdType | '', value: string): string {
+  if (idType === 'passport') return value.replace(/[\s-]/g, '').toUpperCase()
+  const raw = value.replace(/[.\s-]/g, '').toUpperCase()
+  return raw.length < 2 ? raw : `${raw.slice(0, -1).replace(/^0+/, '')}-${raw.slice(-1)}`
+}
+
+export function validRut(value: string): boolean {
+  const match = /^(\d{7,8})-([\dK])$/.exec(value)
+  return !!match && rutCheckDigit(match[1]) === match[2]
 }
 
 /** `https://github.com/octocat/`, `@octocat` and `octocat` all become `octocat`. */
@@ -113,6 +154,7 @@ export const NORMALIZE: Partial<Record<FieldKey, (value: string) => string>> = {
   linkedin: cleanLinkedin,
   site: cleanSite,
   email: (value) => value.trim().toLowerCase(),
+  idNumber: (value) => value.trim().toUpperCase(),
 }
 
 /** DOM id of a member's field. The page uses it to focus the first error. */

@@ -91,10 +91,11 @@ export function InsightsPage({
             </Alert>
           )}
 
-          <section aria-label="Totales" className="grid grid-cols-3 gap-x-6">
+          <section aria-label="Totales" className="grid grid-cols-2 gap-x-6 gap-y-4 @min-[40rem]/page:grid-cols-4">
             <Figure label="Personas" value={stats.people} />
             <Figure label="Inscripciones" value={stats.applications} />
             <Figure label="Con alergias" value={stats.allergies} />
+            <Figure label="Sin RUT" value={stats.missingId} />
           </section>
 
           <PerDay perDay={stats.perDay} />
@@ -123,6 +124,14 @@ export function InsightsPage({
               unit="personas"
               rows={stats.diet.map((row) => ({
                 label: DIET_LABELS[row.key as keyof typeof DIET_LABELS] ?? row.key,
+                count: row.count,
+              }))}
+            />
+            <Breakdown
+              title="Estacionamiento"
+              unit="personas"
+              rows={stats.parking.map((row) => ({
+                label: row.key === 'yes' ? 'Lo necesita' : 'No lo necesita',
                 count: row.count,
               }))}
             />

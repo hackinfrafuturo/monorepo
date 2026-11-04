@@ -227,6 +227,9 @@ function Row({ application }: { application: Application }) {
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span>{teamSize(application.size)}</span>
           {noCode && <Badge variant="outline">No programa</Badge>}
+          {application.members.some((member) => !member.hasId) && (
+            <Badge variant="outline">Falta RUT</Badge>
+          )}
           <span className="@min-[46rem]/page:hidden">· {santiago(application.submittedAt)}</span>
           {average !== null && (
             <span className="@min-[46rem]/page:hidden">· Puntaje {score(average)}</span>

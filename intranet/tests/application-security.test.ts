@@ -16,7 +16,8 @@ const modules = {
 }
 const answer = 'A detailed answer describing a real project and what I learned from building it.'
 const member = (name: string) => ({
-  name, email: `${name.toLowerCase()}@example.com`, github: name.toLowerCase(),
+  name: `${name} Prueba`, email: `${name.toLowerCase()}@example.com`, github: name.toLowerCase(),
+  idType: 'rut' as const, idNumber: name === 'Ana' ? '11111111-1' : '22222222-2', parking: 'no' as const,
   gender: 'skip' as const, coding: 'yes' as const, linkedin: '', site: '', jobs: 'no' as const,
   role: 'Engineer', deep: answer, hardest: answer, favorite: answer, diet: 'veggie' as const, allergies: '',
 })
@@ -42,7 +43,7 @@ test('a private link reads and changes only its member, preserving the teammate 
   const { t, ana, bruno, applicationId } = await fixture()
   const token = await link(t, ana)
   assert.deepEqual(await t.mutation(api.applicationEdits.load, { token }), member('Ana'))
-  assert.deepEqual(await t.mutation(api.applicationEdits.save, { token, member: { ...member('Ana'), role: 'Researcher' } }), { changed: 1 })
+  assert.deepEqual(await t.mutation(api.applicationEdits.saveWithIdentity, { token, member: { ...member('Ana'), role: 'Researcher' } }), { changed: 1 })
   await t.run(async (ctx) => {
     assert.equal((await ctx.db.get(ana))!.role, 'Researcher')
     assert.deepEqual(await ctx.db.get(bruno).then((m) => m!.email), member('Bruno').email)
@@ -64,12 +65,12 @@ test('malformed, unknown, replaced and expired tokens cannot read or save', asyn
   assert.ok(await t.mutation(api.applicationEdits.load, { token: valid }))
   for (const token of ['', 'bad', randomBytes(32).toString('base64url'), replaced]) {
     assert.equal(await t.mutation(api.applicationEdits.load, { token }), null)
-    await assert.rejects(t.mutation(api.applicationEdits.save, { token, member: member('Ana') }), /no longer valid/)
+    await assert.rejects(t.mutation(api.applicationEdits.saveWithIdentity, { token, member: member('Ana') }), /no longer valid/)
   }
   // Only time passes: no database write exists to invalidate a cached query.
   now += 60_000
   assert.equal(await t.mutation(api.applicationEdits.load, { token: valid }), null)
-  await assert.rejects(t.mutation(api.applicationEdits.save, { token: valid, member: member('Ana') }), /no longer valid/)
+  await assert.rejects(t.mutation(api.applicationEdits.saveWithIdentity, { token: valid, member: member('Ana') }), /no longer valid/)
 })
 
 test('corrections enforce form validation and unique email/GitHub without partial writes', async () => {
@@ -80,7 +81,7 @@ test('corrections enforce form validation and unique email/GitHub without partia
     [{ email: member('Bruno').email }, /Email already registered/],
     [{ github: member('Bruno').github }, /GitHub already registered/],
   ] as const) {
-    await assert.rejects(t.mutation(api.applicationEdits.save, { token, member: { ...member('Ana'), ...patch } }), error)
+    await assert.rejects(t.mutation(api.applicationEdits.saveWithIdentity, { token, member: { ...member('Ana'), ...patch } }), error)
   }
   assert.deepEqual(await t.mutation(api.applicationEdits.load, { token }), member('Ana'))
   assert.deepEqual(await t.run((ctx) => ctx.db.query('auditLog').collect()), [])

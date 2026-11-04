@@ -1,6 +1,6 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
-import type { Member } from './model'
+import { emptyMember, type Member } from './model'
 
 function client() {
   const url = import.meta.env.VITE_CONVEX_URL
@@ -11,10 +11,12 @@ function client() {
 }
 
 /** The answers a private link opens, or null when the link is wrong, replaced or expired. */
-export function loadCorrection(token: string): Promise<Member | null> {
-  return client().mutation(anyApi.applicationEdits.load, { token })
+export async function loadCorrection(token: string): Promise<Member | null> {
+  const member = await client().mutation(anyApi.applicationEdits.load, { token })
+  // Applications from before an ID was required don't have one: the form asks for it.
+  return member && { ...emptyMember(), ...member }
 }
 
 export function saveCorrection(token: string, member: Member): Promise<{ changed: number }> {
-  return client().mutation(anyApi.applicationEdits.save, { token, member })
+  return client().mutation(anyApi.applicationEdits.saveWithIdentity, { token, member })
 }
