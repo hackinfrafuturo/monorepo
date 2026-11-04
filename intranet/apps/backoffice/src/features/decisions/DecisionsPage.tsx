@@ -3,7 +3,7 @@ import { Link, useRouter } from '@tanstack/react-router'
 import { MailX } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
-import { STATUSES, canMove, type Status } from '@convex/admin/status'
+import { MAX_DECISION_TEAMS, STATUSES, canMove, type Status } from '@convex/admin/status'
 import { DataNotice, DotMeter, PageHeader, RefreshButton, Tabs } from '@/components/page'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -38,7 +38,7 @@ export function DecisionsPage({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [action, setAction] = useState<Status | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const lastClicked = useRef<number | null>(null)
+  const lastClicked = useRef<string | null>(null)
   const data = result.data
   const all = data?.applications ?? []
   const shown = all.filter((a) => a.status === status).sort(byScore)
@@ -53,23 +53,29 @@ export function DecisionsPage({
   const targets = STATUSES.filter(
     (target) => chosen.length > 0 && chosen.every((a) => canMove(a.status, target)),
   )
-  const allChosen = shown.length > 0 && chosen.length === shown.length
+  const selectable = shown.slice(0, MAX_DECISION_TEAMS)
+  const allChosen = selectable.length > 0 && selectable.every((a) => selected.has(a._id))
   const scored = shown.some((a) => a.reviews.average !== null)
 
   /** a click toggles one row; with shift, every row from the last click */
   function toggle(index: number, event: MouseEvent) {
     const id = shown[index]._id
-    setSelected((current) => {
-      const next = new Set(current)
-      const on = !next.has(id)
-      const from = event.shiftKey && lastClicked.current !== null ? lastClicked.current : index
-      for (let i = Math.min(from, index); i <= Math.max(from, index); i++) {
-        if (on) next.add(shown[i]._id)
-        else next.delete(shown[i]._id)
-      }
-      return next
-    })
-    lastClicked.current = index
+    // Capture the anchor before changing it, and find it by ID after a refresh/reorder.
+    const anchor = shown.findIndex((a) => a._id === lastClicked.current)
+    const from = event.shiftKey && anchor >= 0 ? anchor : index
+    const next = new Set(shown.filter((a) => selected.has(a._id)).map((a) => a._id))
+    const on = !next.has(id)
+    for (let i = Math.min(from, index); i <= Math.max(from, index); i++) {
+      if (on) next.add(shown[i]._id)
+      else next.delete(shown[i]._id)
+    }
+    if (next.size > MAX_DECISION_TEAMS) {
+      setMessage(`Puedes elegir hasta ${MAX_DECISION_TEAMS} equipos por decisión.`)
+      return
+    }
+    setMessage(null)
+    setSelected(next)
+    lastClicked.current = id
   }
 
   /** the best-scored teams that still fit, skipping any too big for what's left */
@@ -77,10 +83,12 @@ export function DecisionsPage({
     let room = free ?? 0
     const next = new Set<string>()
     for (const application of shown) {
+      if (next.size === MAX_DECISION_TEAMS) break
       if (application.reviews.average === null || application.size > room) continue
       next.add(application._id)
       room -= application.size
     }
+    setMessage(null)
     setSelected(next)
     lastClicked.current = null
   }
@@ -145,20 +153,28 @@ export function DecisionsPage({
                     className="size-4"
                     checked={allChosen}
                     onChange={() => {
-                      setSelected(allChosen ? new Set() : new Set(shown.map((a) => a._id)))
+                      setSelected(allChosen ? new Set() : new Set(selectable.map((a) => a._id)))
+                      setMessage(null)
                       lastClicked.current = null
                     }}
                   />
                   {chosen.length
                     ? `${teams(chosen.length)} · ${people(chosenPeople)} elegidas`
-                    : `Elegir las ${teams(shown.length)}`}
+                    : shown.length > MAX_DECISION_TEAMS
+                      ? `Elegir las primeras ${teams(MAX_DECISION_TEAMS)}`
+                      : `Elegir las ${teams(shown.length)}`}
                 </label>
                 {(status === 'pending' || status === 'waitlisted') && free !== null && free > 0 && scored && (
                   <Button variant="ghost" size="sm" onClick={fillPlaces}>
-                    Elegir las mejores hasta llenar {free} {free === 1 ? 'cupo' : 'cupos'}
+                    Elegir las mejores que caben
                   </Button>
                 )}
               </div>
+              {shown.length > MAX_DECISION_TEAMS && (
+                <p className="text-xs text-muted-foreground">
+                  Hasta {MAX_DECISION_TEAMS} equipos por decisión. Puedes continuar con los demás después.
+                </p>
+              )}
               <table className="w-full border-t border-foreground text-sm">
                 <thead className="text-xs text-muted-foreground">
                   <tr className="border-b text-left">
