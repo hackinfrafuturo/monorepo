@@ -3,16 +3,20 @@ import {
   DIETS,
   FIELD_ORDER,
   GENDERS,
+  ID_TYPES,
   MIN_ANSWER,
   TEAM_SIZES,
   YES_NO,
   cleanGithub,
+  cleanIdNumber,
   cleanLinkedin,
   cleanSite,
+  validRut,
   type Diet,
   type ErrorKey,
   type FieldKey,
   type Gender,
+  type IdType,
   type Member,
   type MemberErrors,
   type TeamSize,
@@ -24,6 +28,9 @@ import {
 const GITHUB = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i
 const LINKEDIN = /^[\p{L}\p{N}%_.-]{3,100}$/u
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** At least a first and a last name, in letters: no handles, numbers or single nicknames. */
+const REAL_NAME = /^[\p{L}\p{M}][\p{L}\p{M}'’.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’.-]*)+$/u
+const PASSPORT = /^[A-Z\d]{6,12}$/
 
 const ERROR_KEYS = [
   'required',
@@ -34,6 +41,10 @@ const ERROR_KEYS = [
   'site',
   'dupEmail',
   'dupGithub',
+  'realName',
+  'rut',
+  'passport',
+  'dupId',
 ] as const satisfies readonly ErrorKey[]
 
 /** `abort` keeps a single message: an empty answer is "required", not also "invalid". */
@@ -93,6 +104,21 @@ function emailSchema(others: readonly string[]) {
     })
 }
 
+function idNumberSchema(idType: IdType | '', others: readonly Member[]) {
+  const taken = others.map((member) => cleanIdNumber(member.idType, member.idNumber)).filter(Boolean)
+  return z
+    .string()
+    .overwrite((value) => cleanIdNumber(idType, value))
+    .min(1, { error: 'required', abort: true })
+    .refine((value) => (idType === 'passport' ? PASSPORT.test(value) : validRut(value)), {
+      error: idType === 'passport' ? 'passport' : 'rut',
+      abort: true,
+    })
+    .superRefine((value, ctx) => {
+      if (taken.includes(value)) ctx.addIssue({ code: 'custom', message: 'dupId' })
+    })
+}
+
 function linkedinSchema(required: boolean) {
   const cleaned = z.string().overwrite(cleanLinkedin)
   if (!required) {
@@ -116,7 +142,9 @@ export const teamSizeSchema = z
   .refine((value): value is TeamSize => value != null, { error: 'required' })
 
 const memberCleanSchema = z.object({
-  name: z.string().trim(),
+  name: z.string().trim().transform((value) => value.replace(/\s+/g, ' ')),
+  idType: z.string().trim(),
+  idNumber: z.string().trim(),
   gender: z.string().trim(),
   github: z.string().overwrite(cleanGithub),
   email: z.string().trim().toLowerCase(),
@@ -130,6 +158,7 @@ const memberCleanSchema = z.object({
   favorite: z.string().trim(),
   diet: z.string().trim(),
   allergies: z.string().trim(),
+  parking: z.string().trim(),
 })
 
 function known<T extends string>(value: string, options: readonly T[]): T | '' {
@@ -138,8 +167,11 @@ function known<T extends string>(value: string, options: readonly T[]): T | '' {
 
 function cleanMember(member: Member): Member {
   const cleaned = memberCleanSchema.parse(member)
+  const idType = known<IdType>(cleaned.idType, ID_TYPES)
   return {
     name: cleaned.name,
+    idType,
+    idNumber: cleanIdNumber(idType, cleaned.idNumber),
     gender: known<Gender>(cleaned.gender, GENDERS),
     github: cleaned.github,
     email: cleaned.email,
@@ -153,14 +185,20 @@ function cleanMember(member: Member): Member {
     favorite: cleaned.favorite,
     diet: known<Diet>(cleaned.diet, DIETS),
     allergies: cleaned.allergies,
+    parking: known<YesNo>(cleaned.parking, YES_NO),
   }
 }
 
-function memberSchema(others: readonly Member[], coding: YesNo | '') {
+/** The answers other questions depend on. */
+type Context = Pick<Member, 'coding' | 'idType'>
+
+function memberSchema(others: readonly Member[], { coding, idType }: Context) {
   // Unanswered still asks for GitHub. LinkedIn becomes required only when they don't code.
   const githubRequired = coding !== 'no'
   return z.object({
-    name: requiredText(),
+    name: requiredText().regex(REAL_NAME, { error: 'realName' }),
+    idType: oneOf(ID_TYPES),
+    idNumber: idNumberSchema(idType, others),
     gender: oneOf(GENDERS),
     github: githubSchema(others.map((member) => member.github), githubRequired),
     email: emailSchema(others.map((member) => member.email)),
@@ -174,6 +212,7 @@ function memberSchema(others: readonly Member[], coding: YesNo | '') {
     favorite: answerText(),
     diet: oneOf(DIETS),
     allergies: z.string().trim(),
+    parking: oneOf(YES_NO),
   })
 }
 
@@ -182,7 +221,7 @@ function errorKey(message: string | undefined): ErrorKey | undefined {
 }
 
 function errorsFor(member: Member, others: readonly Member[]): MemberErrors {
-  const parsed = memberSchema(others, member.coding).safeParse(member)
+  const parsed = memberSchema(others, member).safeParse(member)
   if (parsed.success) return {}
   const errors: MemberErrors = {}
   for (const issue of parsed.error.issues) {
@@ -219,9 +258,9 @@ export function fieldIssue(
   key: FieldKey,
   value: string,
   others: readonly Member[],
-  coding: YesNo | '',
+  context: Context,
 ): ErrorKey | undefined {
-  const parsed = memberSchema(others, coding).shape[key].safeParse(value)
+  const parsed = memberSchema(others, context).shape[key].safeParse(value)
   if (parsed.success) return undefined
   return errorKey(parsed.error.issues[0]?.message)
 }

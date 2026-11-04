@@ -6,12 +6,14 @@ import {
   DIETS,
   FIELD_ORDER,
   GENDERS,
+  ID_TYPES,
   MIN_ANSWER,
   NORMALIZE,
   YES_NO,
   fieldId,
   type Diet,
   type FieldKey,
+  type IdType,
   type YesNo,
 } from './model'
 import { fieldIssue } from './schema'
@@ -34,9 +36,11 @@ function messageFor(
   if (size == null) return undefined
   const members = form.getFieldValue('members')
   const others = members.slice(0, size).filter((_, memberIndex) => memberIndex !== index)
-  const current = members[index]?.coding
-  const coding = current === 'yes' || current === 'no' ? current : ''
-  const code = fieldIssue(key, value, others, coding)
+  const current = members[index]
+  const code = fieldIssue(key, value, others, {
+    coding: current?.coding ?? '',
+    idType: current?.idType ?? 'rut',
+  })
   return code ? t.errors[code] : undefined
 }
 
@@ -74,6 +78,12 @@ function Bound<K extends FieldKey>({
           if (!fieldApi.state.meta.errorMap.onSubmit) return undefined
           return messageFor(form, index, field, String(value ?? ''), t)
         },
+        // Any later validation drops a submit error unless it reports one too. Without this, leaving a
+        // wrong answer hides its message and shifts the page under whatever is being clicked.
+        onBlur: ({ value, fieldApi }) => {
+          if (!fieldApi.state.meta.errorMap.onSubmit) return undefined
+          return messageFor(form, index, field, String(value ?? ''), t)
+        },
       }}
     >
       {(api) =>
@@ -106,6 +116,7 @@ function Question({
   t,
   self,
   coding,
+  idType,
 }: {
   form: ApplyForm
   index: number
@@ -113,6 +124,7 @@ function Question({
   t: ApplyMessages
   self: boolean
   coding: YesNo | ''
+  idType: IdType
 }) {
   const f = t.fields
   switch (field) {
@@ -120,7 +132,46 @@ function Question({
       return (
         <Bound form={form} index={index} field="name" t={t}>
           {(props) => (
-            <TextField {...props} label={f.name.label} autoComplete={self ? 'name' : 'off'} />
+            <TextField
+              {...props}
+              label={f.name.label}
+              hint={f.name.hint}
+              autoComplete={self ? 'name' : 'off'}
+            />
+          )}
+        </Bound>
+      )
+    case 'idType':
+      return (
+        <Bound form={form} index={index} field="idType" t={t}>
+          {(props) => (
+            <ChoiceField
+              id={props.id}
+              name={props.name}
+              label={f.idType.label}
+              value={ID_TYPES.find((v) => v === props.value) ?? ''}
+              error={props.error}
+              options={ID_TYPES.map((v) => ({ value: v, label: f.idType.options[v] }))}
+              onValueChange={(v: IdType) => {
+                props.onValueChange(v)
+                // RUT and passport follow different rules. Refresh an error already on screen.
+                void form.validateField(memberPath(index, 'idNumber'), 'change')
+              }}
+            />
+          )}
+        </Bound>
+      )
+    case 'idNumber':
+      return (
+        <Bound form={form} index={index} field="idNumber" t={t}>
+          {(props) => (
+            <TextField
+              {...props}
+              label={f.idNumber.label[idType]}
+              placeholder={f.idNumber.placeholder[idType]}
+              autoComplete="off"
+              technical
+            />
           )}
         </Bound>
       )
@@ -315,6 +366,22 @@ function Question({
           )}
         </Bound>
       )
+    case 'parking':
+      return (
+        <Bound form={form} index={index} field="parking" t={t}>
+          {(props) => (
+            <ChoiceField
+              id={props.id}
+              name={props.name}
+              label={f.parking.label}
+              value={props.value === 'yes' || props.value === 'no' ? props.value : ''}
+              error={props.error}
+              options={YES_NO.map((v) => ({ value: v, label: f.parking.options[v] }))}
+              onValueChange={(v: YesNo) => props.onValueChange(v)}
+            />
+          )}
+        </Bound>
+      )
   }
 }
 
@@ -325,9 +392,15 @@ export function MemberForm({ form, index, t }: Props) {
     const value = state.values.members[index]?.coding
     return value === 'yes' || value === 'no' ? value : ''
   })
+  const idType = useStore(form.store, (state) =>
+    state.values.members[index]?.idType === 'passport' ? 'passport' : 'rut',
+  )
 
   return (
     <div className="flex flex-col gap-16">
+      <p className="border-l-2 border-brand pl-4 text-base leading-7 text-[#5a5956]">
+        {t.member.identity}
+      </p>
       {FIELD_ORDER.map((key) => (
         <Question
           key={key}
@@ -337,6 +410,7 @@ export function MemberForm({ form, index, t }: Props) {
           t={t}
           self={self}
           coding={coding}
+          idType={idType}
         />
       ))}
     </div>

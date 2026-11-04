@@ -1,6 +1,7 @@
 import {
   DIETS,
   GENDERS,
+  ID_TYPES,
   TEAM_MAX,
   TEAM_SIZES,
   YES_NO,
@@ -41,6 +42,8 @@ function readMember(value: unknown): Member {
     typeof saved[key] === 'string' ? (saved[key] as string) : ''
   return {
     name: text('name'),
+    idType: ID_TYPES.find((v) => v === saved.idType) ?? 'rut',
+    idNumber: '',
     gender: GENDERS.find((g) => g === saved.gender) ?? '',
     github: text('github'),
     email: text('email'),
@@ -54,6 +57,7 @@ function readMember(value: unknown): Member {
     favorite: text('favorite'),
     diet: DIETS.find((d) => d === saved.diet) ?? '',
     allergies: text('allergies'),
+    parking: YES_NO.find((v) => v === saved.parking) ?? '',
   }
 }
 
@@ -89,7 +93,9 @@ export function loadDraft(): Draft {
 
 export function saveDraft(draft: Draft): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(draft))
+    // IDs never rest in the browser: on a shared computer the next person would find them.
+    const members = draft.members.map((member) => ({ ...member, idNumber: '' }))
+    localStorage.setItem(KEY, JSON.stringify({ ...draft, members }))
   } catch {
     // Private mode or full storage. The form still works, it just won't survive a refresh.
   }

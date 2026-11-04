@@ -33,6 +33,7 @@ const COPY: Record<
     failed: string
     takenEmail: string
     takenGithub: string
+    takenId: string
     home: string
   }
 > = {
@@ -51,6 +52,7 @@ const COPY: Record<
     failed: 'No pudimos guardar. Intenta de nuevo.',
     takenEmail: 'Ese email ya está en otra postulación.',
     takenGithub: 'Ese GitHub ya está en otra postulación.',
+    takenId: 'Ese documento ya está en otra postulación.',
     home: 'Ir al inicio',
   },
   en: {
@@ -68,6 +70,7 @@ const COPY: Record<
     failed: 'We could not save. Please try again.',
     takenEmail: 'That email is already on another application.',
     takenGithub: 'That GitHub is already on another application.',
+    takenId: 'That ID is already on another application.',
     home: 'Go home',
   },
 }
@@ -121,7 +124,9 @@ function CorrectionForm({
           ? copy.takenEmail
           : data === 'GitHub already registered'
             ? copy.takenGithub
-            : copy.failed,
+            : data === 'ID already registered'
+              ? copy.takenId
+              : copy.failed,
       )
       setSaving(false)
     }

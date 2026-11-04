@@ -31,6 +31,8 @@ export type Team = {
   status: Status
   /** how many organizers scored it, when the page knows */
   reviews?: number
+  /** how many members still lack the ID the venue requires */
+  missingIds?: number
 }
 
 /**
@@ -60,6 +62,7 @@ export function DecisionConfirm({
   const moving = teams.filter((team) => team.status !== status)
   const peopleCount = moving.reduce((sum, team) => sum + team.size, 0)
   const unreviewed = moving.filter((team) => team.reviews === 0).length
+  const missingIds = moving.reduce((sum, team) => sum + (team.missingIds ?? 0), 0)
   const decision = STATUS_DECISIONS.find((d) => d === status)
   const preview = decision && decisionEmail(decision, moving[0]?.names[0] ?? 'nombre')
   // places: accepting adds people, moving accepted teams elsewhere frees theirs
@@ -124,6 +127,15 @@ export function DecisionConfirm({
               {unreviewed === 1
                 ? 'Una de estas inscripciones no tiene revisiones.'
                 : `${unreviewed} de estas inscripciones no tienen revisiones.`}
+            </p>
+          )}
+
+          {status === 'accepted' && missingIds > 0 && (
+            <p className="flex items-start gap-2 text-destructive">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {missingIds === 1
+                ? 'A una persona le falta el RUT, y la seguridad del recinto lo exige.'
+                : `A ${missingIds} personas les falta el RUT, y la seguridad del recinto lo exige.`}
             </p>
           )}
 

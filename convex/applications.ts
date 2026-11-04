@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import {
   DIETS,
   GENDERS,
+  ID_TYPES,
   TEAM_MAX,
   TEAM_MIN,
   YES_NO,
@@ -24,7 +25,9 @@ export function stored(member: Member) {
     !oneOf(GENDERS, member.gender) ||
     !oneOf(YES_NO, member.coding) ||
     !oneOf(YES_NO, member.jobs) ||
-    !oneOf(DIETS, member.diet)
+    !oneOf(DIETS, member.diet) ||
+    !oneOf(ID_TYPES, member.idType) ||
+    !oneOf(YES_NO, member.parking)
   ) {
     throw new ConvexError('Invalid application')
   }
@@ -43,7 +46,17 @@ export function stored(member: Member) {
     favorite: member.favorite,
     diet: member.diet,
     allergies: member.allergies,
+    idType: member.idType,
+    idNumber: member.idNumber,
+    parking: member.parking,
   }
+}
+
+/** The validator allows the identity fields to be missing, for older rows; the form's rules don't. */
+export function withIdentity<T extends Omit<Member, 'idType' | 'idNumber' | 'parking'>>(
+  member: T & Partial<Pick<Member, 'idType' | 'idNumber' | 'parking'>>,
+): Member {
+  return { ...member, idType: member.idType ?? '', idNumber: member.idNumber ?? '', parking: member.parking ?? '' }
 }
 
 export const submit = mutation({
@@ -54,7 +67,7 @@ export const submit = mutation({
       throw new ConvexError('Team must be 1 to 4 people')
     }
 
-    const checked = checkTeam(members, members.length)
+    const checked = checkTeam(members.map(withIdentity), members.length)
     if (checked.some((item) => firstErrorKey(item.errors) != null)) {
       throw new ConvexError('Invalid application')
     }
@@ -75,6 +88,12 @@ export const submit = mutation({
           .unique()
         if (sameGithub) throw new ConvexError('GitHub already registered')
       }
+
+      const sameId = await ctx.db
+        .query('members')
+        .withIndex('by_idNumber', (q) => q.eq('idNumber', person.idNumber))
+        .first()
+      if (sameId) throw new ConvexError('ID already registered')
     }
 
     const sourceRef = normalizeRef(ref)

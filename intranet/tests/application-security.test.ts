@@ -16,7 +16,8 @@ const modules = {
 }
 const answer = 'A detailed answer describing a real project and what I learned from building it.'
 const member = (name: string) => ({
-  name, email: `${name.toLowerCase()}@example.com`, github: name.toLowerCase(),
+  name: `${name} Prueba`, email: `${name.toLowerCase()}@example.com`, github: name.toLowerCase(),
+  idType: 'rut' as const, idNumber: name === 'Ana' ? '11111111-1' : '22222222-2', parking: 'no' as const,
   gender: 'skip' as const, coding: 'yes' as const, linkedin: '', site: '', jobs: 'no' as const,
   role: 'Engineer', deep: answer, hardest: answer, favorite: answer, diet: 'veggie' as const, allergies: '',
 })

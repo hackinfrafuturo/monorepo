@@ -3,7 +3,7 @@ import { internalMutation, mutation, type QueryCtx } from './_generated/server'
 import type { Doc } from './_generated/dataModel'
 import { checkTeam } from '../src/apply/schema'
 import { firstErrorKey } from '../src/apply/model'
-import { stored } from './applications'
+import { stored, withIdentity } from './applications'
 import { memberValidator } from './schema'
 
 /**
@@ -62,6 +62,9 @@ export const load = mutation({
       favorite: m.favorite,
       diet: m.diet,
       allergies: m.allergies,
+      idType: m.idType,
+      idNumber: m.idNumber,
+      parking: m.parking,
     }
   },
 })
@@ -73,7 +76,7 @@ export const save = mutation({
   handler: async (ctx, { token, member }) => {
     const current = await memberFor(ctx, token)
     if (!current) throw new ConvexError('This link is no longer valid')
-    const [checked] = checkTeam([member], 1)
+    const [checked] = checkTeam([withIdentity(member)], 1)
     if (firstErrorKey(checked.errors) != null) throw new ConvexError('Invalid application')
     const next = stored(checked.member)
 
@@ -83,10 +86,17 @@ export const save = mutation({
       const sameGithub = await ctx.db.query('members').withIndex('by_github', (q) => q.eq('github', next.github)).first()
       if (sameGithub && sameGithub._id !== current._id) throw new ConvexError('GitHub already registered')
     }
+    const sameId = await ctx.db.query('members').withIndex('by_idNumber', (q) => q.eq('idNumber', next.idNumber)).first()
+    if (sameId && sameId._id !== current._id) throw new ConvexError('ID already registered')
 
     const changes = (Object.keys(next) as (keyof typeof next)[])
       .filter((field) => next[field] !== current[field])
-      .map((field) => ({ field, from: current[field].slice(0, 300), to: next[field].slice(0, 300) }))
+      .map((field) =>
+        // the history records that the ID changed, never the ID itself
+        field === 'idNumber'
+          ? { field, from: current.idNumber ? '•••' : '', to: '•••' }
+          : { field, from: (current[field] ?? '').slice(0, 300), to: next[field].slice(0, 300) },
+      )
     if (!changes.length) return { changed: 0 }
     await ctx.db.patch(current._id, next)
     await ctx.db.insert('auditLog', {

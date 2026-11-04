@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation } from './_generated/server'
 import type { Status } from './admin/status'
+import { rutCheckDigit } from '../src/apply/model'
 
 /**
  * Made-up applications for a development deployment, so the backoffice has something realistic to show.
@@ -80,6 +81,9 @@ export const run = internalMutation({
           favorite: pick(FAVORITE),
           diet: pick(['omnivore', 'omnivore', 'omnivore', 'veggie', 'vegan'] as const),
           allergies: next() % 6 === 0 ? 'Maní' : '',
+          idType: 'rut',
+          idNumber: `${10_000_000 + person}-${rutCheckDigit(String(10_000_000 + person))}`,
+          parking: next() % 4 === 0 ? 'yes' : 'no',
         })
       }
     }

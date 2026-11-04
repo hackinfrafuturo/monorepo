@@ -17,7 +17,13 @@ export const emailStateValidator = v.union(v.literal('queued'), v.literal('sent'
 export const audienceValidator = v.union(
   v.object({ kind: v.literal('member'), memberId: v.id('members') }),
   v.object({ kind: v.literal('team'), applicationId: v.id('applications') }),
-  v.object({ kind: v.literal('group'), status: v.optional(statusValidator), ref: v.optional(v.string()) }),
+  v.object({
+    kind: v.literal('group'),
+    status: v.optional(statusValidator),
+    ref: v.optional(v.string()),
+    /** only people whose application still lacks an ID */
+    missingId: v.optional(v.boolean()),
+  }),
 )
 /** an audit entry, as stored and as the admin API returns it */
 export const auditFields = {
@@ -55,6 +61,11 @@ export const memberValidator = v.object({
   favorite: v.string(),
   diet: v.union(v.literal('vegan'), v.literal('veggie'), v.literal('omnivore')),
   allergies: v.string(),
+  // Required on the form since the venue's security asked for them; applications from before don't
+  // have them, so they stay optional here. The ID only ever leaves Convex for the backoffice.
+  idType: v.optional(v.union(v.literal('rut'), v.literal('passport'))),
+  idNumber: v.optional(v.string()),
+  parking: v.optional(v.union(v.literal('yes'), v.literal('no'))),
 })
 
 export default defineSchema({
@@ -136,6 +147,7 @@ export default defineSchema({
   })
     .index('by_email', ['email'])
     .index('by_github', ['github'])
+    .index('by_idNumber', ['idNumber'])
     .index('by_application', ['applicationId']),
   // Breakout on the landing: a run is timed on the server from its first launch to the win, so a time
   // can't simply be posted. A finished run becomes a score once the player names it.

@@ -21,7 +21,8 @@ child.stdout.on('data', (chunk) => { output += chunk })
 child.stderr.on('data', (chunk) => { output += chunk })
 const answer = 'I built a useful project and learned a lot by solving its most difficult technical problems.'
 const member = {
-  name: 'QA Ana', email: 'qa-ana@example.com', github: 'qa-ana', gender: 'skip', coding: 'yes',
+  name: 'QA Ana', idType: 'rut', idNumber: '12345678-5', parking: 'no',
+  email: 'qa-ana@example.com', github: 'qa-ana', gender: 'skip', coding: 'yes',
   linkedin: '', site: '', jobs: 'no', role: 'Engineer', deep: answer, hardest: answer, favorite: answer,
   diet: 'veggie', allergies: 'QA allergy',
 }

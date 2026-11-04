@@ -36,7 +36,7 @@ async function resolve(ctx: QueryCtx, audience: Audience) {
         .take(4),
     ),
   )
-  return members.flat()
+  return members.flat().filter((member) => !audience.missingId || !member.idNumber)
 }
 
 /** How many people an audience reaches, for the confirmation step, with a few names to check against. */

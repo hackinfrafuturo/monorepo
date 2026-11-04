@@ -66,6 +66,8 @@ npx convex env set MESSAGE_EMAILS send --prod
 
 Deploy Convex before the public site, or `/corregir` links will read as expired.
 
+The form requires a real first and last name, a RUT or passport, and whether the person needs parking, because the venue's security asks for them. Applications from before that have no ID: the team page and Participantes flag them, Decisiones warns before accepting them, and Correos can write to just those people with a private link, whose form asks for what's missing. The ID stays out of the `/api/participants` feed, the audit history and the browser's saved draft. Convex's `submit` and the form must ship together: deploy Convex and merge right after, because each rejects what the other's old version sends.
+
 Convex functions reach production only through a manual `npx convex deploy`; the Vercel build does not deploy them.
 
 ## Access and deployment

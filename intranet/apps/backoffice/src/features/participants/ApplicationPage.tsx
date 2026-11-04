@@ -166,6 +166,7 @@ export function ApplicationPage({ result }: { result: Result }) {
               size: application.size,
               status: application.status,
               reviews: application.reviews.length,
+              missingIds: application.members.filter((member) => !member.idNumber).length,
             },
           ]}
           status={action}
@@ -249,8 +250,14 @@ export function ApplicationPage({ result }: { result: Result }) {
                         {member.email}
                       </a>
                     </Fact>
+                    <Fact label={member.idType === 'passport' ? 'Pasaporte' : 'RUT'}>
+                      {member.idNumber ?? <span className="text-destructive">Falta</span>}
+                    </Fact>
                     <Fact label="Alimentación">{DIET_LABELS[member.diet]}</Fact>
                     <Fact label="Alergias">{member.allergies.trim() || 'Ninguna'}</Fact>
+                    <Fact label="Estacionamiento">
+                      {member.parking ? (member.parking === 'yes' ? 'Necesita' : 'No necesita') : 'Sin dato'}
+                    </Fact>
                     <Fact label="Ofertas">{member.jobs === 'yes' ? 'Le interesan' : 'No le interesan'}</Fact>
                     <Fact label="Género">{GENDER_LABELS[member.gender]}</Fact>
                   </dl>
@@ -368,7 +375,7 @@ function MyScore({
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.5rem_1fr] gap-2">
+    <div className="grid grid-cols-[7.5rem_1fr] gap-2">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="min-w-0 [overflow-wrap:anywhere]">{children}</dd>
     </div>

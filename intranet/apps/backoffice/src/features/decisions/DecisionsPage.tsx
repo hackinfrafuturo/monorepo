@@ -257,6 +257,7 @@ export function DecisionsPage({
                 size: a.size,
                 status: a.status,
                 reviews: a.reviews.count,
+                missingIds: a.members.filter((m) => !m.hasId).length,
               }))}
               status={action}
               capacity={capacity}
