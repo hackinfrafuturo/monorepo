@@ -4,18 +4,9 @@ import { AlertCircle } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
 import { STATUSES, type Status } from '@convex/admin/status'
+import { DataNotice, DotMeter, Figure, PageHeader, Tabs } from '@/components/page'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   DIET_LABELS,
   GENDER_LABELS,
@@ -64,62 +55,27 @@ export function InsightsPage({
   const stats = result.data
   return (
     <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects">Proyectos</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects/$projectId" params={{ projectId: 'infra-futuro' }}>
-                Infra Futuro
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Estadísticas</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Estadísticas</h1>
-        <p className="text-sm text-muted-foreground">
-          Quiénes postularon, en totales. Filtra por estado para ver cómo va
-          quedando el grupo aceptado.
-        </p>
-      </header>
-
-      <div role="group" aria-label="Estado" className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={!status ? 'secondary' : 'outline'}
-          aria-pressed={!status}
-          onClick={() => onStatus(undefined)}
-          className={!status ? 'border border-ring' : undefined}
-        >
-          Todas
-        </Button>
-        {STATUSES.map((s) => (
-          <Button
-            key={s}
-            type="button"
-            size="sm"
-            variant={status === s ? 'secondary' : 'outline'}
-            aria-pressed={status === s}
-            onClick={() => onStatus(s)}
-            className={status === s ? 'border border-ring' : undefined}
-          >
-            {STATUS_LABELS[s]}
+      <PageHeader
+        title="Estadísticas"
+        description="Quiénes postularon, en totales. Filtra por estado para ver cómo va quedando el grupo aceptado."
+        actions={
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/projects/$projectId/stats" params={{ projectId: 'infra-futuro' }}>
+              Lista de inscripciones
+            </Link>
           </Button>
-        ))}
-      </div>
+        }
+      />
+
+      <Tabs
+        label="Estado"
+        value={status}
+        onChange={onStatus}
+        tabs={[
+          { value: undefined, label: 'Todas' },
+          ...STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
+        ]}
+      />
 
       {stats ? (
         <>
@@ -135,15 +91,15 @@ export function InsightsPage({
             </Alert>
           )}
 
-          <section aria-label="Totales" className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-3">
-            <Metric label="Personas" value={stats.people} />
-            <Metric label="Inscripciones" value={stats.applications} />
-            <Metric label="Con alergias" value={stats.allergies} />
+          <section aria-label="Totales" className="grid grid-cols-3 gap-x-6">
+            <Figure label="Personas" value={stats.people} />
+            <Figure label="Inscripciones" value={stats.applications} />
+            <Figure label="Con alergias" value={stats.allergies} />
           </section>
 
           <PerDay perDay={stats.perDay} />
 
-          <div className="grid min-w-0 gap-4 @min-[52rem]/page:grid-cols-2">
+          <div className="grid min-w-0 gap-x-10 gap-y-6 @min-[52rem]/page:grid-cols-2">
             <Breakdown
               title="Género"
               unit="personas"
@@ -186,38 +142,9 @@ export function InsightsPage({
           </div>
         </>
       ) : (
-        <Alert role="status">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>
-            <h2>
-              {result.status === 'unconfigured'
-                ? 'Falta conectar el proyecto'
-                : 'No pudimos cargar las estadísticas'}
-            </h2>
-          </AlertTitle>
-          <AlertDescription>
-            {result.status === 'unconfigured'
-              ? 'Configura la conexión a Convex de Infra Futuro en el servidor de la intranet.'
-              : 'El servicio de Infra Futuro no está disponible. Intenta en un momento.'}
-          </AlertDescription>
-        </Alert>
+        <DataNotice status={result.status} what="las estadísticas" />
       )}
     </>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <Card className="min-w-0 gap-2 py-5">
-      <CardHeader className="px-5">
-        <CardDescription className="text-xs sm:text-sm">{label}</CardDescription>
-      </CardHeader>
-      <CardContent className="px-5">
-        <strong className="block text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl">
-          {value}
-        </strong>
-      </CardContent>
-    </Card>
   )
 }
 
@@ -227,72 +154,70 @@ function PerDay({ perDay }: { perDay: Stats['perDay'] }) {
   const highest = Math.max(1, ...days.map((day) => day.applications))
   const shown = days.find((day) => day.day === hovered)
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle>
-          <h2>Inscripciones por día</h2>
-        </CardTitle>
-        <CardDescription aria-live="polite">
+    <section aria-labelledby="days-title" className="min-w-0 space-y-3 border-t border-foreground pt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+        <h2 id="days-title" className="text-sm">
+          Inscripciones por día
+        </h2>
+        <p className="text-xs text-muted-foreground" aria-live="polite">
           {shown
             ? `${dayLabel(shown.day)}: ${teams(shown.applications)} · ${people(shown.people)}`
-            : `El día con más tuvo ${teams(highest)}. Pasa por una barra para ver el detalle.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {days.length ? (
-          <>
-            <div
-              role="img"
-              aria-label={`Inscripciones por día, entre ${dayLabel(days[0].day)} y ${dayLabel(days[days.length - 1].day)}. El detalle está en la tabla.`}
-              className="flex h-36 items-end gap-0.5 border-b"
-              onPointerLeave={() => setHovered(null)}
-            >
-              {days.map((day) => (
+            : `Máximo: ${teams(highest)} en un día`}
+        </p>
+      </div>
+      {days.length ? (
+        <>
+          <div
+            role="img"
+            aria-label={`Inscripciones por día, entre ${dayLabel(days[0].day)} y ${dayLabel(days[days.length - 1].day)}. El detalle está en la tabla.`}
+            className="flex h-32 items-end gap-0.5 border-b"
+            onPointerLeave={() => setHovered(null)}
+          >
+            {days.map((day) => (
+              <div
+                key={day.day}
+                className="flex h-full min-w-0 flex-1 items-end transition-colors duration-75 hover:bg-accent"
+                onPointerEnter={() => setHovered(day.day)}
+              >
                 <div
-                  key={day.day}
-                  className="flex h-full min-w-0 flex-1 items-end"
-                  onPointerEnter={() => setHovered(day.day)}
-                >
-                  <div
-                    className={`w-full rounded-t-[4px] ${hovered === day.day ? 'bg-primary' : 'bg-primary/70'}`}
-                    style={{ height: `${(day.applications / highest) * 100}%` }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{dayLabel(days[0].day)}</span>
-              <span>{dayLabel(days[days.length - 1].day)}</span>
-            </div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground">Ver como tabla</summary>
-              <table className="mt-2 w-full text-left tabular-nums">
-                <thead className="text-xs text-muted-foreground">
-                  <tr>
-                    <th className="py-1 font-normal">Día</th>
-                    <th className="py-1 text-right font-normal">Inscripciones</th>
-                    <th className="py-1 text-right font-normal">Personas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {days
-                    .filter((day) => day.applications)
-                    .map((day) => (
-                      <tr key={day.day} className="border-t">
-                        <td className="py-1">{dayLabel(day.day)}</td>
-                        <td className="py-1 text-right">{day.applications}</td>
-                        <td className="py-1 text-right">{day.people}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </details>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">No hay inscripciones aquí.</p>
-        )}
-      </CardContent>
-    </Card>
+                  className={`w-full ${hovered === day.day ? 'bg-foreground' : 'bg-primary'}`}
+                  style={{ height: `${(day.applications / highest) * 100}%` }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{dayLabel(days[0].day)}</span>
+            <span>{dayLabel(days[days.length - 1].day)}</span>
+          </div>
+          <details className="text-sm">
+            <summary className="cursor-pointer text-xs text-muted-foreground">Ver como tabla</summary>
+            <table className="mt-2 w-full max-w-md text-left tabular-nums">
+              <thead className="text-xs text-muted-foreground">
+                <tr>
+                  <th className="py-1 font-normal">Día</th>
+                  <th className="py-1 text-right font-normal">Inscripciones</th>
+                  <th className="py-1 text-right font-normal">Personas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {days
+                  .filter((day) => day.applications)
+                  .map((day) => (
+                    <tr key={day.day} className="border-t">
+                      <td className="py-1">{dayLabel(day.day)}</td>
+                      <td className="py-1 text-right">{day.applications}</td>
+                      <td className="py-1 text-right">{day.people}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </details>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">No hay inscripciones aquí.</p>
+      )}
+    </section>
   )
 }
 
@@ -300,39 +225,30 @@ function Breakdown({ title, unit, rows }: { title: string; unit: string; rows: R
   const total = rows.reduce((sum, row) => sum + row.count, 0)
   const highest = Math.max(1, ...rows.map((row) => row.count))
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-        <CardDescription>
+    <section className="min-w-0 space-y-2 border-t border-foreground pt-3">
+      <h2 className="flex items-baseline justify-between gap-3 text-sm">
+        {title}
+        <span className="text-xs text-muted-foreground">
           {total} {unit}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {rows.length ? (
-          <ul className="space-y-3 text-sm">
-            {rows.map((row) => (
-              <li key={row.label} className="space-y-1">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{row.label}</span>
-                  <span className="shrink-0 text-muted-foreground tabular-nums">
-                    {row.count} · {percent(row.count, total)}
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-secondary" aria-hidden="true">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${(row.count / highest) * 100}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">Sin datos.</p>
-        )}
-      </CardContent>
-    </Card>
+        </span>
+      </h2>
+      {rows.length ? (
+        <ul className="space-y-2 text-sm">
+          {rows.map((row) => (
+            <li key={row.label} className="space-y-0.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 [overflow-wrap:anywhere]">{row.label}</span>
+                <span className="shrink-0 text-muted-foreground tabular-nums">
+                  {row.count} · {percent(row.count, total)}
+                </span>
+              </div>
+              <DotMeter value={row.count} max={highest} label={row.label} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Sin datos.</p>
+      )}
+    </section>
   )
 }

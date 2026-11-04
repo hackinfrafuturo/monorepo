@@ -9,6 +9,8 @@ export const STATUSES = ['pending', 'accepted', 'waitlisted', 'rejected', 'withd
 export type Status = (typeof STATUSES)[number]
 /** the statuses that are decisions, emailed to the team */
 export const STATUS_DECISIONS = ['accepted', 'waitlisted', 'rejected'] as const
+/** Shared by the decision API and selection controls; a confirmed batch stays atomic. */
+export const MAX_DECISION_TEAMS = 100
 
 /** the moves allowed from each status; correcting a decision is a move like any other, and is logged */
 const NEXT: Record<Status, readonly Status[]> = {

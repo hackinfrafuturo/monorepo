@@ -110,6 +110,9 @@ Business rules and data stay with the owning project. The intranet owns access, 
 pnpm test:intranet
 pnpm build:intranet
 pnpm --filter @intranet/workspace test:browser
+pnpm --filter @intranet/workspace test:decisions
 ```
 
 The browser check launches a production build and a local synthetic backend. It verifies denied requests never read data, pagination and group display, search, refresh, empty/error states, mobile navigation, saved/system theme choices, both themes at widths from 320 to 1440 pixels, long-name wrapping, aligned totals, and top-bar visibility while scrolling. It also checks that credentials/private fields are absent from browser responses. It makes no requests to production Convex and does not configure or deploy Tailscale.
+
+The decision browser suite uses a synthetic admin API to check Shift ranges, refreshed anchors, the 100-team selection limit, and a single confirmed batch. It changes no hosted applications and sends no emails.

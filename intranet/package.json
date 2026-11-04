@@ -12,6 +12,7 @@
     "start": "pnpm --filter @intranet/backoffice start",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:browser": "node tests/browser.mjs",
+    "test:decisions": "node tests/decisions-browser.mjs",
     "test:corrections": "node tests/corrections-browser.mjs"
   },
   "devDependencies": {

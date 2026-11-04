@@ -3,10 +3,8 @@ import { internal } from '../_generated/api'
 import { mutation } from '../_generated/server'
 import { statusValidator } from '../schema'
 import { adminArgs, requireAdmin } from './auth'
-import { STATUS_DECISIONS, canMove, statusOf } from './status'
+import { MAX_DECISION_TEAMS, STATUS_DECISIONS, canMove, statusOf } from './status'
 
-/** teams per decision, to keep one confirmation readable and one transaction small */
-const BATCH = 100
 const EMAIL_SPACING_MS = 600
 
 /**
@@ -20,7 +18,7 @@ export const decide = mutation({
   handler: async (ctx, { applicationIds, status, ...args }) => {
     const actor = requireAdmin(args)
     const ids = [...new Set(applicationIds)]
-    if (!ids.length || ids.length > BATCH) throw new ConvexError(`Choose 1 to ${BATCH} teams`)
+    if (!ids.length || ids.length > MAX_DECISION_TEAMS) throw new ConvexError(`Choose 1 to ${MAX_DECISION_TEAMS} teams`)
     const applications = await Promise.all(ids.map((id) => ctx.db.get(id)))
     for (const application of applications) {
       if (!application) throw new ConvexError('Application not found')

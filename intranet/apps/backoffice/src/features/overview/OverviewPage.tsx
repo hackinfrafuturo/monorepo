@@ -1,126 +1,42 @@
-import { useState } from 'react'
-import { Link, useRouter } from '@tanstack/react-router'
-import {
-  AlertCircle,
-  CircleCheck,
-  ClipboardList,
-  Clock3,
-  History,
-  Hourglass,
-  RefreshCw,
-  UsersRound,
-} from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, CircleCheck } from 'lucide-react'
 import type { FunctionReturnType } from 'convex/server'
 import type { api } from '@convex/_generated/api'
 import { STATUSES } from '@convex/admin/status'
-import { STATUS_LABELS, describeEntry, people, teamSize, teams } from '../labels'
+import { DataNotice, DotMeter, Figure, PageHeader, RefreshButton } from '@/components/page'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { AlertCircle } from 'lucide-react'
+import { StatusBadge } from '../participants/StatusBadge'
+import { describeEntry, people, santiago, teams } from '../labels'
 
 type Overview = FunctionReturnType<typeof api.admin.overview.get>
 type Activity = FunctionReturnType<typeof api.admin.activity.recent>
+type Settings = FunctionReturnType<typeof api.admin.settings.get>
 type Result = {
   status: 'ready' | 'unconfigured' | 'unavailable'
-  data: { overview: Overview; activity: Activity; checkedAt: string } | null
+  data: {
+    overview: Overview
+    activity: Activity
+    settings: Settings
+    checkedAt: string
+    toReview: number
+    toDecide: number
+  } | null
 }
 
-const time = (iso: string | number, withDate = false) =>
-  new Intl.DateTimeFormat('es-CL', {
-    timeZone: 'America/Santiago',
-    ...(withDate ? { day: 'numeric', month: 'short' } : {}),
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso))
-
 export function OverviewPage({ result }: { result: Result }) {
-  const router = useRouter()
-  const [refreshing, setRefreshing] = useState(false)
   const data = result.data
-
-  async function refresh() {
-    setRefreshing(true)
-    try {
-      await router.invalidate()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
+  const accepted = data?.overview.byStatus.accepted
+  const capacity = data?.settings.capacity ?? null
   return (
     <>
-      <Breadcrumb aria-label="Ubicación actual">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects" aria-label="Volver a proyectos">
-                Proyectos
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Infra Futuro</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <PageHeader
+        title="Resumen"
+        description={data ? `Lo que necesita atención ahora. Actualizado a las ${santiago(data.checkedAt).split(', ')[1]}, hora de Santiago.` : undefined}
+        actions={<RefreshButton label="Actualizar resumen" />}
+      />
 
-      <header className="space-y-3">
-        <Badge variant="secondary">Infra Futuro · 2026</Badge>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Resumen
-          </h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={refreshing}
-            aria-busy={refreshing}
-            aria-label="Actualizar resumen"
-            className="size-9 shrink-0 p-0 sm:w-auto sm:px-3"
-          >
-            <RefreshCw
-              className={refreshing ? 'animate-spin' : undefined}
-              aria-hidden="true"
-            />
-            <span className="hidden sm:inline">
-              {refreshing ? 'Actualizando…' : 'Actualizar'}
-            </span>
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          En qué etapa está cada inscripción y qué hizo el equipo organizador.
-        </p>
-        {data && (
-          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-            <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
-            Actualizado
-            <time dateTime={data.checkedAt} className="tabular-nums">
-              {time(data.checkedAt)}
-            </time>
-            <span>· Hora de Santiago</span>
-          </p>
-        )}
-      </header>
-
-      {data ? (
+      {data && accepted ? (
         <>
           {data.overview.truncated && (
             <Alert role="status">
@@ -134,201 +50,134 @@ export function OverviewPage({ result }: { result: Result }) {
             </Alert>
           )}
 
-          <section
-            className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 @min-[60rem]/page:grid-cols-4"
-            aria-label="Totales"
-          >
-            <Metric
-              label="Personas inscritas"
-              value={data.overview.people}
-              detail={teams(data.overview.applications)}
-              icon={<UsersRound className="size-4 text-muted-foreground" />}
-            />
-            <Metric
-              label="Inscripciones"
-              value={data.overview.applications}
-              detail="Individuales y equipos"
-              icon={<ClipboardList className="size-4 text-muted-foreground" />}
-            />
-            <Metric
+          <section aria-label="Totales" className="grid grid-cols-2 gap-x-6 gap-y-5 @min-[44rem]/page:grid-cols-4">
+            <Figure label="Personas inscritas" value={data.overview.people} detail={teams(data.overview.applications)} />
+            <Figure
               label="Por decidir"
               value={data.overview.byStatus.pending.applications}
               detail={people(data.overview.byStatus.pending.people)}
-              icon={<Hourglass className="size-4 text-muted-foreground" />}
             />
-            <Metric
-              label="Aceptadas"
-              value={data.overview.byStatus.accepted.applications}
-              detail={people(data.overview.byStatus.accepted.people)}
-              icon={<CircleCheck className="size-4 text-muted-foreground" />}
-            />
+            <Figure label="Aceptadas" value={accepted.applications} detail={people(accepted.people)} />
+            <div className="min-w-0 space-y-2">
+              <Figure
+                label="Cupos"
+                value={capacity === null ? '—' : Math.max(0, capacity - accepted.people)}
+                detail={capacity === null ? 'Sin definir' : `libres de ${capacity}`}
+              />
+              {capacity !== null && <DotMeter value={accepted.people} max={capacity} label="Cupos usados" />}
+            </div>
           </section>
 
-          <div className="grid min-w-0 gap-4 @min-[60rem]/page:grid-cols-2">
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>
-                  <h2>Por estado</h2>
-                </CardTitle>
-                <CardDescription>
-                  Cada equipo se decide completo. Abre un estado para ver sus equipos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="divide-y text-sm">
-                  {STATUSES.map((status) => {
-                    const counts = data.overview.byStatus[status]
-                    return (
-                      <li key={status}>
-                        <Link
-                          to="/projects/$projectId/participants"
-                          params={{ projectId: 'infra-futuro' }}
-                          search={{ status }}
-                          className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2.5 outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <span>{STATUS_LABELS[status]}</span>
-                          <span className="text-right text-muted-foreground tabular-nums">
-                            <strong className="font-medium text-foreground">
-                              {counts.applications}
-                            </strong>{' '}
-                            · {people(counts.people)}
-                          </span>
-                        </Link>
-                      </li>
-                    )
-                  })}
+          <div className="grid min-w-0 gap-x-10 gap-y-8 @min-[52rem]/page:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <section aria-labelledby="next-title" className="min-w-0 space-y-2">
+              <h2 id="next-title" className="border-t border-foreground pt-3 text-sm">
+                Qué sigue
+              </h2>
+              {data.toReview === 0 && data.toDecide === 0 ? (
+                <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+                  <CircleCheck className="size-4 shrink-0" aria-hidden="true" />
+                  Nada pendiente por ahora.
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {data.toReview > 0 && (
+                    <Step
+                      to="/projects/$projectId/review"
+                      title={`Revisar ${teams(data.toReview)}`}
+                      detail="Las que todavía no puntúas tú"
+                    />
+                  )}
+                  {data.toDecide > 0 && (
+                    <Step
+                      to="/projects/$projectId/decisions"
+                      title={`Decidir ${teams(data.toDecide)}`}
+                      detail="Ya tienen puntaje y esperan una decisión"
+                    />
+                  )}
                 </ul>
-              </CardContent>
-            </Card>
+              )}
 
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>
-                  <h2>Tamaño de los equipos</h2>
-                </CardTitle>
-                <CardDescription>Inscripciones según cuántas personas traen.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {data.overview.sizes.length ? (
-                  <ul className="divide-y text-sm">
-                    {data.overview.sizes.map(({ size, applications }) => (
-                      <li
-                        key={size}
-                        className="flex items-center justify-between gap-3 py-2.5"
+              <h2 className="mt-6 border-t border-foreground pt-3 text-sm">Por estado</h2>
+              <ul className="divide-y text-sm">
+                {STATUSES.map((status) => {
+                  const counts = data.overview.byStatus[status]
+                  return (
+                    <li key={status}>
+                      <Link
+                        to="/projects/$projectId/participants"
+                        params={{ projectId: 'infra-futuro' }}
+                        search={{ status }}
+                        className="flex items-center justify-between gap-3 px-1 py-2 transition-colors duration-75 hover:bg-accent"
                       >
-                        <span>{teamSize(size)}</span>
-                        <strong className="font-medium tabular-nums">
-                          {applications}
-                        </strong>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Todavía no hay inscripciones.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                        <StatusBadge status={status} className="text-sm text-foreground" />
+                        <span className="text-right text-muted-foreground tabular-nums">
+                          <span className="text-foreground">{counts.applications}</span> ·{' '}
+                          {people(counts.people)}
+                        </span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
 
-          <section aria-labelledby="activity-title" className="space-y-4">
-            <div className="space-y-1">
-              <h2
-                id="activity-title"
-                className="flex items-center gap-2 text-lg font-semibold tracking-tight"
-              >
-                <History className="size-4 text-muted-foreground" aria-hidden="true" />
+            <section aria-labelledby="activity-title" className="min-w-0 space-y-2">
+              <h2 id="activity-title" className="border-t border-foreground pt-3 text-sm">
                 Actividad reciente
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Quién cambió qué, para tener registro.
-              </p>
-            </div>
-            <Card>
-              <CardContent>
-                {data.activity.length ? (
-                  <ol className="divide-y text-sm">
-                    {data.activity.map((entry) => (
-                      <li key={entry._id} className="space-y-1 py-3">
-                        <p className="[overflow-wrap:anywhere]">
-                          <span className="font-medium">{entry.actor}</span>{' '}
-                          {describeEntry(entry)}
-                          {entry.team.length > 0 && (
-                            <>
-                              {' '}· <span className="font-medium">{entry.team.join(', ')}</span>
-                            </>
-                          )}
-                        </p>
-                        <time
-                          dateTime={new Date(entry._creationTime).toISOString()}
-                          className="text-xs text-muted-foreground tabular-nums"
-                        >
-                          {time(entry._creationTime, true)}
-                        </time>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="py-3 text-center text-sm text-muted-foreground">
-                    Todavía no hay actividad registrada.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </section>
+              {data.activity.length ? (
+                <ol className="divide-y text-sm">
+                  {data.activity.map((entry) => (
+                    <li key={entry._id} className="space-y-0.5 py-2.5">
+                      <p className="[overflow-wrap:anywhere]">
+                        <span className="text-muted-foreground">{entry.actor}</span>{' '}
+                        {describeEntry(entry)}
+                        {entry.team.length > 0 && <> · {entry.team.join(', ')}</>}
+                      </p>
+                      <time
+                        dateTime={new Date(entry._creationTime).toISOString()}
+                        className="text-xs text-muted-foreground tabular-nums"
+                      >
+                        {santiago(entry._creationTime)}
+                      </time>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="py-3 text-sm text-muted-foreground">Todavía no hay actividad.</p>
+              )}
+            </section>
+          </div>
         </>
       ) : (
-        <Alert role="status">
-          <AlertCircle aria-hidden="true" />
-          <AlertTitle>
-            <h2>
-              {result.status === 'unconfigured'
-                ? 'Falta conectar el proyecto'
-                : 'No pudimos cargar el resumen'}
-            </h2>
-          </AlertTitle>
-          <AlertDescription>
-            {result.status === 'unconfigured'
-              ? 'Configura la conexión a Convex de Infra Futuro en el servidor de la intranet.'
-              : 'El servicio de Infra Futuro no está disponible. Intenta actualizar en un momento.'}
-          </AlertDescription>
-        </Alert>
+        <DataNotice status={result.status} what="el resumen" />
       )}
     </>
   )
 }
 
-function Metric({
-  label,
-  value,
+function Step({
+  to,
+  title,
   detail,
-  icon,
 }: {
-  label: string
-  value: number
+  to: '/projects/$projectId/review' | '/projects/$projectId/decisions'
+  title: string
   detail: string
-  icon: React.ReactNode
 }) {
   return (
-    <Card className="min-w-0 gap-3 py-5">
-      <CardHeader className="flex min-h-10 flex-row items-start justify-between gap-2 px-5 sm:min-h-5">
-        <CardDescription className="min-w-0 text-xs sm:text-sm">
-          {label}
-        </CardDescription>
-        <span
-          className="hidden shrink-0 min-[440px]:inline-flex"
-          aria-hidden="true"
-        >
-          {icon}
+    <li>
+      <Link
+        to={to}
+        params={{ projectId: 'infra-futuro' }}
+        className="group flex items-center justify-between gap-3 px-1 py-3 transition-colors duration-75 hover:bg-foreground hover:text-background"
+      >
+        <span className="min-w-0">
+          <span className="block font-pixel text-xl leading-tight">{title}</span>
+          <span className="block text-xs opacity-70">{detail}</span>
         </span>
-      </CardHeader>
-      <CardContent className="space-y-2 px-5">
-        <strong className="block text-4xl font-semibold tabular-nums tracking-tight">
-          {value}
-        </strong>
-        <p className="text-xs text-muted-foreground">{detail}</p>
-      </CardContent>
-    </Card>
+        <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+      </Link>
+    </li>
   )
 }
