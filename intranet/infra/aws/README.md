@@ -14,6 +14,33 @@ Organizer's device on velum-hackinfrafuturo
 
 The registrar and Vercel authoritative DNS stay unchanged. DNS changes are the `backoffice` CNAME, ACM's validation record, and permission for Amazon's certificate authority if the existing CAA records require it. No Caddy is required.
 
+## Joining the existing production deployment
+
+Both operators use the same remote Terraform state and shared configuration. From a fresh checkout of `main`, install AWS CLI 2.32.0 or newer, Terraform 1.10 or newer within the 1.x series, Python 3, and the repository's Node/pnpm tools. Sign in with your own AWS console identity in account `052777341990`, region `us-east-1`; do not share AWS credentials or Convex login tokens.
+
+```sh
+aws login --profile hackinfrafuturo
+aws sts get-caller-identity --profile hackinfrafuturo
+python3 intranet/infra/aws/sync-production.py --profile hackinfrafuturo
+
+# Bridge the CLI login to Terraform without long-lived access keys.
+aws configure set credential_process 'aws configure export-credentials --profile hackinfrafuturo --format process' --profile hackinfrafuturo-terraform
+export AWS_PROFILE=hackinfrafuturo-terraform
+export AWS_REGION=us-east-1
+terraform -chdir=intranet/infra/aws init -backend-config=production.backend.hcl
+terraform -chdir=intranet/infra/aws plan -var-file=production.tfvars
+```
+
+The sync command reads `s3://hif-backoffice-tfstate-052777341990-us-east-1/hackinfrafuturo/backoffice/config/production.json`. The existing bucket has encryption, version history and public access blocked. The object contains resource identifiers and settings only; runtime secret values stay in Secrets Manager. The script checks the AWS account and backend, requires the router AMI pin, and generates the two ignored local files. It reads the current image digest from the running Auto Scaling group's selected launch template, rather than storing a release snapshot in shared config. An active or unsettled rollout is refused. Syncing does not deploy anything.
+
+Before each release, sync again. If local files differ, inspect your local edits before using `--overwrite`; that flag discards them. Then build the new image and change the generated local `image_digest` as described below. Coordinate one production rollout at a time; Terraform's S3 lock protects each plan/apply operation, not the full build-and-release workflow. Keep `router_ami_id` fixed and review the plan before applying.
+
+For changes to the shared infrastructure settings, download and edit a copy of the JSON, preserve its version-1 structure, validate it with `validate_config` in `sync-production.py`, and upload it to the same key with `aws s3api put-object --bucket hif-backoffice-tfstate-052777341990-us-east-1 --key hackinfrafuturo/backoffice/config/production.json --body PATH_TO_REVIEWED_JSON --server-side-encryption AES256`. S3 retains the previous object version. Do not add `image_digest`, credentials, secret values, Terraform state, or local authentication files to this object. Infrastructure changes that introduce new settings also require updating the sync validator.
+
+Benja's `benjamin` AWS user has the existing PowerUser policy plus `HackInfraFuturoBackofficeDeployment` for reading the existing IAM roles/instance profiles and passing the compute/build roles to EC2/CodeBuild. His Convex account is an Admin in team `vicente-matus`, project `infra-futuro-velum-indies`, production deployment `polite-spider-810`. Authenticate to Convex with that existing account before deploying. The Hack Infra Futuro tailnet is needed for private browser acceptance, not AWS or Convex deployment.
+
+Deploy compatible Convex functions before merging public-site changes. Keep `DECISION_EMAILS` and `MESSAGE_EMAILS` off until approved and never set `ALLOW_SEED` in production. DNS and router enrollment are already configured; ordinary app releases do not repeat the initial provisioning steps below.
+
 ## Boundaries
 
 - The ALB is internal, in two private subnets. Its security group accepts HTTPS only from the Tailscale IPv4 range through the subnet router. Subnet SNAT is disabled to preserve the real client IP. A private route returns 100.64.0.0/10 traffic through the router's ENI.
