@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 import { v } from 'convex/values'
 import { internalAction } from './_generated/server'
 import { internal } from './_generated/api'
-import { EDIT_LINK_DAYS, LINK_TAG, decisionEmail, isTestAddress, messageEmail } from './admin/emailTemplates'
+import { EDIT_LINK_DAYS, LINK_TAG, confirmationEmail, decisionEmail, isTestAddress, messageEmail } from './admin/emailTemplates'
 
 /**
  * Who emails come from, and where replies go. Resend refuses any sender on a domain it hasn't verified,
@@ -13,19 +13,6 @@ import { EDIT_LINK_DAYS, LINK_TAG, decisionEmail, isTestAddress, messageEmail } 
  */
 const from = () => process.env.EMAIL_FROM ?? 'Infra Futuro <hola@indies.la>'
 const replyTo = () => (process.env.EMAIL_REPLY_TO ? { replyTo: process.env.EMAIL_REPLY_TO } : {})
-const SUBJECT = 'Recibimos tu postulación · Infra Futuro 2026'
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    switch (character) {
-      case '&': return '&amp;'
-      case '<': return '&lt;'
-      case '>': return '&gt;'
-      case '"': return '&quot;'
-      default: return '&#39;'
-    }
-  })
-}
 
 export const sendConfirmation = internalAction({
   args: {
@@ -38,15 +25,9 @@ export const sendConfirmation = internalAction({
     const key = process.env.RESEND_API_KEY
     if (!key) throw new Error('RESEND_API_KEY is not configured')
 
+    const { subject, text, html } = confirmationEmail(name)
     const { error } = await new Resend(key).emails.send(
-      {
-        from: from(),
-        to: email,
-        ...replyTo(),
-        subject: SUBJECT,
-        html: `<main style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:Arial,sans-serif;color:#20201e;line-height:1.6"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase">infra futuro 2026</p><p>hi ${escapeHtml(name)},</p><p>we received your application for infra futuro 2026.</p><p>nos comunicaremos a la brevedad.</p><p>nos vemos el 5 y 6 de diciembre, santiago.</p></main>`,
-        text: `hi ${name},\n\nwe received your application for infra futuro 2026.\n\nnos comunicaremos a la brevedad.\n\nnos vemos el 5 y 6 de diciembre, santiago.`,
-      },
+      { from: from(), to: email, ...replyTo(), subject, text, html },
       { idempotencyKey: `infra-futuro-confirmation/${memberId}` },
     )
     if (error) throw new Error(`Resend could not send confirmation: ${error.message}`)
