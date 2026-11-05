@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { convexTest } from 'convex-test'
 import schema from '../../convex/schema.ts'
 import { internal } from '../../convex/_generated/api.js'
+import { existsSync } from 'node:fs'
+import { confirmationEmail, decisionEmail, messageEmail } from '../../convex/admin/emailTemplates.ts'
 
 const modules = {
   '../../convex/_generated/server.ts': () => import('../../convex/_generated/server.js'),
@@ -52,4 +54,27 @@ test('EMAIL_FROM and EMAIL_REPLY_TO change the sender and where replies go, with
   })
   assert.equal(email.from, 'Infra Futuro <organizer@example.org>')
   assert.equal(email.reply_to, 'organizer@example.org')
+})
+
+test('the confirmation greets by first name and confirms the application, never a place', async () => {
+  const email = await confirmation({})
+  for (const body of [String(email.html), String(email.text)]) {
+    assert.ok(body.includes('Hola Ana,'))
+    assert.ok(body.includes('Tu cupo aún no está confirmado'))
+    assert.ok(!/nos vemos|estás dentro/i.test(body))
+  }
+})
+
+test('a name cannot add markup or a link to the confirmation', () => {
+  const { html } = confirmationEmail('<b>Ana')
+  assert.ok(html.includes('Hola &lt;b&gt;Ana,'))
+  assert.ok(!html.includes('<b>'))
+  assert.ok(!confirmationEmail('https://example.org/phish Soto').html.includes('href="https://example.org'))
+})
+
+test('every image an email points to is in public/email', () => {
+  const emails = [confirmationEmail('Ana'), decisionEmail('accepted', 'Ana'), messageEmail('Hola', 'Hola', 'Ana', '')]
+  const images = new Set(emails.flatMap(({ html }) => [...html.matchAll(/src="https:\/\/hackinfrafuturo\.cl\/(email\/[^"]+)"/g)].map((match) => match[1])))
+  assert.ok(images.size > 0)
+  for (const image of images) assert.ok(existsSync(new URL(`../../public/${image}`, import.meta.url)), `missing ${image}`)
 })
