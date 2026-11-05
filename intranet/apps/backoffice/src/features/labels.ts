@@ -71,6 +71,7 @@ export const FIELD_LABELS: Record<string, string> = {
   favorite: 'Su creación favorita',
   diet: 'Alimentación',
   allergies: 'Alergias',
+  teammate: 'Integrante agregado',
 }
 
 type Entry = {
@@ -79,7 +80,7 @@ type Entry = {
   to?: Status
   score?: number
   capacity?: number
-  changes?: { field: string }[]
+  changes?: { field: string; to?: string }[]
   subject?: string
   recipients?: number
 }
@@ -92,6 +93,8 @@ export function describeEntry(entry: Entry) {
     return `puntuó ${entry.score} · ${SCORE_LABELS[entry.score] ?? ''}`
   if (entry.action === 'capacity' && entry.capacity)
     return `fijó los cupos en ${people(entry.capacity)}`
+  if (entry.action === 'edit' && entry.changes?.[0]?.field === 'teammate')
+    return `agregó a ${entry.changes[0].to} al equipo`
   if (entry.action === 'edit' && entry.changes)
     return `corrigió ${entry.changes.map((change) => FIELD_LABELS[change.field] ?? change.field).join(', ')}`
   if (entry.action === 'message' && entry.subject)

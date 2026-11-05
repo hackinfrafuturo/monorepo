@@ -62,10 +62,11 @@ try {
         return route.fulfill({ json: { status: 'success', value: null }, headers: { 'access-control-allow-origin': '*' } })
       }
       assert.equal(body.args.token, token)
-      assert.ok(['applicationEdits:load', 'applicationEdits:saveWithIdentity'].includes(body.path))
+      assert.ok(['applicationEdits:load', 'applicationEdits:team', 'applicationEdits:saveWithIdentity'].includes(body.path))
       if (body.path === 'applicationEdits:saveWithIdentity') assert.equal(body.args.member.role, 'Researcher')
+      const value = { 'applicationEdits:load': valid ? member : null, 'applicationEdits:team': valid ? { size: 1, canAdd: true } : null }
       await route.fulfill({
-        json: { status: 'success', value: body.path === 'applicationEdits:load' ? (valid ? member : null) : { changed: 1 } },
+        json: { status: 'success', value: body.path in value ? value[body.path] : { changed: 1 } },
         headers: { 'access-control-allow-origin': '*' },
       })
     })
@@ -74,6 +75,15 @@ try {
     assert.equal(await page.locator('#m0-email').inputValue(), member.email)
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
     await page.locator('#m0-role').fill('Researcher')
+    // Stepping away to add a teammate keeps the answers being corrected, and shows the blank form.
+    await page.getByRole('button', { name: /Agregar a alguien|Add someone/ }).click()
+    assert.equal(await page.locator('#m1-email').inputValue(), '')
+    assert.equal(await page.locator('#m0-email').isVisible(), false)
+    await page.getByRole('button', { name: /Agregar al equipo|Add to team/ }).click()
+    await page.locator('#m1-name:focus').waitFor()
+    assert.equal(calls.some((call) => call.path === 'applicationEdits:addTeammate'), false)
+    await page.getByRole('button', { name: /Volver a tus respuestas|Back to your answers/ }).click()
+    assert.equal(await page.locator('#m0-role').inputValue(), 'Researcher')
     await page.getByRole('button', { name: /Guardar cambios|Save changes/ }).click()
     await page.getByRole('heading', { name: /Listo, gracias|Done, thank you/ }).waitFor()
     assert.equal(calls.filter((call) => call.path === 'applicationEdits:saveWithIdentity').length, 1)

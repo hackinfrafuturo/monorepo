@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@base-ui/react/button'
 import { ConvexError } from 'convex/values'
 import { MemberForm } from './apply/MemberForm'
-import { loadCorrection, saveCorrection } from './apply/correct'
-import { FIELD_ORDER, fieldId, firstErrorKey, type Member } from './apply/model'
+import { addTeammate, loadCorrection, loadTeam, saveCorrection, type TeamRoom } from './apply/correct'
+import { FIELD_ORDER, TEAM_MAX, emptyMember, fieldId, firstErrorKey, type Member } from './apply/model'
 import { checkTeam } from './apply/schema'
 import { memberAt, memberPath, useApplyForm } from './apply/use-apply-form'
 import { applyMessages } from './i18n/apply'
@@ -13,7 +13,8 @@ import { useLocale } from './i18n/use-locale'
 /**
  * Where an applicant corrects their own answers, from the private link an organizer emailed them
  * (convex/admin/messages.ts). The token sits after the # so it never reaches a server log or analytics.
- * It opens this one person's answers, through the application's own form and rules.
+ * It opens this one person's answers, through the application's own form and rules, and while the team
+ * is pending it can add someone who was left off.
  */
 
 const COPY: Record<
@@ -35,6 +36,17 @@ const COPY: Record<
     takenGithub: string
     takenId: string
     home: string
+    offerTitle: string
+    offerBody: (size: number) => string
+    offerAction: string
+    addTitle: string
+    addHint: string
+    add: string
+    adding: string
+    addCancel: string
+    added: (name: string) => string
+    teamDecided: string
+    teamFull: string
   }
 > = {
   es: {
@@ -54,6 +66,18 @@ const COPY: Record<
     takenGithub: 'Ese GitHub ya está en otra postulación.',
     takenId: 'Ese documento ya está en otra postulación.',
     home: 'Ir al inicio',
+    offerTitle: '¿Te faltó alguien en el equipo?',
+    offerBody: (size) =>
+      `Tu equipo tiene ${size === 1 ? '1 persona' : `${size} personas`} y pueden ser hasta ${TEAM_MAX}. Puedes sumar a quien te faltó antes de que revisemos la postulación.`,
+    offerAction: 'Agregar a alguien',
+    addTitle: 'Agrega a alguien a tu equipo',
+    addHint: 'Completa sus datos y respuestas, igual que en la postulación. Le enviaremos un correo para confirmar.',
+    add: 'Agregar al equipo',
+    adding: 'Agregando…',
+    addCancel: 'Volver a tus respuestas',
+    added: (name) => `Agregamos a ${name} a tu equipo y le enviamos un correo.`,
+    teamDecided: 'Tu equipo ya tiene una decisión, así que no podemos agregar a nadie. Responde a nuestro correo y lo vemos.',
+    teamFull: `Tu equipo ya tiene ${TEAM_MAX} personas.`,
   },
   en: {
     kicker: 'your application',
@@ -72,14 +96,41 @@ const COPY: Record<
     takenGithub: 'That GitHub is already on another application.',
     takenId: 'That ID is already on another application.',
     home: 'Go home',
+    offerTitle: 'Did you leave someone off your team?',
+    offerBody: (size) =>
+      `Your team has ${size === 1 ? '1 person' : `${size} people`} and can have up to ${TEAM_MAX}. You can add whoever you left off before we review the application.`,
+    offerAction: 'Add someone',
+    addTitle: 'Add someone to your team',
+    addHint: 'Fill in their details and answers, as on the application. We will email them to confirm.',
+    add: 'Add to team',
+    adding: 'Adding…',
+    addCancel: 'Back to your answers',
+    added: (name) => `We added ${name} to your team and sent them an email.`,
+    teamDecided: 'Your team already has a decision, so we cannot add anyone. Reply to our email and we will look into it.',
+    teamFull: `Your team already has ${TEAM_MAX} people.`,
   },
 }
 
 const PRIMARY =
   'inline-block min-w-40 cursor-pointer bg-brand px-5 py-3 text-center font-mono text-base leading-7 text-[#f4f2ee] no-underline transition-colors duration-75 ease-linear hover:bg-brand-hover focus-visible:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#181818] data-disabled:cursor-wait data-disabled:opacity-70'
 
+const GHOST =
+  'cursor-pointer px-2 py-3 font-mono text-base leading-7 text-[#181818] transition-colors duration-75 ease-linear hover:bg-[#e8e5df] focus-visible:bg-[#e8e5df] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+
+const RULE = 'border-[#d6d4d0]'
+
 const INVALID_CONTROL =
   'input[data-invalid], textarea[data-invalid], button[data-invalid], [role="radio"][data-invalid][tabindex="0"]'
+
+/** What to tell the applicant when Convex refuses a save. */
+function refusal(data: unknown, copy: (typeof COPY)[Locale]) {
+  if (data === 'Email already registered') return copy.takenEmail
+  if (data === 'GitHub already registered') return copy.takenGithub
+  if (data === 'ID already registered') return copy.takenId
+  if (data === 'Team already decided') return copy.teamDecided
+  if (data === 'Team is full') return copy.teamFull
+  return copy.failed
+}
 
 function CorrectionForm({
   token,
@@ -119,15 +170,7 @@ function CorrectionForm({
     } catch (failure) {
       const data = failure instanceof ConvexError ? failure.data : null
       if (data === 'This link is no longer valid') return onExpired()
-      setError(
-        data === 'Email already registered'
-          ? copy.takenEmail
-          : data === 'GitHub already registered'
-            ? copy.takenGithub
-            : data === 'ID already registered'
-              ? copy.takenId
-              : copy.failed,
-      )
+      setError(refusal(data, copy))
       setSaving(false)
     }
   }
@@ -155,6 +198,82 @@ function CorrectionForm({
   )
 }
 
+/**
+ * The new teammate's answers, on a blank copy of the form. The person with the link sits at index 0, so
+ * the fields have their own ids and the form catches the new person repeating their email, GitHub or ID.
+ */
+function TeammateForm({
+  token,
+  owner,
+  locale,
+  onAdded,
+  onCancel,
+  onExpired,
+}: {
+  token: string
+  owner: Member
+  locale: Locale
+  onAdded: (name: string, team: TeamRoom) => void
+  onCancel: () => void
+  onExpired: () => void
+}) {
+  const t = applyMessages[locale]
+  const copy = COPY[locale]
+  const form = useApplyForm({ size: 2, members: [owner, emptyMember()], ref: '' })
+  const element = useRef<HTMLFormElement>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function add() {
+    if (saving) return
+    setError(null)
+    const [, checked] = checkTeam(form.getFieldValue('members'), 2)
+    form.setFieldValue(memberAt(1), checked.member, { dontValidate: true })
+    if (firstErrorKey(checked.errors)) {
+      for (const key of FIELD_ORDER) {
+        if (document.getElementById(fieldId(1, key))) await form.validateField(memberPath(1, key), 'submit')
+      }
+      requestAnimationFrame(() => element.current?.querySelector<HTMLElement>(INVALID_CONTROL)?.focus())
+      return
+    }
+    setSaving(true)
+    try {
+      onAdded(checked.member.name, await addTeammate(token, checked.member))
+    } catch (failure) {
+      const data = failure instanceof ConvexError ? failure.data : null
+      if (data === 'This link is no longer valid') return onExpired()
+      setError(refusal(data, copy))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form
+      ref={element}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault()
+        void add()
+      }}
+    >
+      <MemberForm form={form} index={1} t={t} />
+      {error ? (
+        <p role="alert" className="mt-8 text-base leading-7 text-[#b42318]">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-12 flex items-center justify-between gap-4">
+        <Button type="button" onClick={onCancel} className={GHOST}>
+          {copy.addCancel}
+        </Button>
+        <Button type="submit" disabled={saving} focusableWhenDisabled className={PRIMARY}>
+          {saving ? copy.adding : copy.add}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 export default function Correct() {
   const [locale] = useLocale()
   const copy = COPY[locale]
@@ -165,6 +284,9 @@ export default function Correct() {
     | { step: 'form'; member: Member }
     | { step: 'done'; changed: number }
   >({ step: 'loading' })
+  const [team, setTeam] = useState<TeamRoom | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     document.documentElement.lang = htmlLang(locale)
@@ -182,15 +304,31 @@ export default function Correct() {
     loadCorrection(token)
       .then((member) => live && setState(member ? { step: 'form', member } : { step: 'invalid' }))
       .catch(() => live && setState({ step: 'invalid' }))
+    // Only offers adding someone, so the answers still open if this fails.
+    loadTeam(token)
+      .then((room) => live && setTeam(room))
+      .catch(() => undefined)
     return () => {
       live = false
     }
   }, [token])
 
-  const title =
-    state.step === 'invalid' ? copy.invalidTitle : state.step === 'done' ? copy.doneTitle : copy.title
-  const hint =
-    state.step === 'invalid'
+  // After the render, or the page keeps the old scroll position as its height changes.
+  useEffect(() => {
+    if (adding || added) window.scrollTo(0, 0)
+  }, [adding, added])
+
+  const addingNow = adding && state.step === 'form'
+  const title = addingNow
+    ? copy.addTitle
+    : state.step === 'invalid'
+      ? copy.invalidTitle
+      : state.step === 'done'
+        ? copy.doneTitle
+        : copy.title
+  const hint = addingNow
+    ? copy.addHint
+    : state.step === 'invalid'
       ? copy.invalidBody
       : state.step === 'done'
         ? state.changed
@@ -198,7 +336,9 @@ export default function Correct() {
           : copy.noChanges
         : state.step === 'loading'
           ? copy.loading
-          : copy.hint
+          : added
+            ? copy.added(added)
+            : copy.hint
 
   return (
     <div className="min-h-svh bg-[#f4f2ee] font-mono text-[#181818] antialiased">
@@ -219,16 +359,49 @@ export default function Correct() {
         </div>
         {state.step === 'form' ? (
           <div className="min-w-0 md:col-start-2 md:row-start-1">
-            <CorrectionForm
-              token={token}
-              member={state.member}
-              locale={locale}
-              onSaved={(changed) => {
-                setState({ step: 'done', changed })
-                window.scrollTo(0, 0)
-              }}
-              onExpired={() => setState({ step: 'invalid' })}
-            />
+            {/* stays mounted while adding, so answers being corrected aren't lost */}
+            <div hidden={adding}>
+              <CorrectionForm
+                token={token}
+                member={state.member}
+                locale={locale}
+                onSaved={(changed) => {
+                  setState({ step: 'done', changed })
+                  window.scrollTo(0, 0)
+                }}
+                onExpired={() => setState({ step: 'invalid' })}
+              />
+              {team?.canAdd ? (
+                <section className={`mt-16 border-t ${RULE} pt-8`}>
+                  <h2 className="text-lg leading-7">{copy.offerTitle}</h2>
+                  <p className="mt-2 text-base leading-7 text-[#5a5956]">{copy.offerBody(team.size)}</p>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAdded(null)
+                      setAdding(true)
+                    }}
+                    className={`${PRIMARY} mt-6`}
+                  >
+                    {copy.offerAction}
+                  </Button>
+                </section>
+              ) : null}
+            </div>
+            {adding ? (
+              <TeammateForm
+                token={token}
+                owner={state.member}
+                locale={locale}
+                onAdded={(name, room) => {
+                  setTeam(room)
+                  setAdded(name)
+                  setAdding(false)
+                }}
+                onCancel={() => setAdding(false)}
+                onExpired={() => setState({ step: 'invalid' })}
+              />
+            ) : null}
           </div>
         ) : null}
       </main>
