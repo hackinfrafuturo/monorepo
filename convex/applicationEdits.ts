@@ -1,8 +1,10 @@
 import { ConvexError, v, type Infer } from 'convex/values'
+import { internal } from './_generated/api'
 import { internalMutation, mutation, type MutationCtx, type QueryCtx } from './_generated/server'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import { checkTeam } from '../src/apply/schema'
-import { firstErrorKey } from '../src/apply/model'
+import { TEAM_MAX, firstErrorKey } from '../src/apply/model'
+import { statusOf } from './admin/status'
 import { hasIdentity, requireUniqueId, stored, withIdentity } from './applications'
 import { identityMemberValidator, memberValidator } from './schema'
 
@@ -11,6 +13,8 @@ import { identityMemberValidator, memberValidator } from './schema'
  * only public functions that read an application: the token stands in for a login, opens one person's
  * answers and nobody else's on their team, and expires. A token can't be guessed (256 random bits), and
  * only its hash is stored, so reading the database doesn't give anyone a working link.
+ *
+ * The same link can add someone left off the team, which never shows who else is on it.
  */
 
 async function hashToken(token: string) {
@@ -69,6 +73,17 @@ export const load = mutation({
   },
 })
 
+/** Nobody else on any application may already have this email, GitHub or ID. */
+async function requireAvailable(ctx: QueryCtx, person: ReturnType<typeof stored>, ownId?: Id<'members'>) {
+  const sameEmail = await ctx.db.query('members').withIndex('by_email', (q) => q.eq('email', person.email)).first()
+  if (sameEmail && sameEmail._id !== ownId) throw new ConvexError('Email already registered')
+  if (person.github) {
+    const sameGithub = await ctx.db.query('members').withIndex('by_github', (q) => q.eq('github', person.github)).first()
+    if (sameGithub && sameGithub._id !== ownId) throw new ConvexError('GitHub already registered')
+  }
+  await requireUniqueId(ctx, person, ownId)
+}
+
 /** Saves the corrected answers under the same rules as the form, and logs what changed. */
 async function saveMember(
   ctx: MutationCtx,
@@ -81,13 +96,7 @@ async function saveMember(
   if (firstErrorKey(checked.errors) != null) throw new ConvexError('Invalid application')
   const next = stored(checked.member, requireIdentity)
 
-  const sameEmail = await ctx.db.query('members').withIndex('by_email', (q) => q.eq('email', next.email)).first()
-  if (sameEmail && sameEmail._id !== current._id) throw new ConvexError('Email already registered')
-  if (next.github) {
-    const sameGithub = await ctx.db.query('members').withIndex('by_github', (q) => q.eq('github', next.github)).first()
-    if (sameGithub && sameGithub._id !== current._id) throw new ConvexError('GitHub already registered')
-  }
-  await requireUniqueId(ctx, next, current._id)
+  await requireAvailable(ctx, next, current._id)
 
   const changes = (Object.keys(next) as (keyof typeof next)[])
     .filter((field) => next[field] !== current[field])
@@ -119,4 +128,65 @@ export const saveWithIdentity = mutation({
   args: { token: v.string(), member: identityMemberValidator },
   returns: v.object({ changed: v.number() }),
   handler: (ctx, args) => saveMember(ctx, args, true),
+})
+
+/** How big a person's team is and whether it can still grow. A decision covers the people it was made on, so only a pending team can. */
+async function teamOf(ctx: QueryCtx, member: Doc<'members'>) {
+  const application = await ctx.db.get(member.applicationId)
+  const team = await ctx.db
+    .query('members')
+    .withIndex('by_application', (q) => q.eq('applicationId', member.applicationId))
+    .take(TEAM_MAX)
+  const pending = application !== null && statusOf(application) === 'pending'
+  return { size: team.length, pending, canAdd: pending && team.length < TEAM_MAX }
+}
+
+const teamValidator = v.object({ size: v.number(), canAdd: v.boolean() })
+
+/** Read-only like `load`, for the same reason: every request checks the clock. */
+export const team = mutation({
+  args: { token: v.string() },
+  returns: v.union(v.null(), teamValidator),
+  handler: async (ctx, { token }) => {
+    const member = await memberFor(ctx, token)
+    if (!member) return null
+    const { size, canAdd } = await teamOf(ctx, member)
+    return { size, canAdd }
+  },
+})
+
+/**
+ * Adds someone left off the team. The person with the link answers for them under the form's rules, as
+ * they would have on the form, and the new teammate gets the same confirmation email.
+ */
+export const addTeammate = mutation({
+  args: { token: v.string(), member: identityMemberValidator },
+  returns: teamValidator,
+  handler: async (ctx, { token, member }) => {
+    const current = await memberFor(ctx, token)
+    if (!current) throw new ConvexError('This link is no longer valid')
+    const { size, pending } = await teamOf(ctx, current)
+    if (!pending) throw new ConvexError('Team already decided')
+    if (size >= TEAM_MAX) throw new ConvexError('Team is full')
+    const [checked] = checkTeam([member], 1)
+    if (firstErrorKey(checked.errors) != null) throw new ConvexError('Invalid application')
+    const next = stored(checked.member)
+    await requireAvailable(ctx, next)
+
+    const { applicationId } = current
+    const memberId = await ctx.db.insert('members', { ...next, applicationId })
+    await ctx.db.patch(applicationId, { size: size + 1 })
+    await ctx.db.insert('auditLog', {
+      actor: current.name,
+      action: 'edit',
+      applicationId,
+      changes: [{ field: 'teammate', from: '', to: next.name }],
+    })
+    await ctx.scheduler.runAfter(0, internal.emails.sendConfirmation, {
+      memberId,
+      name: next.name,
+      email: next.email,
+    })
+    return { size: size + 1, canAdd: size + 1 < TEAM_MAX }
+  },
 })

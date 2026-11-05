@@ -20,3 +20,14 @@ export async function loadCorrection(token: string): Promise<Member | null> {
 export function saveCorrection(token: string, member: Member): Promise<{ changed: number }> {
   return client().mutation(anyApi.applicationEdits.saveWithIdentity, { token, member })
 }
+
+export type TeamRoom = { size: number; canAdd: boolean }
+
+/** How big this person's team is and whether it can still grow, or null when the link doesn't work. */
+export function loadTeam(token: string): Promise<TeamRoom | null> {
+  return client().mutation(anyApi.applicationEdits.team, { token })
+}
+
+export function addTeammate(token: string, member: Member): Promise<TeamRoom> {
+  return client().mutation(anyApi.applicationEdits.addTeammate, { token, member })
+}

@@ -263,3 +263,93 @@ test('unversioned preview callers still work, but supplied identity fields must 
   await assert.rejects(t.mutation(api.applications.submit, { members: [{ ...legacy, idNumber: '12345678-5' }] }), /Invalid application/)
   await assert.rejects(t.mutation(api.applicationEdits.save, { token, member: { ...legacy, idNumber: 'bad' } }), /Invalid application/)
 })
+
+const teammate = (name: string, idNumber: string) => ({
+  ...complete,
+  name: `${name} Rojas`,
+  email: `${name.toLowerCase()}@example.com`,
+  github: name.toLowerCase(),
+  idNumber,
+})
+
+async function applied(t: ReturnType<typeof convexTest>) {
+  await t.mutation(api.applications.submitWithIdentity, { members: [complete] })
+  const [owner] = await t.run((ctx) => ctx.db.query('members').collect())
+  return { owner, token: await applicantLink(t, owner._id as never) }
+}
+
+test('a private link adds a teammate to its own team, who gets the confirmation email', async () => {
+  const t = convexTest(schema, modules)
+  const { owner, token } = await applied(t)
+  assert.deepEqual(await t.mutation(api.applicationEdits.team, { token }), { size: 1, canAdd: true })
+  const added = await t.mutation(api.applicationEdits.addTeammate, {
+    token,
+    member: { ...teammate('Bruno', '1.111.111-4'), email: ' Bruno@Example.com ' },
+  })
+  assert.deepEqual(added, { size: 2, canAdd: true })
+  await t.run(async (ctx) => {
+    const members = await ctx.db.query('members').withIndex('by_application', (q) => q.eq('applicationId', owner.applicationId)).collect()
+    assert.equal(members.length, 2)
+    assert.equal(members[1].email, 'bruno@example.com')
+    assert.equal(members[1].idNumber, '1111111-4')
+    assert.equal((await ctx.db.get(owner.applicationId))?.size, 2)
+    const entries = await ctx.db.query('auditLog').withIndex('by_application', (q) => q.eq('applicationId', owner.applicationId)).collect()
+    assert.deepEqual(entries.map(({ actor, action, changes }) => ({ actor, action, changes })), [
+      { actor: complete.name, action: 'edit', changes: [{ field: 'teammate', from: '', to: 'Bruno Rojas' }] },
+    ])
+    assert.equal(JSON.stringify(entries).includes('1111111'), false)
+    const scheduled = await ctx.db.system.query('_scheduled_functions').collect()
+    assert.deepEqual(
+      scheduled.filter(({ args }) => args[0].email === 'bruno@example.com').map(({ args }) => args[0].memberId),
+      [members[1]._id],
+    )
+  })
+})
+
+test('a team stops growing at its limit and once it has a decision', async () => {
+  const t = convexTest(schema, modules)
+  const { owner, token } = await applied(t)
+  for (const [name, id] of [['Bruno', '11111111-1'], ['Carla', '22222222-2'], ['Diego', '33333333-3']])
+    await t.mutation(api.applicationEdits.addTeammate, { token, member: teammate(name, id) })
+  assert.deepEqual(await t.mutation(api.applicationEdits.team, { token }), { size: 4, canAdd: false })
+  await assert.rejects(
+    t.mutation(api.applicationEdits.addTeammate, { token, member: teammate('Elisa', '44444444-4') }),
+    /Team is full/,
+  )
+  assert.equal((await t.run((ctx) => ctx.db.get(owner.applicationId)))?.size, 4)
+
+  const small = convexTest(schema, modules)
+  const { owner: solo, token: link } = await applied(small)
+  for (const status of ['accepted', 'waitlisted', 'rejected', 'withdrawn'] as const) {
+    await small.run((ctx) => ctx.db.patch(solo.applicationId, { status }))
+    assert.deepEqual(await small.mutation(api.applicationEdits.team, { token: link }), { size: 1, canAdd: false })
+    await assert.rejects(
+      small.mutation(api.applicationEdits.addTeammate, { token: link, member: teammate('Bruno', '11111111-1') }),
+      /Team already decided/,
+    )
+  }
+  assert.equal((await small.run((ctx) => ctx.db.query('members').collect())).length, 1)
+})
+
+test('a teammate meets the same rules as the form and a dead link adds nobody', async () => {
+  const t = convexTest(schema, modules)
+  const { owner, token } = await applied(t)
+  const bruno = teammate('Bruno', '11111111-1')
+  for (const [patch, refused] of [
+    [{ email: complete.email }, /Email already registered/],
+    [{ github: complete.github }, /GitHub already registered/],
+    [{ idNumber: complete.idNumber }, /ID already registered/],
+    [{ name: 'Bruno' }, /Invalid application/],
+    [{ idNumber: '11111111-2' }, /Invalid application/],
+    [{ deep: 'Nada' }, /Invalid application/],
+  ] as const) {
+    await assert.rejects(t.mutation(api.applicationEdits.addTeammate, { token, member: { ...bruno, ...patch } }), refused)
+  }
+  assert.equal(await t.mutation(api.applicationEdits.team, { token: 'x'.repeat(43) }), null)
+  await assert.rejects(t.mutation(api.applicationEdits.addTeammate, { token: 'x'.repeat(43), member: bruno }), /no longer valid/)
+  await t.run(async (ctx) => {
+    assert.equal((await ctx.db.query('members').collect()).length, 1)
+    assert.equal((await ctx.db.get(owner.applicationId))?.size, 1)
+    assert.equal((await ctx.db.query('auditLog').collect()).length, 0)
+  })
+})
