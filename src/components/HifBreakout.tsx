@@ -1128,7 +1128,7 @@ export function HifBreakout({
         </button>
         <div className="text-center">
           <p ref={timerEl} className="text-[#181818] tabular-nums">
-            0:00.0
+            0:00.000
           </p>
           {best && (
             <p className="text-sm leading-5 text-[#9a9894] normal-case">

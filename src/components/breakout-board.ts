@@ -41,10 +41,10 @@ export async function topScores(): Promise<Score[] | null> {
   }
 }
 
-/** 83456 → "1:23.4" */
+/** 83456 → "1:23.456" */
 export function formatMs(ms: number) {
-  const tenths = Math.floor(ms / 100)
-  const m = Math.floor(tenths / 600)
-  const s = Math.floor((tenths % 600) / 10)
-  return `${m}:${String(s).padStart(2, '0')}.${tenths % 10}`
+  const whole = Math.floor(ms)
+  const m = Math.floor(whole / 60_000)
+  const s = Math.floor((whole % 60_000) / 1000)
+  return `${m}:${String(s).padStart(2, '0')}.${String(whole % 1000).padStart(3, '0')}`
 }
