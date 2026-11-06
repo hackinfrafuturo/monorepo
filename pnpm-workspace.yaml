@@ -1,6 +1,7 @@
 packages:
   - .
   - deck
+  - platform
   - intranet
   - intranet/apps/*
   - intranet/packages/*

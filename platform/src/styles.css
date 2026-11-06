@@ -1,0 +1,44 @@
+
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5f3ed;
+  color: #20251e;
+}
+
+h1 { font-size: clamp(2.4rem, 7vw, 4rem); line-height: 1.05; letter-spacing: -.05em; }
+p { line-height: 1.6; }
+.eyebrow { text-transform: uppercase; font-size: .75rem; letter-spacing: .15em; }
+header { display: flex; align-items: center; gap: 1.5rem; }
+header { justify-content: space-between; margin-bottom: 4rem; }
+.account-actions { display: flex; align-items: center; gap: 1rem; }
+a { color: inherit; text-underline-offset: .25em; }
+button { background: #263c26; color: white; border: 0; border-radius: .5rem; padding: .9rem 1.4rem; cursor: pointer; font: inherit; }
+section { padding: 1.5rem; background: white; border: 1px solid #d5dacd; border-radius: .75rem; }
+code { overflow-wrap: anywhere; }
+
+main {
+  width: min(42rem, calc(100% - 2rem));
+  margin: 4rem auto;
+}
+
+main.auth-screen {
+  width: 100%;
+  min-height: 100svh;
+  margin: 0;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.discord-button { background: #5865f2; font-weight: 600; }
+.discord-button:hover:not(:disabled) { background: #4752c4; }
+.discord-button:disabled { opacity: .65; cursor: wait; }
+.discord-button:focus-visible { outline: 3px solid #20251e; outline-offset: 4px; }
