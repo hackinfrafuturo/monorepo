@@ -168,7 +168,7 @@ export default defineSchema({
     startedAt: v.number(),
     finishedAt: v.optional(v.number()),
   }).index('by_startedAt', ['startedAt']),
-  // A row per named run. `handle` is the GitHub username in lowercase; the board shows each person's best once.
+  // A row per named run. `handle` is the GitHub username in lowercase.
   breakoutScores: defineTable({
     name: v.string(),
     ms: v.number(),
@@ -176,8 +176,16 @@ export default defineSchema({
   })
     .index('by_ms', ['ms'])
     .index('by_handle', ['handle', 'ms']),
-  // The runner on the landing: the score only depends on how long the star survives, so the server
-  // times each run and caps the score it accepts at what that time allows.
+  // Each person's best, one row per `playerKey`. The board reads this, not every run.
+  breakoutBests: defineTable({
+    player: v.string(),
+    name: v.string(),
+    ms: v.number(),
+  })
+    .index('by_player', ['player'])
+    .index('by_ms', ['ms']),
+  // The runner on the landing: the browser reports the score and the server takes it as sent. A finished
+  // run becomes a score once the player names it.
   runnerRuns: defineTable({
     startedAt: v.number(),
     finishedAt: v.optional(v.number()),
@@ -193,4 +201,12 @@ export default defineSchema({
   })
     .index('by_score', ['score'])
     .index('by_handle', ['handle', 'score']),
+  // Each person's best, one row per `playerKey`. The board reads this, not every run.
+  runnerBests: defineTable({
+    player: v.string(),
+    name: v.string(),
+    score: v.number(),
+  })
+    .index('by_player', ['player'])
+    .index('by_score', ['score']),
 })

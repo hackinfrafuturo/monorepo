@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values'
-import type { Id } from './_generated/dataModel'
-import { internalMutation, mutation, query, type QueryCtx } from './_generated/server'
+import { internal } from './_generated/api'
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { githubHandle, handleKey, playerKey } from './github'
 
 /**
@@ -8,22 +8,18 @@ import { githubHandle, handleKey, playerKey } from './github'
  *
  * Times are measured here, not sent by the browser: `start` stamps a run when the star is first
  * launched, `complete` stamps the win and returns the time, and `claim` puts a GitHub username on it.
- * No time is too fast on purpose: bots and scripts are welcome, and the board is a race to the lowest
+ * There are no limits on purpose: bots and scripts are welcome, and the board is a race to the lowest
  * time, to the millisecond.
  *
- * Everyone can play as often as they like: every named run is kept, and the board shows the ten fastest
- * people, each once, with their best time.
+ * Everyone can play as often as they like: every named run is kept in `breakoutScores`, and the board
+ * reads `breakoutBests`, which has one row per person, so nobody's runs can push anyone else off it.
  */
 
-/** a run left open longer than this doesn't count */
-const MAX_MS = 60 * 60_000
-/** how long a winner has to type a name */
-const CLAIM_MS = 15 * 60_000
 const TOP = 10
-/** how many rows a board read looks through at most, while skipping people's other runs */
+/** how many people a rank counts at most, so that a claim can't run into Convex's read limit */
 const SCAN = 2000
 
-const score = v.object({ _id: v.id('breakoutScores'), name: v.string(), ms: v.number() })
+const score = v.object({ _id: v.id('breakoutBests'), name: v.string(), ms: v.number() })
 
 export const start = mutation({
   args: {},
@@ -38,48 +34,48 @@ export const complete = mutation({
     const run = await ctx.db.get(runId)
     if (!run || run.finishedAt !== undefined) throw new ConvexError('Invalid run')
     const now = Date.now()
-    const ms = now - run.startedAt
-    if (ms > MAX_MS) throw new ConvexError('Invalid run')
     await ctx.db.patch(runId, { finishedAt: now })
-    return ms
+    return now - run.startedAt
   },
 })
 
 export const claim = mutation({
   args: { runId: v.id('breakoutRuns'), name: v.string() },
-  returns: v.object({ id: v.id('breakoutScores'), ms: v.number(), best: v.number(), rank: v.number(), improved: v.boolean() }),
+  returns: v.object({ id: v.id('breakoutBests'), ms: v.number(), best: v.number(), rank: v.number(), improved: v.boolean() }),
   handler: async (ctx, { runId, name }) => {
     const run = await ctx.db.get(runId)
-    if (!run || run.finishedAt === undefined || Date.now() - run.finishedAt > CLAIM_MS) {
-      throw new ConvexError('Invalid run')
-    }
+    if (!run || run.finishedAt === undefined) throw new ConvexError('Invalid run')
     const handle = githubHandle(name)
     if (!handle) throw new ConvexError('Invalid GitHub username')
     const ms = run.finishedAt - run.startedAt
     await ctx.db.delete(runId)
     // every run is kept; the board shows each person's best (GitHub usernames ignore case)
     const key = handleKey(handle)
-    const previous = await ctx.db
-      .query('breakoutScores')
-      .withIndex('by_handle', (q) => q.eq('handle', key))
-      .first()
-    const id = await ctx.db.insert('breakoutScores', { name: handle, ms, handle: key })
-    const improved = !previous || ms < previous.ms
-    const best = improved ? ms : previous!.ms
-    return { id, ms, best, rank: await rankOf(ctx, key, best), improved }
+    await ctx.db.insert('breakoutScores', { name: handle, ms, handle: key })
+    const { id, best, improved } = await keepBest(ctx, key, handle, ms)
+    return { id, ms, best, rank: await rankOf(ctx, best), improved }
   },
 })
 
-/** Where a best of `best` places among people: one more than the number of others with a better best. */
-async function rankOf(ctx: QueryCtx, key: string, best: number) {
-  const ahead = new Set<string>()
-  let scanned = 0
-  for await (const row of ctx.db.query('breakoutScores').withIndex('by_ms', (q) => q.lt('ms', best))) {
-    const who = playerKey(row)
-    if (who !== key) ahead.add(who)
-    if (++scanned >= SCAN) break
-  }
-  return ahead.size + 1
+/** Makes `ms` this person's best if it beats the one on file. */
+async function keepBest(ctx: MutationCtx, player: string, name: string, ms: number) {
+  const current = await ctx.db
+    .query('breakoutBests')
+    .withIndex('by_player', (q) => q.eq('player', player))
+    .unique()
+  if (!current) return { id: await ctx.db.insert('breakoutBests', { player, name, ms }), best: ms, improved: true }
+  if (ms >= current.ms) return { id: current._id, best: current.ms, improved: false }
+  await ctx.db.patch(current._id, { name, ms })
+  return { id: current._id, best: ms, improved: true }
+}
+
+/** Where a best of `best` places among people: one more than the number of people with a better best. */
+async function rankOf(ctx: QueryCtx, best: number) {
+  const ahead = await ctx.db
+    .query('breakoutBests')
+    .withIndex('by_ms', (q) => q.lt('ms', best))
+    .take(SCAN)
+  return ahead.length + 1
 }
 
 /** The board: the top ten people, each once, with their best. */
@@ -87,19 +83,26 @@ export const top = query({
   args: {},
   returns: v.array(score),
   handler: async (ctx) => {
-    const out: { _id: Id<'breakoutScores'>; name: string; ms: number }[] = []
-    const seen = new Set<string>()
-    let scanned = 0
-    for await (const row of ctx.db.query('breakoutScores').withIndex('by_ms')) {
-      const who = playerKey(row)
-      if (!seen.has(who)) {
-        seen.add(who)
-        out.push({ _id: row._id, name: row.name, ms: row.ms })
-        if (out.length === TOP) break
-      }
-      if (++scanned >= SCAN) break
-    }
-    return out
+    const rows = await ctx.db.query('breakoutBests').withIndex('by_ms').take(TOP)
+    return rows.map(({ _id, name, ms }) => ({ _id, name, ms }))
+  },
+})
+
+/**
+ * One-off: fills `breakoutBests` from the runs saved before it existed. The board reads that table, so run
+ * this right after the deploy that adds it, with `pnpm exec convex run breakout:fillBests` (add --prod for
+ * production). Nothing is deleted, and it's safe to run again.
+ */
+export const fillBests = internalMutation({
+  args: { cursor: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { cursor }): Promise<null> => {
+    const { page, isDone, continueCursor } = await ctx.db
+      .query('breakoutScores')
+      .paginate({ cursor: cursor ?? null, numItems: 500 })
+    for (const row of page) await keepBest(ctx, playerKey(row), row.name, row.ms)
+    if (!isDone) await ctx.scheduler.runAfter(0, internal.breakout.fillBests, { cursor: continueCursor })
+    return null
   },
 })
 

@@ -128,7 +128,7 @@ function Board({ game, title, rows, labels }: {
                 <th scope="row" className="py-4 pr-3 font-normal">
                   <a href={`https://github.com/${encodeURIComponent(row.name)}`} className={`${LINK} wrap-anywhere`}>{row.name}</a>
                 </th>
-                <td className="py-4 text-right align-top whitespace-nowrap tabular-nums">{row.value}</td>
+                <td className="py-4 text-right align-top tabular-nums wrap-anywhere">{row.value}</td>
               </tr>
             ))}
           </tbody>
