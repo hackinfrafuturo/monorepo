@@ -7,8 +7,7 @@
  * clears at the current speed, and every gap leaves time to land. So the knobs below change how hard the
  * course is, not whether it can be played.
  *
- * The speed is not a knob here: ACCEL and MAX_SPEED in HifRunner.tsx are mirrored in convex/runner.ts, which
- * caps scores with them.
+ * The speed is not a knob here: ACCEL and MAX_SPEED live in HifRunner.tsx.
  */
 
 /** a value at difficulty 0 and at difficulty 1, interpolated between */

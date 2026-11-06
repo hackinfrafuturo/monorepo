@@ -18,7 +18,7 @@ import { BAND_CX, BAND_ROWS, DITHER_PITCH, DITHER_R, FLAG_SPLIT, FLAG_STAR, SPRI
  * rows fading while the ground fills down to the bottom), and the star, cut out of the flag's black square,
  * comes out of it as a star and flips into place while the square fades. Leaving runs it backwards.
  *
- * A run is timed on the server from the first jump (convex/runner.ts); a score good enough for the top ten
+ * A run opens on the server at the first jump (convex/runner.ts); a score good enough for the top ten
  * can be named onto the leaderboard.
  *
  * Everything is drawn on one full-screen canvas, in CSS pixels. Star and band geometry come from
@@ -75,7 +75,7 @@ const GAP = 0.04 // between letters in a group, in em
 const STAR_H = 50 // the star, tip to feet, in mark units
 const DUCK = 0.6 // ducking squashes the star to this much of its height
 // difficulty: the start speed (a share of the screen's width) grows by ACCEL of itself a second, up to
-// MAX_SPEED times; keep ACCEL and MAX_SPEED in step with convex/runner.ts, which caps scores with them
+// MAX_SPEED times
 const ACCEL = 0.045
 const MAX_SPEED = 3.2
 /** a band dot's column pattern repeats every 8 columns: leaving, the floor scrolls back to a multiple of this */
@@ -907,7 +907,7 @@ export function HifRunner({
         >
           <div className="flex flex-col items-center gap-2">
             <p className="font-pixel text-[clamp(36px,5vw,60px)] leading-none text-[#181818]">{labels.over}</p>
-            {result && <p className="font-pixel text-[32px] leading-none text-brand tabular-nums">{pad(result.score)}</p>}
+            {result && <p className="max-w-full font-pixel text-[32px] leading-none text-brand tabular-nums wrap-anywhere">{pad(result.score)}</p>}
           </div>
 
           {showForm && (
