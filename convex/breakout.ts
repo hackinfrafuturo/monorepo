@@ -7,16 +7,14 @@ import { githubHandle, handleKey, playerKey } from './github'
  * The leaderboard for the Breakout easter egg on the landing (src/components/HifBreakout.tsx).
  *
  * Times are measured here, not sent by the browser: `start` stamps a run when the star is first
- * launched, `complete` stamps the win and returns the time, and `claim` puts a GitHub username on it. That stops
- * anyone from just posting "1 second". It isn't tamper-proof (a script can still wait out a real run),
- * which is fine for a game on a landing page; delete bad rows from the dashboard's Data page.
+ * launched, `complete` stamps the win and returns the time, and `claim` puts a GitHub username on it.
+ * No time is too fast on purpose: bots and scripts are welcome, and the board is a race to the lowest
+ * time, to the millisecond.
  *
  * Everyone can play as often as they like: every named run is kept, and the board shows the ten fastest
  * people, each once, with their best time.
  */
 
-/** faster than this isn't a real game: 15 letters, two hits each */
-const MIN_MS = 10_000
 /** a run left open longer than this doesn't count */
 const MAX_MS = 60 * 60_000
 /** how long a winner has to type a name */
@@ -41,7 +39,7 @@ export const complete = mutation({
     if (!run || run.finishedAt !== undefined) throw new ConvexError('Invalid run')
     const now = Date.now()
     const ms = now - run.startedAt
-    if (ms < MIN_MS || ms > MAX_MS) throw new ConvexError('Invalid run')
+    if (ms > MAX_MS) throw new ConvexError('Invalid run')
     await ctx.db.patch(runId, { finishedAt: now })
     return ms
   },
