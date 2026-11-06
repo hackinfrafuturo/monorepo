@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:platform": "pnpm --filter @hackathon/platform dev",
+    "build:platform": "pnpm --filter @hackathon/platform build",
     "dev:intranet": "pnpm --filter @intranet/backoffice dev",
     "build:intranet": "pnpm --filter @intranet/backoffice build",
     "start:intranet": "pnpm --filter @intranet/backoffice start",
